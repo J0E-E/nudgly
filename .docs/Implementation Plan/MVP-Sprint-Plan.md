@@ -8,7 +8,7 @@
 
 ---
 
-## Epic 1: Project Setup & Infrastructure
+## Epic 1: Project Setup & Infrastructure — COMPLETED
 
 **Objective:** Running Django API and React + Capacitor app in Docker; health check and minimal routing.
 
@@ -24,7 +24,12 @@
 - Env/config for API base URL.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Backend:** Health at `GET /health/` (Django); returns JSON `{ status, database, redis }` with 200 when all ok, 503 when DB or Redis down. Config via `django-environ`; `.env` at repo root. CORS via `CORS_ALLOWED_ORIGINS` / `CORS_ALLOW_ALL_ORIGINS`. Tests use SQLite in-memory (no Postgres required).
+- **Frontend:** React + Vite; React Router with single route `/` → `HealthScreen`. API base URL from `VITE_API_BASE_URL` (see `frontend/src/config/api.ts`). When served behind nginx, use empty string for same-origin; for local Vite dev use `http://localhost:8000`. Capacitor 8 present; Android/iOS not yet added (`npx cap add android|ios` when needed).
+- **Docker:** nginx was added (not stubbed) as single entrypoint. App is exposed on **port 9000**: open `http://localhost:9000` for the app and `http://localhost:9000/health/` for health. nginx proxies `/` → frontend, `/health/` and `/api/` → Django.
+- **Deferred:** `celery_worker` and `celery_beat` are not in Compose; add in a later epic when reminder/nudge engine is implemented.
+- **Caveats:** Ensure `.env` exists (copy from `.env.example`). Backend healthcheck hits Django’s `/health/`; frontend container has no healthcheck.
 
 ---
 

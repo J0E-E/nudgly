@@ -1,0 +1,5 @@
+# Dev and tooling (install with: pip install -r requirements-dev.txt)
+# Used for local format/lint and for pre-commit when run from repo root.
+
+pre-commit>=3.6.0,<4
+ruff>=0.8.0,<1

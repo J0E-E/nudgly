@@ -1,0 +1,32 @@
+---
+description: Keep files tidy and small; use modular coding; refactor when files grow too large
+alwaysApply: true
+---
+
+# Keep Files Tidy and Small
+
+Apply **modular coding** and **small-file discipline** across the codebase. If a file starts getting too big, **target it for refactoring immediately**.
+
+## Size and Structure
+
+- **Target size**: Prefer files under ~200–300 lines of meaningful code. Treat this as a soft limit; exceeding it is a signal to split.
+- **Single responsibility**: Each file (module, component, service) should have one clear purpose. One reason to change.
+- **No bloat**: Remove dead code, redundant helpers, and unused exports. Keep imports minimal and purposeful.
+
+## Modular Techniques
+
+- **Extract by concern**: Split large files by responsibility—e.g. separate API client, types, and UI into different modules.
+- **Composition over monoliths**: Prefer small, composable functions and components over one large block.
+- **Dependency injection**: Inject dependencies where it improves testability and keeps modules focused.
+- **Colocate only what belongs**: Keep related code together; move unrelated logic into dedicated modules.
+
+## When to Refactor
+
+- **File is growing**: As you add features or fix bugs, if the file is approaching or past the target size, refactor in the same work (or immediately after).
+- **Multiple responsibilities**: If you find yourself adding a "section" or "part" that could live elsewhere, extract it.
+- **Hard to navigate**: If the file is hard to scan or reason about, split it into smaller, well-named modules.
+
+## Practice
+
+- When editing a file that is already large, prefer extracting new logic into a new module rather than expanding the file further.
+- Name new modules and exports so their purpose is obvious; avoid generic names like `utils` or `helpers` unless they are genuinely small and focused.

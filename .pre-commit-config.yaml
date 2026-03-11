@@ -1,0 +1,51 @@
+# Pre-commit hooks: format, lint, and test before each commit.
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+# See: https://pre-commit.com
+
+default_language_version:
+  python: python3
+
+repos:
+  # --- Python: backend format + lint (Ruff) ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff-format
+        name: Ruff format
+        files: ^backend/
+        args: [--config=backend/pyproject.toml]
+      - id: ruff
+        name: Ruff check (lint)
+        files: ^backend/
+        args: [--fix, --config=backend/pyproject.toml]
+
+  # --- Frontend: format, lint, test (local hooks; run from frontend/) ---
+  - repo: local
+    hooks:
+      - id: frontend-format
+        name: Frontend format (Prettier)
+        entry: bash -c 'cd frontend && npm run format'
+        language: system
+        pass_filenames: false
+
+      - id: frontend-lint
+        name: Frontend lint (ESLint)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+
+      - id: frontend-test
+        name: Frontend test (Vitest)
+        entry: bash -c 'cd frontend && npm run test'
+        language: system
+        pass_filenames: false
+
+  # --- Backend: Django tests ---
+  - repo: local
+    hooks:
+      - id: backend-test
+        name: Backend test (Django)
+        entry: bash -c 'cd backend && python3 manage.py test'
+        language: system
+        pass_filenames: false

@@ -1,0 +1,12 @@
+# Django and REST framework
+Django>=5.0,<6
+djangorestframework>=3.15,<4
+django-cors-headers>=4.3,<5
+
+# Database and cache
+psycopg2-binary>=2.9,<3
+redis>=5.0,<6
+
+# Environment and server
+django-environ>=0.11
+gunicorn>=22.0,<23

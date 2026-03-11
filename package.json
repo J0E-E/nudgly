@@ -1,0 +1,12 @@
+{
+  "name": "nudgly",
+  "private": true,
+  "description": "Root scripts: run all tests and lint/format from repo root.",
+  "scripts": {
+    "format": "npm run format --prefix frontend && (cd backend && ruff format .)",
+    "format:check": "npm run format:check --prefix frontend && (cd backend && ruff format --check .)",
+    "lint": "npm run lint --prefix frontend && (cd backend && ruff check .)",
+    "lint:fix": "npm run lint --prefix frontend && (cd backend && ruff check --fix .)",
+    "test": "npm run test --prefix frontend && (cd backend && ../.venv/bin/python manage.py test)"
+  }
+}

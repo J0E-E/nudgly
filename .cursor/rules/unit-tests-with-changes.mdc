@@ -1,0 +1,32 @@
+---
+description: Unit tests must be updated or created whenever code is added or changed
+alwaysApply: true
+---
+
+# Unit Tests With Every Change
+
+This rule applies to **both backend (BE) and frontend (FE)**.
+
+Whenever you **add, change, or remove** production code, you must **update or create** the corresponding unit tests in the same work.
+
+## Requirements
+
+1. **New code** — Add unit tests that cover the new behavior (happy path and important edge/failure cases).
+2. **Changed code** — Update existing tests so they match the new behavior; add tests for any new branches or outcomes.
+3. **Removed code** — Remove or adjust tests that targeted the removed behavior; do not leave tests that no longer apply.
+4. **Refactors** — If behavior is unchanged, ensure tests still pass and still describe the same contract; update test names or structure if they no longer match the code.
+
+## Practice
+
+- Run the test suite after test changes and confirm nothing is broken.
+- Prefer testing behavior and public contracts over implementation details.
+- Keep tests focused: one logical concern per test (or per describe block).
+- Place tests according to project convention (e.g. `*.test.ts` next to source, or under `__tests__` / `tests/`).
+
+## Scope
+
+- Applies to **backend and frontend** alike: services, APIs, components, hooks, utils, and any other production code.
+- Apply to any production code change: new features, bug fixes, refactors, and dependency or API changes that affect behavior.
+- If the codebase has no test setup yet, add the minimal setup and at least one test for the changed code so tests can be run going forward.
+
+Do not merge or consider code changes complete without the corresponding test updates or additions.

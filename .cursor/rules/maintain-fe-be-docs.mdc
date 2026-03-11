@@ -1,0 +1,43 @@
+---
+description: Keep .docs/fe_docs.md and be_docs.md updated with FE/BE technical and usage docs
+alwaysApply: true
+---
+
+# Maintain FE/BE Documentation in .docs
+
+This rule applies to **both frontend (FE) and backend (BE)**. Keep technical documentation current in the `.docs` folder so junior developers and new users can understand and use the codebase.
+
+## Location
+
+- **Frontend**: [.docs/fe_docs.md](.docs/fe_docs.md)
+- **Backend**: [.docs/be_docs.md](.docs/be_docs.md)
+
+## When to Update
+
+Update the relevant doc in the **same work** whenever you:
+
+- Add, change, or remove FE/BE modules, APIs, services, components, hooks, or public behavior
+- Change routes, handlers, or data contracts that affect how callers use the system
+- Introduce or remove key utilities, conventions, or entry points
+
+Apply the same scope as production code changes: new features, bug fixes, refactors, and dependency or API changes that affect behavior or usage. Do not leave docs stale after shipping code.
+
+## Content Requirements
+
+1. **Technical and function-level** — Document modules, main functions/APIs, parameters, return values, and how to call or use them. Include enough detail that a developer can use the API or component without reading the source.
+2. **Audience** — Write for **junior developers and new users**: clear explanations, minimal assumed context, step-by-step or "how to use" guidance where helpful. Avoid jargon without a brief definition.
+3. **Comprehensive** — Cover main entry points, services, and patterns so a new dev can find how things work without reading all source. Omit only truly internal or trivial helpers.
+
+## Suggested Structure (flexible)
+
+**fe_docs.md**: Overview, project structure, main components and hooks, data flow, key utilities, how to run/build, and any FE-specific conventions.
+
+**be_docs.md**: Overview, project structure, API surface (routes/handlers), services and their responsibilities, data models or persistence, how to run/test, and BE-specific conventions.
+
+Adjust sections to fit the actual codebase; the goal is scannable, accurate documentation.
+
+## Practice
+
+- Update the relevant doc in the same change set that modifies FE or BE code. Do not merge or consider code complete without corresponding doc updates when behavior or usage changes.
+- Prefer concise, scannable sections: clear headings, lists, and short code snippets so junior devs can find answers quickly.
+- When creating or significantly expanding either file, ensure it reflects the current state of the codebase; remove or rewrite obsolete sections.

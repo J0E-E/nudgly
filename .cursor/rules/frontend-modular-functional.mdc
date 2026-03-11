@@ -1,0 +1,64 @@
+---
+description: Frontend must use modular, functional component-forward design with dependency injection for reuse
+globs: "**/*.tsx,**/*.jsx,**/*.vue"
+alwaysApply: false
+---
+
+# Frontend: Modular, Functional, Component-Forward
+
+The frontend must be built with a **modular, functional component-forward** design. Anything that could be reused must be created with **dependency injection** and **modularity** in mind.
+
+## Principles
+
+1. **Functional components only** — Use function components and hooks. No class components.
+2. **Component-forward** — Prefer small, single-responsibility components. Compose UI from focused building blocks.
+3. **Modular** — Each component, hook, or util lives in a focused module. Avoid monoliths and god components.
+4. **Reuse via injection** — Reusable pieces accept dependencies (callbacks, services, config, children) as props or arguments instead of hard-coding them.
+
+## Reusable Code
+
+- **Components**: Accept render props, slots, or callback props for behavior and content. Inject data/fetchers via props or context, not internal imports of concrete implementations.
+- **Hooks**: Accept options or adapter functions as arguments so callers can inject behavior (e.g. API client, logger).
+- **Utils/helpers**: Pure where possible; accept configuration or strategy functions as parameters rather than reading globals or fixed implementations.
+
+## Examples
+
+```tsx
+// ❌ BAD: hard-coded dependency, not reusable
+function UserCard() {
+  const user = useAuthApi().getCurrentUser(); // concrete API bound inside
+  return <div>{user.name}</div>;
+}
+
+// ✅ GOOD: dependency injected via props
+function UserCard({ user }: { user: User }) {
+  return <div id="user-card-name">{user.name}</div>;
+}
+
+// ✅ GOOD: optional injection with sensible default
+function useCurrentUser(fetcher?: () => Promise<User>) {
+  const defaultFetcher = useAuthApi().getCurrentUser;
+  const get = fetcher ?? defaultFetcher;
+  return useQuery(['currentUser'], get);
+}
+```
+
+```tsx
+// ❌ BAD: one big component, no modularity
+function Dashboard() {
+  // 200 lines of layout, data, and UI mixed together
+}
+
+// ✅ GOOD: small components, composed
+function Dashboard() {
+  return (
+    <Layout>
+      <DashboardHeader />
+      <DashboardContent />
+      <DashboardFooter />
+    </Layout>
+  );
+}
+```
+
+When adding or changing UI, prefer extracting a reusable, injectable component or hook over inlining or hard-coding dependencies.

@@ -1,0 +1,45 @@
+---
+description: Require every HTML element to have a unique, descriptive id for precise UI targeting
+globs: "**/*.html,**/*.tsx,**/*.jsx,**/*.vue,**/*.ejs"
+alwaysApply: false
+---
+
+# HTML Element IDs
+
+Every HTML element that is created must have a **unique, descriptive `id`** attribute set. No exceptions.
+
+## Purpose
+
+- Enables instructing UI changes by specific element (e.g. "change the text in the submit button" → target by id).
+- Makes automation, testing, and AI-driven edits reliable and unambiguous.
+
+## Requirements
+
+1. **Every element gets an id** — `div`, `span`, `button`, `input`, `section`, `header`, `form`, etc.
+2. **Unique** — No two elements in the same document (or same logical view) share the same id.
+3. **Descriptive** — The id reflects the element’s role or content (e.g. `id="auth-form-submit-btn"`, not `id="btn1"`).
+
+## Naming
+
+- Use kebab-case: `id="user-profile-avatar"`.
+- Prefer role + context: `id="settings-notifications-toggle"`, `id="checkout-shipping-address-input"`.
+- For repeated items (lists), include a stable identifier: `id="todo-item-{id}"`, `id="product-card-{slug}"`.
+
+## Examples
+
+```html
+<!-- ❌ BAD: no id -->
+<button>Submit</button>
+<div class="card">...</div>
+
+<!-- ❌ BAD: non-descriptive or non-unique -->
+<button id="btn">Submit</button>
+<div id="div1">...</div>
+
+<!-- ✅ GOOD: unique and descriptive -->
+<button id="contact-form-submit-btn">Submit</button>
+<section id="pricing-plans-section">...</section>
+<input id="signup-email-input" type="email" />
+```
+
+In JSX/TSX, set `id` on every DOM element you render (including layout elements) so UI instructions can refer to them by id.

@@ -33,6 +33,30 @@
 
 ---
 
+## Epic 1b: Email System Interface — COMPLETED
+
+**Objective:** Define an email-sending interface and provide a stdout adapter as the default implementation. No real mail provider (e.g. SendGrid) yet; the system will use the interface so a SendGrid (or other) adapter can be plugged in later.
+
+### Backend
+- **Interface:** Define an email-sender interface (e.g. `send_email(to, subject, body_plain, body_html=None, reply_to=None)` or equivalent contract). All callers (e.g. password reset, notifications) will depend on this interface, not on a concrete implementation.
+- **Stdout adapter:** Implement an adapter that fulfills the interface by writing the email payload to stdout (e.g. structured log or human-readable dump: to, subject, body). No SMTP or third-party API calls.
+- **Default:** Wire the application so the default implementation is the stdout adapter. Configuration (e.g. env or Django settings) should allow swapping to another adapter later (e.g. SendGrid) without changing call sites.
+- **Documentation:** Document the interface contract and how to add a new adapter (e.g. for SendGrid when an account is set up).
+
+### Frontend
+- No frontend work in this epic; email is backend-only.
+
+### Implementation Notes
+- **Status:** Done. All objectives met.
+- **Interface:** `core.email.interface.EmailSender` (typing.Protocol) with `send_email(to, subject, body_plain, body_html=None, reply_to=None)`. `to` accepts either a single email string or a list of strings.
+- **Stdout adapter:** `core.email.adapters.stdout_adapter.StdoutAdapter`; writes payload via Python `logging` (logger.info). In typical Django dev config this goes to console; no SMTP/API. Use for dev/test only.
+- **Config:** `EMAIL_SENDER` env (default `stdout`). Wired in `config/settings.py` via django-environ. Getter: `core.email.get_email_sender()`; callers use it and do not depend on a concrete class. Unknown value falls back to stdout so missing or invalid env does not break the app.
+- **Caching:** The getter caches the adapter instance after first call. Tests that patch `EMAIL_SENDER` must reset `core.email._sender = None` before calling `get_email_sender()` so the patch is applied; in production, adapter is chosen once per process.
+- **Adding an adapter:** See [.docs/be_docs.md](../be_docs.md) — implement the protocol, register in `get_email_sender()` in `core/email/__init__.py`, set `EMAIL_SENDER` in env. Call sites do not change.
+- **Tests:** `core/tests/test_email.py` — StdoutAdapter (single/list recipients, body_plain, body_html, reply_to) and get_email_sender (default, interface contract, caching, unknown fallback). Run: `python manage.py test core.tests.test_email`.
+
+---
+
 ## Epic 2: Authentication (Email / Password)
 
 **Objective:** Users can register, log in, log out, and reset password; JWT access/refresh; protected routes.
@@ -316,6 +340,7 @@
 | Order | Epic | Rationale |
 |-------|------|-----------|
 | 1 | Project Setup & Infrastructure | Foundation |
+| 1b | Email System Interface | Interface + stdout adapter; required before Auth (password reset) and any mail-dependent features |
 | 2 | Authentication (Email/Password) | Required for all user features |
 | 3 | Authentication (OAuth) | Optional but part of MVP scope |
 | 4 | User Profile & Username | Needed for Friends (username) |

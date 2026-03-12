@@ -1,0 +1,29 @@
+---
+description: Follow the frontend style guide (docs/fe/style-guide.md) for all designs
+alwaysApply: true
+---
+
+# Frontend Style Guide (Always Apply)
+
+When building or reviewing frontend components and pages, follow **.docs/style-guide.md**. It is the source of truth for visual style, responsiveness, and accessibility. Context-specific overrides are allowed only when justified (e.g. marketing vs app shell).
+
+## Requirements
+
+1. **Color palette – Mystic Aqua Serenity**
+   - Jet Black `#17252A`, Pine Blue `#2B7A78`, Tropical Teal `#3AAFA9`, Azure Mist `#DEF2F1`, White `#FEFFFF`.
+   - Use these by default; justify any exceptions.
+
+2. **Flat design**
+   - No gradients, heavy shadows, or skeuomorphism. Use solid fills and simple borders.
+   - Hierarchy via color and typography only. Minimal decoration; focus on content and usability.
+
+3. **Responsive design**
+   - Mobile-first or breakpoint-based; test multiple viewport sizes.
+   - Touch targets 24px min (WCAG AA); navbar controls 44px; readable text without zoom; flexible layouts (grid/flexbox); no horizontal scroll.
+   - Use Tailwind breakpoints (`sm`, `md`, `lg`, etc.) for consistency.
+
+4. **ADA compliance**
+   - WCAG AA contrast for text (e.g. Jet Black, Pine Blue, Tropical Teal on Azure Mist or White).
+   - Semantic HTML and ARIA (landmarks, labels, roles); keyboard navigation and visible focus; alt text and alternatives for non-text content.
+
+Before shipping a component, verify: palette usage, flat styling, responsive behavior, and accessibility (contrast, semantics, keyboard, non-text alternatives).

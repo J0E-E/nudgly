@@ -16,6 +16,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, []),
     CORS_ALLOW_ALL_ORIGINS=(bool, False),
+    EMAIL_SENDER=(str, "stdout"),
 )
 
 # Read .env from repo root (parent of backend/) so Docker and local dev share one file
@@ -75,6 +76,9 @@ else:
 
 # Redis (for health check and future Celery)
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+
+# Email: adapter name for get_email_sender(); "stdout" logs to logger (dev/test). Add sendgrid etc. later.
+EMAIL_SENDER = env("EMAIL_SENDER")
 
 # Rest framework (minimal for health; add auth in later epics)
 REST_FRAMEWORK = {

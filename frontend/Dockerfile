@@ -16,6 +16,7 @@ RUN npm run build
 # Stage 2: nginx serves the SPA (for internal use; main nginx proxies / here)
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-# Default nginx.conf serves static from /usr/share/nginx/html
+# SPA fallback so /login/, /register/, etc. serve index.html and React Router can route
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

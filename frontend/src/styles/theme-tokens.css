@@ -1,0 +1,30 @@
+/**
+ * Semantic theme tokens – Mystic Aqua Serenity (Teal).
+ * All themeable UI colors use these variables; no hard-coded hex in components.
+ * See .docs/Design Docs/theme-tokens.md for contract and usage.
+ */
+
+:root {
+  /* Primary palette (Mystic Aqua Serenity) */
+  --color-jet-black: #17252a;
+  --color-pine-blue: #2b7a78;
+  --color-tropical-teal: #3aafa9;
+  --color-azure-mist: #def2f1;
+  --color-white: #feffff;
+  --color-warning: #e8d4a1;
+  --color-alert: #cd5b5b;
+
+  /* Semantic tokens – use these in components */
+  --color-primary: var(--color-jet-black);
+  --color-surface: var(--color-white);
+  --color-surface-alt: var(--color-azure-mist);
+  --color-accent: var(--color-tropical-teal);
+  --color-secondary: var(--color-pine-blue);
+  --color-text: var(--color-jet-black);
+  --color-text-muted: var(--color-pine-blue);
+  --color-border: var(--color-pine-blue);
+  --color-focus: var(--color-tropical-teal);
+  --color-alert-bg: #fef2f2;
+  --color-on-alert: var(--color-alert);
+  --color-on-accent: var(--color-white);
+}

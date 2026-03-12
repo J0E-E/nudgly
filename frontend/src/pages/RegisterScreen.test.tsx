@@ -1,0 +1,112 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { RegisterScreen } from './RegisterScreen'
+import { useAuth } from '../contexts/useAuth'
+
+vi.mock('../contexts/useAuth', () => ({
+  useAuth: vi.fn(),
+}))
+
+const mockUseAuth = vi.mocked(useAuth)
+
+describe('RegisterScreen', () => {
+  const mockRegister = vi.fn()
+  const mockClearError = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      register: mockRegister,
+      error: null,
+      clearError: mockClearError,
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      confirmPasswordReset: vi.fn(),
+      getApiDeps: vi.fn(),
+    })
+  })
+
+  it('renders register form with email, username, and password fields', () => {
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Username')).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /create account/i })
+    ).toBeInTheDocument()
+  })
+
+  it('has unique descriptive IDs for form elements', () => {
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    expect(document.getElementById('register-form')).toBeInTheDocument()
+    expect(document.getElementById('register-email-input')).toBeInTheDocument()
+    expect(
+      document.getElementById('register-username-input')
+    ).toBeInTheDocument()
+    expect(
+      document.getElementById('register-password-input')
+    ).toBeInTheDocument()
+    expect(document.getElementById('register-submit-btn')).toBeInTheDocument()
+  })
+
+  it('calls register with email, username, and password on submit', async () => {
+    mockRegister.mockResolvedValue(undefined)
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'test@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: 'testuser' },
+    })
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'Pass1234' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    expect(mockRegister).toHaveBeenCalledWith(
+      'test@example.com',
+      'testuser',
+      'Pass1234'
+    )
+  })
+
+  it('displays error from auth context', () => {
+    mockUseAuth.mockReturnValue({
+      register: mockRegister,
+      error: 'This username is already taken.',
+      clearError: mockClearError,
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      confirmPasswordReset: vi.fn(),
+      getApiDeps: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This username is already taken.'
+    )
+  })
+})

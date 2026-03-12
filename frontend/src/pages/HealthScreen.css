@@ -1,0 +1,73 @@
+/**
+ * Health screen: semantic theme tokens, flat design, 24px+ touch targets.
+ * Responsive layout; no horizontal scroll. See .docs/Design Docs/style-guide.md.
+ */
+
+#health-screen-container {
+  padding: 1rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#health-screen-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+#health-screen-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+#health-loading {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted);
+}
+
+#health-error-container {
+  margin: 0 0 1rem;
+  padding: 0.5rem;
+  background-color: var(--color-alert-bg);
+  border: 1px solid var(--color-alert);
+  border-radius: 4px;
+}
+
+#health-error-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-on-alert);
+}
+
+#health-status-list {
+  margin: 0 0 1.5rem;
+  padding-left: 1.25rem;
+  color: var(--color-text);
+}
+
+#health-status-list li {
+  margin-bottom: 0.25rem;
+}
+
+#health-refresh-btn {
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#health-refresh-btn:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+#health-refresh-btn:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

@@ -1,6 +1,7 @@
 # Django and REST framework
 Django>=5.0,<6
 djangorestframework>=3.15,<4
+djangorestframework-simplejwt>=5.3,<6
 django-cors-headers>=4.3,<5
 
 # Database and cache

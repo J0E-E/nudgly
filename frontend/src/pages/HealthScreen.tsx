@@ -1,4 +1,5 @@
 import { useHealth } from '../hooks/useHealth'
+import './HealthScreen.css'
 
 /**
  * Health screen: displays API, database, and Redis status from GET /health/.

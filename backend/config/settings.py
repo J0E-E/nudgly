@@ -4,6 +4,7 @@ Uses django-environ for env-based config; see .env.example for required variable
 """
 
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -17,6 +18,7 @@ env = environ.Env(
     CORS_ALLOWED_ORIGINS=(list, []),
     CORS_ALLOW_ALL_ORIGINS=(bool, False),
     EMAIL_SENDER=(str, "stdout"),
+    FRONTEND_ORIGIN=(str, "http://localhost:5173"),
 )
 
 # Read .env from repo root (parent of backend/) so Docker and local dev share one file
@@ -30,11 +32,16 @@ DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
+# Custom user model; must be set before first migration that references User.
+AUTH_USER_MODEL = "core.User"
+
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "config",
     "core",
@@ -80,11 +87,25 @@ REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 # Email: adapter name for get_email_sender(); "stdout" logs to logger (dev/test). Add sendgrid etc. later.
 EMAIL_SENDER = env("EMAIL_SENDER")
 
-# Rest framework (minimal for health; add auth in later epics)
+# Frontend origin for password-reset links (e.g. http://localhost:5173 or https://app.example.com).
+FRONTEND_ORIGIN = env("FRONTEND_ORIGIN")
+
+# Rest framework: JWT auth for API; health remains unauthenticated.
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+
+# Simple JWT: access/refresh lifetimes; blacklist for logout.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # Security

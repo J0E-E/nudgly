@@ -57,7 +57,7 @@
 
 ---
 
-## Epic 2: Authentication (Email / Password)
+## Epic 2: Authentication (Email / Password) — COMPLETED
 
 **Objective:** Users can register, log in, log out, and reset password; JWT access/refresh; protected routes.
 
@@ -77,7 +77,10 @@
 - Logout control (e.g. in header or placeholder settings).
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Backend:** Custom `core.User` (email as USERNAME_FIELD, username required). Auth under `/api/auth/`: register, login, logout (simplejwt blacklist), token/refresh, me, password-reset, password-reset/confirm. `PasswordResetToken` model; reset link uses `FRONTEND_ORIGIN`. Validation: password min 8 chars + letter + number; username 3–30 alphanumeric + underscore. See [.docs/be_docs.md](../be_docs.md).
+- **Frontend:** Auth context stores user + access (memory), refresh (localStorage); session restore on load via refresh then GET me. API client (`apiClient.ts`) attaches Bearer and handles 401/refresh. Routes: `/login`, `/register`, `/reset-password`, `/reset-password/confirm`; `/` protected. AppHeader shows logout when authenticated. See [.docs/fe_docs.md](../fe_docs.md).
+- **Caveats:** Logout view returns 200 (simplejwt TokenBlacklistView default). Ensure `FRONTEND_ORIGIN` is set for password-reset emails when not using stdout adapter.
 
 ---
 

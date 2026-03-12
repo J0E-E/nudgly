@@ -2,6 +2,25 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Docker Compose: full reset (remove volumes, rebuild)",
+      "type": "shell",
+      "command": "docker compose down -v && docker compose up -d --build",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {}
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Docker Compose: down then up -d --build",
       "type": "shell",
       "command": "docker compose down && docker compose up -d --build",

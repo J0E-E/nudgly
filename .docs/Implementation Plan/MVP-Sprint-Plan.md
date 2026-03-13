@@ -84,7 +84,7 @@
 
 ---
 
-## Epic 3: Authentication (OAuth – Gmail & Apple)
+## Epic 3: Authentication (OAuth – Gmail & Apple) — COMPLETED
 
 **Objective:** Sign-in with Google and Apple in addition to email/password.
 
@@ -98,7 +98,13 @@
 - OAuth callback handling (redirect or deep link); exchange code for tokens and update auth state.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Backend:** django-allauth for Google and Apple. Custom adapters in `core.auth.adapters`: `NudglySocialAccountAdapter` sets random placeholder username for new OAuth users; `NudglyAccountAdapter` for account settings. OAuth flow: frontend links to `GET /api/auth/oauth/google/authorize/` or `.../apple/authorize/`; backend redirects to provider; after callback, allauth creates/links user and redirects to `GET /api/auth/oauth/complete/`, which issues JWT and redirects to `{FRONTEND_ORIGIN}/auth/callback#access=...&refresh=...`. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`; register backend callback URL in provider consoles. Sessions and AuthenticationMiddleware used for the OAuth redirect step only. The complete view calls `request.session.flush()` before redirecting so no server-side session remains after OAuth (tokens are in the fragment only).
+- **Frontend:** OAuth buttons (Google and Apple icons) on Login and Register via `OAuthButtons` component. Google links to backend; **Apple is disabled for development** (shown as “Sign in with Apple (coming soon)”) and will be enabled once the app is further along. Route `/auth/callback`: `AuthCallbackScreen` parses fragment for `access` and `refresh`, calls `loginWithOAuthTokens(access, refresh)` (stores tokens and fetches user via `getMeWithToken`), then redirects to `/`. AuthContext exposes `loginWithOAuthTokens`; authApi has `getGoogleAuthorizeUrl`, `getAppleAuthorizeUrl`, `getMeWithToken`. LoginScreen handles `?oauth_error=not_authenticated` (backend redirect when user hits complete without a session) and shows a message, then strips the query param.
+- **Tests:** Backend `core/tests/test_oauth.py` (random username, adapter populate_user, oauth complete view redirect). Frontend: Login/Register tests include OAuth buttons and IDs; AuthCallbackScreen tests for missing tokens, success call, error state; LoginScreen test for `oauth_error` message.
+- **Docs:** `.docs/be_docs.md` and `.docs/fe_docs.md` updated with OAuth routes and flow.
+- **Plan vs implementation:** Objective referred to "Gmail"; implementation uses **Google OAuth** (Google identity, same JWT contract). No other material deviation.
+- **Caveats:** `FRONTEND_ORIGIN` must be set for OAuth callback redirect. Google/Apple env vars are required for the respective providers; without them, provider login will fail. When enabling Apple on the frontend: wire `getAppleAuthorizeUrl()` to the Apple button and ensure Apple Developer console has the backend callback URL configured. If a user lands on `/auth/callback` without tokens (e.g. bookmarked), they see "Missing sign-in data" and a link back to login.
 
 ---
 

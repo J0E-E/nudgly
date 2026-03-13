@@ -7,6 +7,7 @@ import { LoginScreen } from './pages/LoginScreen'
 import { RegisterScreen } from './pages/RegisterScreen'
 import { PasswordResetRequestScreen } from './pages/PasswordResetRequestScreen'
 import { PasswordResetConfirmScreen } from './pages/PasswordResetConfirmScreen'
+import { AuthCallbackScreen } from './pages/AuthCallbackScreen'
 import './App.css'
 
 /**
@@ -37,6 +38,7 @@ function App() {
               path="/reset-password/confirm"
               element={<PasswordResetConfirmScreen />}
             />
+            <Route path="/auth/callback" element={<AuthCallbackScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

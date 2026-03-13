@@ -156,6 +156,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   )
 
+  const loginWithOAuthTokens = useCallback(
+    async (access: string, refresh: string) => {
+      setError(null)
+      try {
+        const me = await authApi.getMeWithToken(access)
+        setUser(me)
+        setAccessToken(access)
+        setRefreshToken(refresh)
+        saveRefresh(refresh)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'OAuth sign-in failed')
+        throw e
+      }
+    },
+    []
+  )
+
   const logout = useCallback(async () => {
     const stored = refreshToken ?? loadStoredRefresh()
     if (stored) {
@@ -201,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user,
       login,
       register,
+      loginWithOAuthTokens,
       logout,
       requestPasswordReset,
       confirmPasswordReset,
@@ -213,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       login,
       register,
+      loginWithOAuthTokens,
       logout,
       requestPasswordReset,
       confirmPasswordReset,

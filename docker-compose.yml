@@ -34,7 +34,12 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       DEBUG: ${DEBUG:-true}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,django_api}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,localhost:9000,127.0.0.1:9000,django_api}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:9000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-nudgly}:${POSTGRES_PASSWORD:-nudgly}@postgres:5432/${POSTGRES_DB:-nudgly}
       REDIS_URL: redis://redis:6379/0
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}

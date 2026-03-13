@@ -11,13 +11,16 @@ Django REST API with django-environ for configuration. PostgreSQL and Redis (Doc
   - **core/email/** — Email sending: interface, adapters, and `get_email_sender()`.
     - **core/email/interface.py** — `EmailSender` protocol (contract).
     - **core/email/adapters/** — Concrete implementations (e.g. `StdoutAdapter`).
-  - **core/auth/** — Auth API: register, login, logout, password reset, me, token refresh.
+  - **core/auth/** — Auth API: register, login, logout, password reset, me, token refresh, OAuth (Google/Apple).
     - **core/auth/serializers.py** — Validation for register, login, password reset.
     - **core/auth/views.py** — Register, Login, Logout (blacklist), PasswordResetRequest, PasswordResetConfirm, Me.
+    - **core/auth/adapters.py** — Allauth adapters: random placeholder username for new OAuth users.
+    - **core/auth/oauth_views.py** — OAuth complete view (JWT + redirect to frontend), authorize redirects.
+    - **core/auth/oauth_urls.py** — OAuth routes and allauth URL include.
     - **core/auth/password_reset_service.py** — Token creation, email send, token consume.
     - **core/auth/urls.py** — Routes under `/api/auth/`.
   - **core/api_urls.py** — Mounts `auth/` under `/api/`.
-- **core/tests/** — Unit tests for core (health, email, auth).
+- **core/tests/** — Unit tests for core (health, email, auth, oauth).
 
 ## Running and testing
 
@@ -85,6 +88,21 @@ Auth uses a **custom User model** (`core.User`) with **email as the login identi
 | GET | `/api/auth/me/` | Requires `Authorization: Bearer <access>`. Returns current user payload. |
 | POST | `/api/auth/password-reset/` | Body: `email`. Sends reset email if user exists; always 202 (no enumeration). |
 | POST | `/api/auth/password-reset/confirm/` | Body: `token`, `new_password`. Invalidates token and sets password. |
+| GET | `/api/auth/oauth/google/authorize/` | Redirects to Google OAuth; after consent, Google redirects to backend callback. |
+| GET | `/api/auth/oauth/apple/authorize/` | Apple OAuth (backend ready); **disabled in frontend for development** — will be enabled once the app is further along. |
+| GET | `/api/auth/oauth/complete/` | After social login (session): issues JWT and redirects to `{FRONTEND_ORIGIN}/auth/callback#access=...&refresh=...`. |
+
+### OAuth (Google and Apple)
+
+Sign-in with Google and Apple uses **django-allauth**. New OAuth users get a **random placeholder username** (e.g. `user_<hex>`); they can change it later via profile/settings. The same JWT contract as email login is returned so the frontend is unchanged.
+
+**Apple OAuth:** Backend support (provider, adapter, routes) is in place. The **Apple sign-in button is disabled in the frontend** during development and will be enabled once the app is further along. When enabling, ensure Apple credentials and callback URL are configured in the Apple Developer console.
+
+**Flow:** Frontend links to `GET /api/auth/oauth/google/authorize/` (or apple). Backend redirects to the provider; user consents; provider redirects to backend callback. Allauth creates/links the user and logs in with session. Backend then redirects to `LOGIN_REDIRECT_URL` (`/api/auth/oauth/complete/`), where our view issues JWT and redirects to `{FRONTEND_ORIGIN}/auth/callback#access=...&refresh=...`. Frontend parses the fragment and applies tokens. `SOCIALACCOUNT_LOGIN_ON_GET = True` makes the provider login view redirect on GET (no intermediate template).
+
+**Config (env):** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`. These must be set in `.env`; Docker Compose passes them into the backend. Register the backend callback URL in each provider console: Google use `https://<your-host>/api/auth/oauth/google/login/callback/` (local: `http://localhost:9000/api/auth/oauth/google/login/callback/`); Apple use the same host + `/api/auth/oauth/apple/login/callback/`. `FRONTEND_ORIGIN` is used for the final redirect. Production: use HTTPS for redirect URIs.
+
+**Adding a provider:** Configure the provider in django-allauth (e.g. add to `SOCIALACCOUNT_PROVIDERS` in settings and set env vars), add an authorize redirect view/URL if desired (e.g. `/api/auth/oauth/<provider>/authorize/`), and ensure the adapter in `core.auth.adapters` handles any provider-specific user data.
 
 ### JWT configuration
 

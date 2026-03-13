@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
+import { OAuthButtons } from '../components/OAuthButtons'
 import './AuthScreens.css'
 
 export function RegisterScreen() {
@@ -100,6 +101,7 @@ export function RegisterScreen() {
           {submitting ? 'Creating account…' : 'Create account'}
         </button>
       </form>
+      <OAuthButtons idPrefix="register" />
       <p id="register-links">
         <Link id="register-login-link" to="/login">
           Already have an account? Log in

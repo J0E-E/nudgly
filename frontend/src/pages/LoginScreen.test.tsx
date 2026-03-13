@@ -24,6 +24,7 @@ describe('LoginScreen', () => {
       loading: false,
       isAuthenticated: false,
       register: vi.fn(),
+      loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
@@ -39,7 +40,7 @@ describe('LoginScreen', () => {
     )
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(document.getElementById('login-submit-btn')).toBeInTheDocument()
   })
 
   it('has unique descriptive IDs for form elements', () => {
@@ -67,8 +68,24 @@ describe('LoginScreen', () => {
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'Pass1234' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    fireEvent.click(document.getElementById('login-submit-btn')!)
     expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'Pass1234')
+  })
+
+  it('renders OAuth sign-in buttons with correct authorize URLs', () => {
+    render(
+      <MemoryRouter>
+        <LoginScreen />
+      </MemoryRouter>
+    )
+    const googleBtn = document.getElementById('login-oauth-google-btn')
+    const appleBtn = document.getElementById('login-oauth-apple-btn')
+    expect(googleBtn).toBeInTheDocument()
+    expect(appleBtn).toBeInTheDocument()
+    expect(googleBtn).toHaveAttribute('href', expect.stringContaining('/api/auth/oauth/google/authorize/'))
+    expect(googleBtn).toHaveAttribute('aria-label', 'Sign in with Google')
+    expect(appleBtn).toHaveAttribute('aria-disabled', 'true')
+    expect(appleBtn).toHaveAttribute('aria-label', 'Sign in with Apple (coming soon)')
   })
 
   it('displays error from auth context', () => {
@@ -80,6 +97,7 @@ describe('LoginScreen', () => {
       loading: false,
       isAuthenticated: false,
       register: vi.fn(),
+      loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
@@ -92,6 +110,17 @@ describe('LoginScreen', () => {
     )
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Invalid email or password.'
+    )
+  })
+
+  it('shows OAuth error message when redirected with oauth_error=not_authenticated', () => {
+    render(
+      <MemoryRouter initialEntries={['/login?oauth_error=not_authenticated']}>
+        <LoginScreen />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Sign-in was cancelled or failed. Please try again or use email and password.'
     )
   })
 })

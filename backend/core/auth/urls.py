@@ -2,7 +2,7 @@
 Auth URL routes under /api/auth/.
 """
 
-from django.urls import path
+from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from core.auth.views import (
@@ -30,4 +30,5 @@ urlpatterns = [
         PasswordResetConfirmView.as_view(),
         name="auth-password-reset-confirm",
     ),
+    path("oauth/", include("core.auth.oauth_urls")),
 ]

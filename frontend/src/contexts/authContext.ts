@@ -14,6 +14,8 @@ export interface AuthState {
 export interface AuthActions {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, username: string, password: string) => Promise<void>
+  /** Apply tokens from OAuth callback and fetch user; used by AuthCallbackScreen. */
+  loginWithOAuthTokens: (access: string, refresh: string) => Promise<void>
   logout: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>

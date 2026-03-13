@@ -11,6 +11,15 @@ import { callRefresh } from './apiClient'
 
 const AUTH_BASE = `${API_BASE_URL.replace(/\/$/, '')}/api/auth`
 
+/** OAuth authorize URLs: backend redirects to provider. */
+export function getGoogleAuthorizeUrl(): string {
+  return `${AUTH_BASE}/oauth/google/authorize/`
+}
+
+export function getAppleAuthorizeUrl(): string {
+  return `${AUTH_BASE}/oauth/apple/authorize/`
+}
+
 async function parseOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text()
@@ -122,4 +131,14 @@ export async function refreshAccessToken(
  */
 export async function getMe(deps: ApiClientDeps): Promise<AuthUser> {
   return authGet<AuthUser>(`${AUTH_BASE}/me/`, deps)
+}
+
+/**
+ * Get current user with a raw access token (e.g. after OAuth callback).
+ */
+export async function getMeWithToken(accessToken: string): Promise<AuthUser> {
+  const res = await fetch(`${AUTH_BASE}/me/`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  return parseOrThrow<AuthUser>(res)
 }

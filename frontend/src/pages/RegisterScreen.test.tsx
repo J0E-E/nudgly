@@ -24,6 +24,7 @@ describe('RegisterScreen', () => {
       loading: false,
       isAuthenticated: false,
       login: vi.fn(),
+      loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
@@ -86,6 +87,20 @@ describe('RegisterScreen', () => {
     )
   })
 
+  it('renders OAuth sign-in buttons; Google has authorize URL, Apple is disabled', () => {
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    const googleBtn = document.getElementById('register-oauth-google-btn')
+    const appleBtn = document.getElementById('register-oauth-apple-btn')
+    expect(googleBtn).toBeInTheDocument()
+    expect(appleBtn).toBeInTheDocument()
+    expect(googleBtn).toHaveAttribute('href', expect.stringContaining('/api/auth/oauth/google/authorize/'))
+    expect(appleBtn).toHaveAttribute('aria-disabled', 'true')
+  })
+
   it('displays error from auth context', () => {
     mockUseAuth.mockReturnValue({
       register: mockRegister,
@@ -95,6 +110,7 @@ describe('RegisterScreen', () => {
       loading: false,
       isAuthenticated: false,
       login: vi.fn(),
+      loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),

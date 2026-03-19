@@ -128,7 +128,10 @@ describe('RegisterScreen', () => {
     const appleBtn = document.getElementById('register-oauth-apple-btn')
     expect(googleBtn).toBeInTheDocument()
     expect(appleBtn).toBeInTheDocument()
-    expect(googleBtn).toHaveAttribute('href', expect.stringContaining('/api/auth/oauth/google/authorize/'))
+    expect(googleBtn).toHaveAttribute(
+      'href',
+      expect.stringContaining('/api/auth/oauth/google/authorize/')
+    )
     expect(appleBtn).toHaveAttribute('aria-disabled', 'true')
   })
 

@@ -4,7 +4,12 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import {
+  Link,
+  useNavigate,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { OAuthButtons } from '../components/OAuthButtons'
 import './AuthScreens.css'
@@ -70,7 +75,9 @@ export function LoginScreen() {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={submitting}
-            aria-describedby={oauthErrorMessage || error ? 'login-error' : undefined}
+            aria-describedby={
+              oauthErrorMessage || error ? 'login-error' : undefined
+            }
           />
         </div>
         <div id="login-password-group" className="auth-field">

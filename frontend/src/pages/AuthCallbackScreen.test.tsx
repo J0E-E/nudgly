@@ -88,7 +88,9 @@ describe('AuthCallbackScreen', () => {
     // without mocking useNavigate. We've verified the callback receives the user; integration
     // or E2E can assert the redirect. Here we just ensure no error and callback was called.
     await vi.waitFor(() => {
-      expect(screen.queryByText(/missing sign-in data/i)).not.toBeInTheDocument()
+      expect(
+        screen.queryByText(/missing sign-in data/i)
+      ).not.toBeInTheDocument()
     })
   })
 
@@ -102,7 +104,9 @@ describe('AuthCallbackScreen', () => {
     await vi.waitFor(() => {
       expect(screen.getByText(/sign-in failed/i)).toBeInTheDocument()
     })
-    expect(document.getElementById('auth-callback-login-link')).toBeInTheDocument()
+    expect(
+      document.getElementById('auth-callback-login-link')
+    ).toBeInTheDocument()
   })
 
   it('has unique descriptive IDs for callback UI', async () => {
@@ -112,9 +116,13 @@ describe('AuthCallbackScreen', () => {
       </MemoryRouter>
     )
     await vi.waitFor(() => {
-      expect(document.getElementById('auth-callback-screen')).toBeInTheDocument()
+      expect(
+        document.getElementById('auth-callback-screen')
+      ).toBeInTheDocument()
     })
     expect(document.getElementById('auth-callback-title')).toBeInTheDocument()
-    expect(document.getElementById('auth-callback-login-link')).toBeInTheDocument()
+    expect(
+      document.getElementById('auth-callback-login-link')
+    ).toBeInTheDocument()
   })
 })

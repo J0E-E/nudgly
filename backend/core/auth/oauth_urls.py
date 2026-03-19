@@ -12,7 +12,13 @@ from core.auth.oauth_views import (
 
 urlpatterns = [
     path("complete/", oauth_complete_view, name="oauth-complete"),
-    path("google/authorize/", GoogleAuthorizeView.as_view(), name="oauth-google-authorize"),
-    path("apple/authorize/", AppleAuthorizeView.as_view(), name="oauth-apple-authorize"),
+    path(
+        "google/authorize/",
+        GoogleAuthorizeView.as_view(),
+        name="oauth-google-authorize",
+    ),
+    path(
+        "apple/authorize/", AppleAuthorizeView.as_view(), name="oauth-apple-authorize"
+    ),
     path("", include("allauth.urls")),
 ]

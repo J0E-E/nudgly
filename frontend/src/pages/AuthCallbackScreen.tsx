@@ -57,7 +57,9 @@ export function AuthCallbackScreen() {
       .catch(() => {
         if (!cancelled) {
           setStatus('error')
-          setMessage('Sign-in failed. Please try again or use email and password.')
+          setMessage(
+            'Sign-in failed. Please try again or use email and password.'
+          )
         }
       })
 

@@ -56,9 +56,11 @@ Pre-commit runs **format**, **lint**, and **tests** before each commit.
    ```
    Ensure the frontend has deps installed: `cd frontend && npm install`.
 
-2. **On every commit** the hooks run:
-   - **Backend:** Ruff format + Ruff check (fix) on `backend/`; then Django tests.
-   - **Frontend:** Prettier format, ESLint, then Vitest.
+2. **On every commit** the hooks run (only when relevant files are staged):
+   - **Backend:** Ruff format + Ruff check (`--fix`) on `backend/`; Django tests (all, triggered only when `.py` files change).
+   - **Frontend:** Prettier (`--write`) + ESLint (`--fix`) on `frontend/src/`; Vitest related (only tests affected by staged files).
+
+   If a hook auto-fixes files, the commit aborts. Re-stage the fixes (`git add .`) and commit again — the second commit passes cleanly.
 
    For **backend tests** to pass, use a shell where the backend venv is activated (or install backend deps: `cd backend && pip install -r requirements.txt`). Ruff runs in its own env and does not require the venv.
 

@@ -1,13 +1,18 @@
 # Pre-commit hooks: format, lint, and test before each commit.
 # Install: pre-commit install
 # Run manually: pre-commit run --all-files
+#
+# Auto-fix flow: if a hook fixes files, the commit is aborted and the
+# fixed files are left in your working tree. Just `git add` the fixes
+# and commit again — the second commit will pass cleanly.
+#
 # See: https://pre-commit.com
 
 default_language_version:
   python: python3
 
 repos:
-  # --- Python: backend format + lint (Ruff) ---
+  # --- Backend: format + lint (Ruff, official hooks with bundled binary) ---
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
@@ -20,32 +25,35 @@ repos:
         files: ^backend/
         args: [--fix, --config=backend/pyproject.toml]
 
-  # --- Frontend: format, lint, test (local hooks; run from frontend/) ---
+  # --- Frontend: format + lint + smart tests (local hooks) ---
   - repo: local
     hooks:
       - id: frontend-format
         name: Frontend format (Prettier)
-        entry: bash -c 'cd frontend && npm run format'
+        entry: bash -c 'cd frontend && args=(); for f in "$@"; do args+=("${f#frontend/}"); done; npx prettier --write --ignore-unknown "${args[@]}"' --
         language: system
-        pass_filenames: false
+        files: ^frontend/src/
+        types_or: [javascript, jsx, ts, tsx, css, json, markdown]
 
       - id: frontend-lint
         name: Frontend lint (ESLint)
-        entry: bash -c 'cd frontend && npm run lint'
+        entry: bash -c 'cd frontend && args=(); for f in "$@"; do args+=("${f#frontend/}"); done; npx eslint --fix "${args[@]}"' --
         language: system
-        pass_filenames: false
+        files: ^frontend/src/
+        types_or: [javascript, jsx, ts, tsx]
 
+      # --- Smart test hooks (only run when relevant files change) ---
       - id: frontend-test
-        name: Frontend test (Vitest)
-        entry: bash -c 'cd frontend && npm run test'
+        name: Frontend test (Vitest related)
+        entry: bash -c 'cd frontend && args=(); for f in "$@"; do args+=("${f#frontend/}"); done; npx vitest related --run "${args[@]}"' --
         language: system
-        pass_filenames: false
+        files: ^frontend/src/
+        types_or: [javascript, jsx, ts, tsx]
 
-  # --- Backend: Django tests ---
-  - repo: local
-    hooks:
       - id: backend-test
         name: Backend test (Django)
-        entry: bash -c 'cd backend && python3 manage.py test'
+        entry: bash -c 'cd backend && python manage.py test'
         language: system
+        files: ^backend/
+        types: [python]
         pass_filenames: false

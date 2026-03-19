@@ -100,7 +100,10 @@ export function RegisterScreen() {
           />
         </div>
         <div id="register-password-confirm-group" className="auth-field">
-          <label id="register-password-confirm-label" htmlFor="register-password-confirm-input">
+          <label
+            id="register-password-confirm-label"
+            htmlFor="register-password-confirm-input"
+          >
             Confirm password
           </label>
           <input
@@ -115,7 +118,9 @@ export function RegisterScreen() {
             required
             disabled={submitting}
             minLength={8}
-            aria-describedby={confirmError ? 'register-confirm-error' : undefined}
+            aria-describedby={
+              confirmError ? 'register-confirm-error' : undefined
+            }
           />
           {confirmError && (
             <p id="register-confirm-error" className="auth-error" role="alert">

@@ -72,7 +72,9 @@ class ProfilePatchSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"password": "Password is required to complete your profile."}
                 )
-            if username is None or (isinstance(username, str) and not str(username).strip()):
+            if username is None or (
+                isinstance(username, str) and not str(username).strip()
+            ):
                 raise serializers.ValidationError(
                     {"username": "Username is required to complete your profile."}
                 )

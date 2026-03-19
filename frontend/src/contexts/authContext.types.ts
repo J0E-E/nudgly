@@ -15,7 +15,10 @@ export interface AuthActions {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, username: string, password: string) => Promise<void>
   /** Apply tokens from OAuth callback and fetch user; returns user for redirect logic (e.g. needs_profile_completion). */
-  loginWithOAuthTokens: (access: string, refresh: string) => Promise<AuthUser | null>
+  loginWithOAuthTokens: (
+    access: string,
+    refresh: string
+  ) => Promise<AuthUser | null>
   logout: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>

@@ -4,7 +4,6 @@ Allauth adapters: random username for new OAuth users; JWT redirect after social
 
 import secrets
 
-from django.conf import settings
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 

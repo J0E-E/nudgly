@@ -134,7 +134,7 @@
 
 ---
 
-## Epic 4b: Pre-commit Hooks (Lint & Format Auto-fix)
+## Epic 4b: Pre-commit Hooks (Lint & Format Auto-fix) — COMPLETED
 
 **Objective:** Install pre-commit hooks that automatically lint and format code on every commit so style issues never reach the repo.
 
@@ -149,7 +149,22 @@
 - Auto-fix on commit: `eslint --fix` then `prettier --write` on staged files.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Pre-commit framework** (`.pre-commit-config.yaml`) with 6 hooks: Ruff format, Ruff lint, Prettier, ESLint, Vitest related, Django tests.
+- **Backend hooks** use official `astral-sh/ruff-pre-commit` (v0.8.0) with bundled Ruff binary. `ruff format` + `ruff check --fix` scoped to `^backend/` via `files:` filter.
+- **Frontend hooks** are local hooks that `cd frontend` and strip path prefixes so tools find their configs. Prettier (`--write --ignore-unknown`) and ESLint (`--fix`) scoped to `^frontend/src/`.
+- **Smart test hooks**: Frontend uses `vitest related --run` (only tests affected by staged files). Backend runs all Django tests but only when `^backend/` Python files are staged.
+- **File-targeted**: Every hook uses `files:` and `types:` filters — hooks skip entirely when irrelevant files change.
+- **Auto-fix flow**: Hooks auto-fix formatting/lint issues. If files are modified, commit aborts; user re-stages fixes and commits again (standard pre-commit behavior). `git add` inside hooks was attempted but is not possible — git holds an index lock during `git commit` that prevents `git add` from inside hook subprocesses.
+- **Line endings**: `.gitattributes` added with `* text=auto eol=lf` to enforce LF. Prettier and Ruff both output LF; without this, Windows machines with `core.autocrlf=true` would see CRLF/LF churn causing hooks to report false modifications on every commit.
+- **Manual scripts**: `npm run lint`, `npm run lint:fix`, `npm run format`, `npm run format:check` work from both `frontend/` and repo root.
+- **Existing lint issues fixed**: Removed 2 unused variable assignments (F841) in `test_oauth.py` and `test_profile.py`.
+- **Bulk format applied**: First run of hooks reformatted ~15 existing files (Ruff on backend, Prettier on frontend) that had minor style drift.
+- **Ruff config**: `backend/pyproject.toml` — rules E, F, I, UP; line-length 88; target py311.
+- **ESLint config**: `frontend/eslint.config.js` — flat config (v9+); typescript-eslint, react-hooks, react-refresh.
+- **Prettier config**: `frontend/.prettierrc` — no semicolons, single quotes, tab width 2, trailing commas es5.
+- **Plan vs implementation**: Used pre-commit framework (not husky/lint-staged) for both backend and frontend since pre-commit was already in place from Epic 1. Added smart test hooks beyond the original plan scope (plan only specified lint/format). `git add` auto-staging was planned but not feasible due to git index locking.
+- **Caveats**: Backend test hook requires a Python environment with Django deps installed (venv or Docker). After adding `.gitattributes`, the first checkout on an existing clone may show line-ending changes — run `git add --renormalize .` to normalize once.
 
 ---
 

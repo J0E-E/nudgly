@@ -22,12 +22,8 @@ def oauth_complete_view(request):
         return HttpResponseRedirect(base + "?oauth_error=not_authenticated")
 
     tokens = _tokens_for_user(request.user)
-    fragment = urlencode(
-        {"access": tokens["access"], "refresh": tokens["refresh"]}
-    )
-    callback_url = (
-        settings.FRONTEND_ORIGIN.rstrip("/") + "/auth/callback#" + fragment
-    )
+    fragment = urlencode({"access": tokens["access"], "refresh": tokens["refresh"]})
+    callback_url = settings.FRONTEND_ORIGIN.rstrip("/") + "/auth/callback#" + fragment
 
     request.session.flush()
     return HttpResponseRedirect(callback_url)

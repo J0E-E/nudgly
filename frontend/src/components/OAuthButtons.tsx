@@ -67,7 +67,10 @@ export function OAuthButtons({ idPrefix }: OAuthButtonsProps) {
       <p id={`${idPrefix}-oauth-divider`} className="oauth-divider">
         Or continue with
       </p>
-      <div id={`${idPrefix}-oauth-buttons-group`} className="oauth-buttons-group">
+      <div
+        id={`${idPrefix}-oauth-buttons-group`}
+        className="oauth-buttons-group"
+      >
         <a
           id={`${idPrefix}-oauth-google-btn`}
           href={getGoogleAuthorizeUrl()}

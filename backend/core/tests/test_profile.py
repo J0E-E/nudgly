@@ -57,6 +57,7 @@ class ProfileGetViewTests(TestCase):
         user.save(update_fields=["password"])
         # Log in via JWT not possible without password; force credentials via token from another user or create token manually.
         from rest_framework_simplejwt.tokens import RefreshToken
+
         refresh = RefreshToken.for_user(user)
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
@@ -98,9 +99,7 @@ class ProfilePatchViewTests(TestCase):
 
     def test_patch_invalid_timezone_returns_400(self):
         """Empty timezone returns 400."""
-        response = self.client.patch(
-            "/api/users/me/", {"timezone": ""}, format="json"
-        )
+        response = self.client.patch("/api/users/me/", {"timezone": ""}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("timezone", response.json())
 
@@ -125,6 +124,7 @@ class ProfileCompletionTests(TestCase):
         self.user.set_unusable_password()
         self.user.save(update_fields=["password"])
         from rest_framework_simplejwt.tokens import RefreshToken
+
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
@@ -190,7 +190,7 @@ class ProfileCompletionTests(TestCase):
 
     def test_complete_user_cannot_send_password_in_patch(self):
         """User who already has password cannot set password via PATCH."""
-        user = User.objects.create_user(
+        User.objects.create_user(
             email="full@example.com", username="fulluser", password="Pass1234"
         )
         _auth_client(self.client, "full@example.com", "Pass1234")

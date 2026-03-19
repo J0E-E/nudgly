@@ -23,9 +23,7 @@ class RandomUsernameTests(TestCase):
     def test_random_username_is_unique(self):
         """Generated usernames do not collide with existing users."""
         existing = _random_username()
-        User.objects.create_user(
-            email="a@example.com", username=existing, password="x"
-        )
+        User.objects.create_user(email="a@example.com", username=existing, password="x")
         for _ in range(5):
             new_username = _random_username()
             self.assertNotEqual(new_username, existing)
@@ -59,7 +57,7 @@ class SocialAccountAdapterTests(TestCase):
         request = MagicMock()
         sociallogin = MagicMock()
         data = {"email": "u@example.com", "username": "existing_name"}
-        user = adapter.populate_user(request, sociallogin, data)
+        adapter.populate_user(request, sociallogin, data)
         self.assertEqual(data["username"], "existing_name")
 
 

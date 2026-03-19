@@ -83,10 +83,16 @@ describe('LoginScreen', () => {
     const appleBtn = document.getElementById('login-oauth-apple-btn')
     expect(googleBtn).toBeInTheDocument()
     expect(appleBtn).toBeInTheDocument()
-    expect(googleBtn).toHaveAttribute('href', expect.stringContaining('/api/auth/oauth/google/authorize/'))
+    expect(googleBtn).toHaveAttribute(
+      'href',
+      expect.stringContaining('/api/auth/oauth/google/authorize/')
+    )
     expect(googleBtn).toHaveAttribute('aria-label', 'Sign in with Google')
     expect(appleBtn).toHaveAttribute('aria-disabled', 'true')
-    expect(appleBtn).toHaveAttribute('aria-label', 'Sign in with Apple (coming soon)')
+    expect(appleBtn).toHaveAttribute(
+      'aria-label',
+      'Sign in with Apple (coming soon)'
+    )
   })
 
   it('displays error from auth context', () => {

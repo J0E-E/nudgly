@@ -7,6 +7,9 @@ export interface AuthUser {
   email: string
   username: string
   timezone: string
+  display_name?: string
+  /** True when user has no usable password (OAuth users who have not completed profile). */
+  needs_profile_completion?: boolean
 }
 
 export interface LoginRegisterResponse {

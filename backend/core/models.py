@@ -49,6 +49,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True, max_length=254)
     username = models.CharField(max_length=150, unique=True)
     timezone = models.CharField(max_length=63, default="UTC")
+    display_name = models.CharField(max_length=150, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 

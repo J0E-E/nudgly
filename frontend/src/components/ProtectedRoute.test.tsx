@@ -28,6 +28,7 @@ describe('ProtectedRoute', () => {
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
       clearError: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
     render(
@@ -61,6 +62,7 @@ describe('ProtectedRoute', () => {
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
       clearError: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
     render(
@@ -82,11 +84,17 @@ describe('ProtectedRoute', () => {
     expect(document.getElementById('protected-child')).not.toBeInTheDocument()
   })
 
-  it('renders children when authenticated', () => {
+  it('renders children when authenticated and profile complete', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      user: { id: 1, email: 'u@ex.com', username: 'u', timezone: 'UTC' },
+      user: {
+        id: 1,
+        email: 'u@ex.com',
+        username: 'u',
+        timezone: 'UTC',
+        needs_profile_completion: false,
+      },
       error: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -95,6 +103,7 @@ describe('ProtectedRoute', () => {
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
       clearError: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
     render(
@@ -113,5 +122,50 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>
     )
     expect(screen.getByText('Protected content')).toBeInTheDocument()
+  })
+
+  it('redirects to /profile when authenticated but needs_profile_completion', () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      loading: false,
+      user: {
+        id: 1,
+        email: 'u@ex.com',
+        username: 'user_abc',
+        timezone: 'UTC',
+        needs_profile_completion: true,
+      },
+      error: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      loginWithOAuthTokens: vi.fn(),
+      logout: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      confirmPasswordReset: vi.fn(),
+      clearError: vi.fn(),
+      updateUser: vi.fn(),
+      getApiDeps: vi.fn(),
+    })
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <span id="protected-child">Protected content</span>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={<span id="profile-page">Profile</span>}
+          />
+          <Route path="/login" element={<span id="login-page">Login</span>} />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Profile')).toBeInTheDocument()
+    expect(document.getElementById('protected-child')).not.toBeInTheDocument()
   })
 })

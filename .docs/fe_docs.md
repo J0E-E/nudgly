@@ -11,30 +11,34 @@ React app (Vite, TypeScript) with React Router. Health check and authentication 
 - **src/services/healthApi.ts** — `fetchHealth(baseUrl)` for `GET /health/`.
 - **src/services/authApi.ts** — Register, login, logout, passwordResetRequest, passwordResetConfirm, refreshAccessToken, getMe, getMeWithToken, getGoogleAuthorizeUrl, getAppleAuthorizeUrl. Uses `API_BASE_URL` and `/api/auth/` paths.
 - **src/components/OAuthButtons.tsx** — “Sign in with Google” (links to backend) and “Sign in with Apple” (disabled for development; will be enabled once the app is further along); both use provider icons.
-- **src/services/apiClient.ts** — `authFetch`, `authGet`, `authPost`: attach Bearer token, on 401 try refresh then retry; on failure call `onUnauthorized`. Used by authenticated API calls.
-- **src/components/AppHeader.tsx** — App name and Log out button when authenticated.
-- **src/components/ProtectedRoute.tsx** — Renders children when authenticated; redirects to `/login` when not; shows loading while auth is resolving.
-- **src/pages/** — HealthScreen, LoginScreen, RegisterScreen, PasswordResetRequestScreen, PasswordResetConfirmScreen, AuthCallbackScreen (OAuth callback: reads tokens from fragment, applies auth, redirects).
+- **src/services/apiClient.ts** — `authFetch`, `authGet`, `authPost`, `authPatch`: attach Bearer token, on 401 try refresh then retry; on failure call `onUnauthorized`. Used by authenticated API calls.
+- **src/services/profileApi.ts** — `getProfile(deps)`, `updateProfile(deps, body)` for GET/PATCH `/api/users/me/`. Used for profile view and OAuth profile completion.
+- **src/components/AppHeader.tsx** — App name, @username (link to profile), and Log out when authenticated.
+- **src/components/ProtectedRoute.tsx** — Renders children when authenticated; redirects to `/login` when not. When user has `needs_profile_completion`, redirects to `/profile` until they complete (OAuth flow).
+- **src/pages/** — HealthScreen, LoginScreen, RegisterScreen (email, username, password, confirm password), PasswordResetRequestScreen, PasswordResetConfirmScreen, AuthCallbackScreen (OAuth callback), ProfileScreen (profile view or “Complete your profile” form), SettingsPlaceholderScreen.
 - **src/styles/theme-tokens.css** — Semantic theme tokens (Teal / Mystic Aqua Serenity); loaded before global CSS.
-- **src/types/auth.ts** — `AuthUser`, `LoginRegisterResponse`, `TokenRefreshResponse`.
+- **src/types/auth.ts** — `AuthUser` (includes optional `display_name`, `needs_profile_completion`), `LoginRegisterResponse`, `TokenRefreshResponse`.
 
 ## Routes
 
 | Path | Description |
 |------|--------------|
-| `/` | Home (health screen); protected, redirects to `/login` if not authenticated. |
+| `/` | Home (health screen); protected, redirects to `/login` if not authenticated. Users with `needs_profile_completion` are redirected to `/profile`. |
+| `/profile` | Profile: when complete, shows email, username, timezone and link to Settings; when incomplete (OAuth), shows required “Complete your profile” form (username + password + confirm). Protected. |
+| `/settings` | Settings placeholder (link back to profile). Full settings in later epic. Protected. |
 | `/login` | Login form; redirects to home (or `from`) on success. Accepts `?oauth_error=...` (e.g. `not_authenticated`); shows a message and strips the query. |
-| `/register` | Register form (email, username, password). |
+| `/register` | Register form (email, username, password, confirm password). Passwords must match before submit. |
 | `/reset-password` | Request password reset (email). |
 | `/reset-password/confirm` | Set new password (query `?token=...`). |
-| `/auth/callback` | OAuth callback: backend redirects here with `#access=...&refresh=...`; page applies tokens and redirects to `/`. |
+| `/auth/callback` | OAuth callback: backend redirects here with `#access=...&refresh=...`; page applies tokens. If user has `needs_profile_completion`, redirects to `/profile`; otherwise to `/`. |
 
 ## Auth flow
 
 - **Login/Register:** `authApi.login` or `authApi.register` returns `user`, `access`, `refresh`. Auth context stores user and access in memory, refresh in `localStorage` under `nudgly_refresh_token`.
-- **OAuth:** User clicks “Sign in with Google” (links to backend `/api/auth/oauth/google/authorize/`). Apple is shown as a disabled button (“Sign in with Apple (coming soon)”) for development and will be enabled later. Backend redirects to provider then to `/api/auth/oauth/complete/`, which redirects to `{origin}/auth/callback#access=...&refresh=...`. AuthCallbackScreen parses the fragment, calls `loginWithOAuthTokens(access, refresh)` (which fetches user via `getMeWithToken` and stores tokens), then navigates to `/`. If the user reaches the complete URL without a session, the backend redirects to `/login?oauth_error=not_authenticated`; LoginScreen shows a message and removes the query param.
+- **OAuth:** User clicks “Sign in with Google” (links to backend `/api/auth/oauth/google/authorize/`). Apple is shown as a disabled button (“Sign in with Apple (coming soon)”) for development and will be enabled later. Backend redirects to provider then to `/api/auth/oauth/complete/`, which redirects to `{origin}/auth/callback#access=...&refresh=...`. AuthCallbackScreen parses the fragment, calls `loginWithOAuthTokens(access, refresh)` (which fetches user via `getMeWithToken` and stores tokens). If the user has `needs_profile_completion` (no password set), navigates to `/profile`; otherwise to `/`. Incomplete users cannot access other protected routes until they complete the profile form (username + password). If the user reaches the complete URL without a session, the backend redirects to `/login?oauth_error=not_authenticated`; LoginScreen shows a message and removes the query param.
 - **Session restore:** On load, if a refresh token exists, context calls `authApi.refreshAccessToken`, then `authApi.getMe`, and sets user and access token.
-- **Authenticated requests:** Use `getApiDeps()` from `useAuth()` to build `{ getAccessToken, refreshTokens, onUnauthorized }` and pass to `authGet`/`authPost` (or a wrapper). The client attaches `Authorization: Bearer <access>` and on 401 attempts refresh and retries once.
+- **Authenticated requests:** Use `getApiDeps()` from `useAuth()` to build `{ getAccessToken, refreshTokens, onUnauthorized }` and pass to `authGet`/`authPost`/`authPatch` (or profileApi). The client attaches `Authorization: Bearer <access>` and on 401 attempts refresh and retries once.
+- **Profile completion:** After OAuth sign-in, if `user.needs_profile_completion` is true, the app redirects to `/profile`. ProfileScreen shows a form to set username (accept placeholder or change) and password (with confirm). Submit calls `profileApi.updateProfile(deps, { password, username })`; on success, context is updated with the returned user (now `needs_profile_completion: false`) and user is redirected to `/`. `updateUser(user)` from context updates the stored user after completion.
 - **Logout:** Context calls `authApi.logout(refreshToken)` (blacklist) and clears state and `localStorage`.
 
 ## Styling and accessibility
@@ -50,4 +54,4 @@ React app (Vite, TypeScript) with React Router. Health check and authentication 
 
 - **Dev:** `npm run dev` (Vite). Set `VITE_API_BASE_URL` for API (e.g. empty when behind nginx on same origin, or `http://localhost:8000` for local Django).
 - **Build:** `npm run build`.
-- **Tests:** `npm run test` (Vitest). Health, ProtectedRoute, LoginScreen, RegisterScreen, PasswordResetRequestScreen, PasswordResetConfirmScreen, AuthCallbackScreen, and OAuth buttons tests included; auth context and API are mocked in component tests.
+- **Tests:** `npm run test` (Vitest). Health, ProtectedRoute, LoginScreen, RegisterScreen (including confirm password match/mismatch), PasswordResetRequestScreen, PasswordResetConfirmScreen, AuthCallbackScreen, ProfileScreen, and OAuth buttons tests included; auth context and API are mocked in component tests.

@@ -1,6 +1,6 @@
 /**
  * Wraps children so only authenticated users see them; otherwise redirects to login.
- * Preserves intended location in state for post-login redirect.
+ * Users with needs_profile_completion are redirected to /profile until they complete (OAuth flow).
  */
 
 import type { ReactNode } from 'react'
@@ -12,7 +12,7 @@ export interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -25,6 +25,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (user?.needs_profile_completion && location.pathname !== '/profile') {
+    return <Navigate to="/profile" replace />
   }
 
   return <>{children}</>

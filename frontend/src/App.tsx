@@ -8,6 +8,8 @@ import { RegisterScreen } from './pages/RegisterScreen'
 import { PasswordResetRequestScreen } from './pages/PasswordResetRequestScreen'
 import { PasswordResetConfirmScreen } from './pages/PasswordResetConfirmScreen'
 import { AuthCallbackScreen } from './pages/AuthCallbackScreen'
+import { ProfileScreen } from './pages/ProfileScreen'
+import { SettingsPlaceholderScreen } from './pages/SettingsPlaceholderScreen'
 import './App.css'
 
 /**
@@ -25,6 +27,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <HealthScreen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfileScreen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPlaceholderScreen />
                 </ProtectedRoute>
               }
             />

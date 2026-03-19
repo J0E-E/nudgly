@@ -248,7 +248,7 @@ class MeViewTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_me_with_valid_token_returns_user(self):
-        """Valid access token returns current user payload."""
+        """Valid access token returns current user payload (incl. display_name, needs_profile_completion)."""
         login_resp = self.client.post(
             "/api/auth/login/",
             {"email": "me@example.com", "password": "Pass1234"},
@@ -261,3 +261,6 @@ class MeViewTests(TestCase):
         data = response.json()
         self.assertEqual(data["email"], "me@example.com")
         self.assertEqual(data["username"], "meuser")
+        self.assertIn("display_name", data)
+        self.assertIn("needs_profile_completion", data)
+        self.assertFalse(data["needs_profile_completion"])

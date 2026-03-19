@@ -28,6 +28,7 @@ describe('LoginScreen', () => {
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
   })
@@ -98,6 +99,7 @@ describe('LoginScreen', () => {
       isAuthenticated: false,
       register: vi.fn(),
       loginWithOAuthTokens: vi.fn(),
+      updateUser: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),

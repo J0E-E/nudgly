@@ -27,12 +27,17 @@ User = get_user_model()
 
 
 def _user_payload(user):
-    """Minimal user payload for login/register responses."""
+    """
+    User payload for auth/me and users/me: id, email, username, timezone,
+    display_name, needs_profile_completion (True when user has no usable password).
+    """
     return {
         "id": user.pk,
         "email": user.email,
         "username": user.username,
         "timezone": user.timezone,
+        "display_name": getattr(user, "display_name", "") or "",
+        "needs_profile_completion": not user.has_usable_password(),
     }
 
 

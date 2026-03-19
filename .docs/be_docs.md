@@ -19,8 +19,9 @@ Django REST API with django-environ for configuration. PostgreSQL and Redis (Doc
     - **core/auth/oauth_urls.py** — OAuth routes and allauth URL include.
     - **core/auth/password_reset_service.py** — Token creation, email send, token consume.
     - **core/auth/urls.py** — Routes under `/api/auth/`.
-  - **core/api_urls.py** — Mounts `auth/` under `/api/`.
-- **core/tests/** — Unit tests for core (health, email, auth, oauth).
+  - **core/api_urls.py** — Mounts `auth/` and `users/` under `/api/`.
+  - **core/profile/** — Profile API: GET/PATCH `/api/users/me/` (views, serializers, urls).
+- **core/tests/** — Unit tests for core (health, email, auth, oauth, profile).
 
 ## Running and testing
 
@@ -75,7 +76,7 @@ Auth uses a **custom User model** (`core.User`) with **email as the login identi
 ### User model
 
 - **AUTH_USER_MODEL:** `core.User` (set in `config/settings.py`).
-- **Fields:** `id`, `email` (unique, USERNAME_FIELD), `password` (Django-hashed), `username` (unique), `timezone` (IANA, default `"UTC"`), `created_at`, `is_active`.
+- **Fields:** `id`, `email` (unique, USERNAME_FIELD), `password` (Django-hashed), `username` (unique), `timezone` (IANA, default `"UTC"`), `display_name` (optional, max 150), `created_at`, `is_active`.
 
 ### Auth API (under `/api/auth/`)
 
@@ -85,7 +86,7 @@ Auth uses a **custom User model** (`core.User`) with **email as the login identi
 | POST | `/api/auth/login/` | Body: `email`, `password`. Returns `user`, `access`, `refresh`. |
 | POST | `/api/auth/logout/` | Body: `refresh`. Blacklists the refresh token. |
 | POST | `/api/auth/token/refresh/` | Body: `refresh`. Returns `access`. |
-| GET | `/api/auth/me/` | Requires `Authorization: Bearer <access>`. Returns current user payload. |
+| GET | `/api/auth/me/` | Requires `Authorization: Bearer <access>`. Returns current user payload (id, email, username, timezone, display_name, needs_profile_completion). |
 | POST | `/api/auth/password-reset/` | Body: `email`. Sends reset email if user exists; always 202 (no enumeration). |
 | POST | `/api/auth/password-reset/confirm/` | Body: `token`, `new_password`. Invalidates token and sets password. |
 | GET | `/api/auth/oauth/google/authorize/` | Redirects to Google OAuth; after consent, Google redirects to backend callback. |
@@ -121,6 +122,19 @@ Sign-in with Google and Apple uses **django-allauth**. New OAuth users get a **r
 - **Password:** Min 8 characters; at least one letter and one number (in `core.auth.serializers`).
 - **Email:** Format and uniqueness at register.
 - **Username:** 3–30 chars, alphanumeric and underscore; uniqueness at register.
+
+---
+
+## Profile API (under `/api/users/`)
+
+Profile endpoints return the same user payload shape as `GET /api/auth/me/` (id, email, username, timezone, display_name, needs_profile_completion). `needs_profile_completion` is `true` when the user has no usable password (e.g. OAuth users who have not yet completed profile).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users/me/` | Requires auth. Returns current user (same shape as auth/me). |
+| PATCH | `/api/users/me/` | Requires auth. Body: optional `timezone`, optional `display_name`. When user has `needs_profile_completion` (no usable password), body must include required `password` and required `username` (accept placeholder or new value); same password and username validation as register. After successful completion, user has a usable password and `needs_profile_completion` becomes false. For users who already have a password, `password` and `username` are not accepted in PATCH (reserved for change-password/change-username flows later). |
+
+- **Profile completion:** OAuth-created users get a random placeholder username and no password. They must call PATCH with `password` and `username` (current or new) before using the rest of the app. The frontend redirects such users to `/profile` until they complete the form.
 
 ---
 

@@ -42,6 +42,7 @@ describe('PasswordResetConfirmScreen', () => {
       loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
   })
@@ -134,6 +135,7 @@ describe('PasswordResetConfirmScreen', () => {
       loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
     renderWithToken('/reset-password/confirm?token=valid-reset-token')

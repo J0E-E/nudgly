@@ -20,6 +20,7 @@ describe('RegisterScreen', () => {
       register: mockRegister,
       error: null,
       clearError: mockClearError,
+      updateUser: vi.fn(),
       user: null,
       loading: false,
       isAuthenticated: false,
@@ -32,7 +33,7 @@ describe('RegisterScreen', () => {
     })
   })
 
-  it('renders register form with email, username, and password fields', () => {
+  it('renders register form with email, username, password, and confirm password fields', () => {
     render(
       <MemoryRouter>
         <RegisterScreen />
@@ -41,6 +42,7 @@ describe('RegisterScreen', () => {
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Username')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    expect(screen.getByLabelText('Confirm password')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /create account/i })
     ).toBeInTheDocument()
@@ -60,10 +62,13 @@ describe('RegisterScreen', () => {
     expect(
       document.getElementById('register-password-input')
     ).toBeInTheDocument()
+    expect(
+      document.getElementById('register-password-confirm-input')
+    ).toBeInTheDocument()
     expect(document.getElementById('register-submit-btn')).toBeInTheDocument()
   })
 
-  it('calls register with email, username, and password on submit', async () => {
+  it('calls register with email, username, and password on submit when passwords match', async () => {
     mockRegister.mockResolvedValue(undefined)
     render(
       <MemoryRouter>
@@ -79,12 +84,38 @@ describe('RegisterScreen', () => {
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'Pass1234' },
     })
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+      target: { value: 'Pass1234' },
+    })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
     expect(mockRegister).toHaveBeenCalledWith(
       'test@example.com',
       'testuser',
       'Pass1234'
     )
+  })
+
+  it('shows error and does not call register when passwords do not match', () => {
+    render(
+      <MemoryRouter>
+        <RegisterScreen />
+      </MemoryRouter>
+    )
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'test@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: 'testuser' },
+    })
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'Pass1234' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+      target: { value: 'Different1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    expect(mockRegister).not.toHaveBeenCalled()
+    expect(screen.getByText('Passwords do not match.')).toBeInTheDocument()
   })
 
   it('renders OAuth sign-in buttons; Google has authorize URL, Apple is disabled', () => {
@@ -106,6 +137,7 @@ describe('RegisterScreen', () => {
       register: mockRegister,
       error: 'This username is already taken.',
       clearError: mockClearError,
+      updateUser: vi.fn(),
       user: null,
       loading: false,
       isAuthenticated: false,

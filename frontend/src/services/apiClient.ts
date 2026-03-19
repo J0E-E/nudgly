@@ -107,3 +107,24 @@ export async function authPost<T>(
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
+
+/**
+ * PATCH url with auth and body; returns parsed JSON or throws.
+ */
+export async function authPatch<T>(
+  url: string,
+  body: unknown,
+  deps: ApiClientDeps
+): Promise<T> {
+  const res = await authFetch(
+    url,
+    { method: 'PATCH', body: JSON.stringify(body) },
+    deps
+  )
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Request failed: ${res.status} ${text}`)
+  }
+  if (res.status === 204) return undefined as T
+  return res.json() as Promise<T>
+}

@@ -1,0 +1,59 @@
+/**
+ * Profile screen: view layout (email, username, timezone, settings link).
+ */
+
+.profile-view {
+  max-width: 24rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  text-align: left;
+}
+
+.profile-view h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.5rem;
+  color: var(--color-text);
+}
+
+#profile-details-list {
+  margin: 0 0 1.5rem;
+}
+
+#profile-details-list > div {
+  margin-bottom: 0.75rem;
+}
+
+#profile-details-list dt {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+#profile-details-list dd {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+#profile-settings-link-wrap {
+  margin: 0;
+}
+
+#profile-settings-link {
+  font-size: 1rem;
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+#profile-settings-link:focus,
+#settings-profile-link:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+#settings-profile-link {
+  font-size: 1rem;
+  color: var(--color-accent);
+  text-decoration: underline;
+}

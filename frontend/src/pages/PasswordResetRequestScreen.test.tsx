@@ -28,6 +28,7 @@ describe('PasswordResetRequestScreen', () => {
       loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       confirmPasswordReset: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
   })
@@ -104,6 +105,7 @@ describe('PasswordResetRequestScreen', () => {
       loginWithOAuthTokens: vi.fn(),
       logout: vi.fn(),
       confirmPasswordReset: vi.fn(),
+      updateUser: vi.fn(),
       getApiDeps: vi.fn(),
     })
     render(

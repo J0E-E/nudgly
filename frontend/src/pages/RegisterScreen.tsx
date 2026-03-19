@@ -1,5 +1,5 @@
 /**
- * Register screen: email, username, password; submit calls register API; link to login.
+ * Register screen: email, username, password, confirm password; submit calls register API; link to login.
  */
 
 import { useState } from 'react'
@@ -13,12 +13,19 @@ export function RegisterScreen() {
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     clearError()
+    setConfirmError(null)
+    if (password !== confirmPassword) {
+      setConfirmError('Passwords do not match.')
+      return
+    }
     setSubmitting(true)
     try {
       await register(email.trim(), username.trim(), password)
@@ -91,6 +98,30 @@ export function RegisterScreen() {
             minLength={8}
             title="At least 8 characters, one letter and one number"
           />
+        </div>
+        <div id="register-password-confirm-group" className="auth-field">
+          <label id="register-password-confirm-label" htmlFor="register-password-confirm-input">
+            Confirm password
+          </label>
+          <input
+            id="register-password-confirm-input"
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value)
+              if (confirmError) setConfirmError(null)
+            }}
+            required
+            disabled={submitting}
+            minLength={8}
+            aria-describedby={confirmError ? 'register-confirm-error' : undefined}
+          />
+          {confirmError && (
+            <p id="register-confirm-error" className="auth-error" role="alert">
+              {confirmError}
+            </p>
+          )}
         </div>
         <button
           id="register-submit-btn"

@@ -11,8 +11,8 @@ import {
 } from 'react'
 import * as authApi from '../services/authApi'
 import type { AuthUser, LoginRegisterResponse } from '../types/auth'
-import { AuthContext } from './authContext'
-import type { AuthContextValue } from './authContext'
+import { AuthContext } from './authContext.types'
+import type { AuthContextValue } from './authContext.types'
 
 const REFRESH_STORAGE_KEY = 'nudgly_refresh_token'
 
@@ -165,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(access)
         setRefreshToken(refresh)
         saveRefresh(refresh)
+        return me
       } catch (e) {
         setError(e instanceof Error ? e.message : 'OAuth sign-in failed')
         throw e
@@ -210,6 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), [])
 
+  const updateUser = useCallback((u: AuthUser) => setUser(u), [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -223,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       confirmPasswordReset,
       clearError,
+      updateUser,
       getApiDeps,
     }),
     [
@@ -236,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       confirmPasswordReset,
       clearError,
+      updateUser,
       getApiDeps,
     ]
   )

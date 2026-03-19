@@ -6,6 +6,8 @@
 
 **Standards:** Unit tests with every change; modular frontend with dependency injection; unique descriptive HTML IDs; Definition of Done per app-idea §16.
 
+**Data Fetching & Resilience (from Epic 5 onward):** Use TanStack Query (React Query) for all server-state management. This gives caching, background refetching, stale-while-revalidate, and automatic retry out of the box. Apply optimistic updates for mutations where latency matters (e.g. completing a task). Use React error boundaries for unrecoverable UI errors. Detect network status (navigator.onLine + Capacitor Network plugin) and show a banner when offline; TanStack Query will pause mutations and retry when connectivity resumes. This is a cross-cutting concern—not a separate epic—applied as each data-fetching screen is built.
+
 ---
 
 ## Epic 1: Project Setup & Infrastructure — COMPLETED
@@ -122,13 +124,60 @@
 - Minimal profile view: show email, username, timezone; link to settings (can be expanded in Epic 14).
 
 ### Implementation Notes:
+- **Status:** Done. All objectives met.
+- **Backend:** Profile API at `/api/users/me/` (GET and PATCH) in `core.profile` module. GET returns full user payload including `needs_profile_completion` flag (true for OAuth users who haven't set a username/password). PATCH supports `timezone`, `display_name`, and profile-completion flow (`username` + `password` — only allowed when `needs_profile_completion` is true). Username validation: regex `^[a-zA-Z0-9_]{3,30}$`, case-insensitive uniqueness check. Shared `_user_payload()` helper between auth and profile views for consistent user representation. Migration `0002_add_user_display_name` adds `display_name` field.
+- **Frontend:** `ProfileScreen` has two modes: (1) complete-profile form (username + password) shown when `needs_profile_completion` is true (OAuth users), (2) read-only profile view showing email, @username, timezone with link to Settings. `AppHeader` displays `@username` as a clickable link to `/profile`. `SettingsPlaceholderScreen` at `/settings` with "More options coming soon" (expanded in Epic 14). `RegisterScreen` collects username at signup with client-side pattern validation. `profileApi.ts` provides `getProfile` and `updateProfile` service functions.
+- **Tests:** Backend `core/tests/test_profile.py` — 13+ tests covering GET (auth required, full payload, OAuth needs-completion flag), PATCH (timezone, display_name, partial updates, invalid values), and profile completion (username+password, duplicate username, weak password, prevents re-completion). Frontend `ProfileScreen.test.tsx` — renders both complete and incomplete profile states.
+- **Docs:** `.docs/be_docs.md` and `.docs/fe_docs.md` updated with profile routes and API contract.
+- **Plan vs implementation:** `display_name` is supported by the API but not shown in the frontend profile view (deferred to Epic 14 settings expansion). Timezone is displayed read-only — editing UI deferred to Epic 14. Username is immutable after initial set (by design for identity stability). OAuth profile-completion flow was added beyond the original plan to handle users who sign up via Google/Apple without a username or password.
+- **Caveats:** Username cannot be changed after initial registration or profile completion. The `needs_profile_completion` flag drives the profile-completion UX for OAuth users. Backend tests require the virtual environment with `django-environ` and other dependencies installed.
+
+---
+
+## Epic 4b: Pre-commit Hooks (Lint & Format Auto-fix)
+
+**Objective:** Install pre-commit hooks that automatically lint and format code on every commit so style issues never reach the repo.
+
+### Backend
+- Install and configure pre-commit with hooks: `ruff check --fix` (lint auto-fix), `ruff format` (formatter).
+- Add `pyproject.toml` or `ruff.toml` config for Ruff rules.
+- `.pre-commit-config.yaml` at repo root.
+
+### Frontend
+- Add ESLint + Prettier as pre-commit hooks (via lint-staged + husky or pre-commit).
+- Configure ESLint for TypeScript/React; Prettier for consistent formatting.
+- Auto-fix on commit: `eslint --fix` then `prettier --write` on staged files.
+
+### Implementation Notes:
 *(To be completed when epic is done.)*
 
 ---
 
-## Epic 5: Tasks CRUD
+## Epic 4c: CI Pipeline (Lint, Format & Tests)
 
-**Objective:** Full task lifecycle: create, list, edit, delete, mark complete; categories and priorities per app-idea §3–§4.
+**Objective:** GitHub Actions CI that runs lint/format checks and test suites on every push/PR so regressions are caught before merge.
+
+### Backend
+- CI job: `ruff check` (no auto-fix, fail on violations), `ruff format --check`, `python manage.py test`.
+- Use SQLite in-memory for test DB in CI (matches existing test setup).
+
+### Frontend
+- CI job: `eslint` (no auto-fix, fail on violations), `prettier --check`, `npm test` (Vitest).
+- Cache `node_modules` for faster runs.
+
+### Shared
+- Single `.github/workflows/ci.yml` with backend and frontend jobs running in parallel.
+- Trigger on push to `master` and all pull requests.
+- Fail-fast: if lint fails, skip tests.
+
+### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
+## Epic 5a: Tasks CRUD — Backend
+
+**Objective:** Task model and full REST API: create, list, edit, delete, mark complete; categories and priorities per app-idea §3–§4.
 
 ### Backend
 - Task model per schema §8: title, description, due_date, category, tag, priority, recurring (nullable), status, list_id (nullable), created_at, completed_at, muted_until (nullable). Omit friend-related fields until Epic 12.
@@ -138,12 +187,29 @@
 - Validation: title required, max 500 chars; category/priority from enum.
 
 ### Frontend
+- No frontend work in this epic.
+
+### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
+## Epic 5b: Tasks CRUD — Frontend
+
+**Objective:** Tasks screen UI with full CRUD interactions, powered by the API from Epic 5a. First screen to adopt TanStack Query for data fetching and resilience patterns (see Standards).
+
+### Backend
+- No backend work in this epic (API delivered in 5a).
+
+### Frontend
+- Install and configure TanStack Query (`@tanstack/react-query`); wrap app in `QueryClientProvider`. This becomes the standard for all subsequent data-fetching screens.
 - Tasks screen: list tasks (checkbox to complete, title, due date, category/priority indicators).
 - Add task: form (title, description, due date, category, priority, tag optional).
 - Edit task: same fields; open from list row or detail.
 - Delete: with confirmation (per UI/UX §7).
 - Search/filter bar (by title/notes; category, priority) per UI/UX §5.1.
-- Empty state and loading state.
+- Empty state, loading state, and error state.
+- Optimistic update on task completion (checkbox toggle).
 
 ### Implementation Notes:
 *(To be completed when epic is done.)*
@@ -191,16 +257,33 @@
 
 ---
 
-## Epic 8: Reminder Schedules & Nudge Engine (Backend)
+## Epic 8: Reminder Schedules & Nudge Engine
 
-**Objective:** ReminderSchedule and ReminderEvent models; Celery Beat + worker; idempotency; mute/snooze respected; escalation and retry per app-idea §9.
+> **⚠ HIGH RISK — Spike required before implementation.**
+> This is the most architecturally complex epic in the MVP. It introduces Celery (Beat + worker), idempotent event processing, retry/escalation logic, and cross-model scheduling. A dedicated spike (Epic 8a) must be completed first to produce a detailed design and validate assumptions before any code is written.
 
-### Backend
-- ReminderSchedule model: user_id, task_id or habit_id (exactly one), recurrence_rule, next_trigger_at, retry_interval_minutes, persistent, max_attempts. ReminderEvent: schedule_id, triggered_at, attempt_number, acknowledged (idempotency key: schedule_id + triggered_at bucket).
-- Create/update schedules when tasks (and later habits) are created/updated; link to task due dates and recurrence (RRULE per app-idea).
-- Celery Beat: periodic task (e.g. every minute) to enqueue “process due reminders.”
-- Celery worker: query schedules with next_trigger_at <= now; skip if task/list/habit muted; insert ReminderEvent (unique constraint to avoid double-send); send notification (stub or FCM later); update next_trigger_at with retry + small random offset; respect max_attempts and persistent.
-- Priority → retry_interval and max_attempts mapping per §9.1.
+### Epic 8a: Nudge Engine — Spike & Design
+
+**Objective:** Produce a detailed technical design document for the nudge engine. Validate architectural decisions with a proof-of-concept.
+
+#### Deliverables
+- Design doc covering: ReminderSchedule and ReminderEvent models (schema, constraints, indexes); idempotency strategy (unique constraint on schedule_id + triggered_at bucket — validate with edge cases); Celery Beat configuration and periodic task design; worker flow (query → filter muted → create event → send notification → update next_trigger_at); retry/escalation logic and priority-to-interval mapping per §9.1; failure modes (worker crash mid-batch, Redis down, duplicate delivery).
+- Proof-of-concept: Celery Beat + worker running in Docker Compose, processing a dummy schedule and writing events. Validates that the infrastructure works before building real logic.
+- Output: Sub-epic breakdown (8b, 8c, 8d, …) with scope and ordering for implementation.
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+### Epic 8b–8n: Nudge Engine — Implementation (sub-epics TBD by spike)
+
+**Objective:** Implement the nudge engine per the design produced in Epic 8a.
+
+The spike (8a) will produce the specific sub-epic breakdown. Expected areas include:
+- **Infrastructure:** Celery Beat + worker containers in Docker Compose; Redis as broker.
+- **Models:** ReminderSchedule, ReminderEvent with idempotency constraints.
+- **Scheduling logic:** Create/update schedules on task create/update; link to due dates and RRULE recurrence.
+- **Worker logic:** Process due schedules, respect mute/snooze, create events, send notifications (stub), update next_trigger_at with retry + jitter.
+- **Escalation:** Priority → retry_interval and max_attempts mapping per §9.1; persistent nudging.
 
 ### Frontend
 - Optional: show “Next nudge” or “Last nudge” on task/habit card if API exposes it (read-only). Enables validation that schedules exist and worker runs.
@@ -280,9 +363,28 @@
 
 ---
 
-## Epic 13: Push Notifications & Device Registration
+## Epic 13a: Push Notification Dependencies — External Setup
+
+**Objective:** Set up all external provider accounts and credentials required for push notifications so Epic 13b is not blocked by external dependencies.
+
+> **Start this epic early (in parallel with Epics 9–12).** These are external dependencies with lead times (Apple Developer review, Firebase project setup, etc.).
+
+### Setup Checklist
+- **Firebase:** Create Firebase project; enable Cloud Messaging (FCM v1 API). Generate service account key for backend. Note: FCM is used for both Android and iOS push delivery.
+- **Apple Developer:** Ensure Apple Developer Program membership is active. Create APNs key (`.p8`) or certificate; upload to Firebase for FCM-to-APNs relay. Configure App ID with Push Notifications capability.
+- **Google Play (optional for MVP):** If distributing Android builds, create Google Play Console app entry. Not strictly required for push — FCM works without Play Store listing during development.
+- **Environment:** Add `FIREBASE_SERVICE_ACCOUNT_KEY` (path or JSON) to `.env.example` and backend settings. Document required env vars in `.docs/be_docs.md`.
+
+### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
+## Epic 13b: Push Notifications & Device Registration
 
 **Objective:** Register device token with FCM; nudge engine sends push to user devices; token cleanup on invalid/unregistered.
+
+**Depends on:** Epic 13a (credentials), Epic 8 (nudge engine worker).
 
 ### Backend
 - DeviceTokens: user_id, device_id, platform (ios/android/web), token. `POST /device/register` (auth; body: platform, token, optional device_id). One token per (user_id, device_id); replace on re-register.
@@ -344,26 +446,29 @@
 
 ---
 
-## Suggested Sprint Order
+## Sprint Order
 
 | Order | Epic | Rationale |
 |-------|------|-----------|
 | 1 | Project Setup & Infrastructure | Foundation |
-| 1b | Email System Interface | Interface + stdout adapter; required before Auth (password reset) and any mail-dependent features |
+| 1b | Email System Interface | Interface + stdout adapter; required before Auth |
 | 2 | Authentication (Email/Password) | Required for all user features |
 | 3 | Authentication (OAuth) | Optional but part of MVP scope |
 | 4 | User Profile & Username | Needed for Friends (username) |
-| 5 | Tasks CRUD | Core domain |
+| 4b | Pre-commit Hooks (Lint & Format) | Enforce code quality from this point forward |
+| 4c | CI Pipeline (Lint, Format & Tests) | Catch regressions on every push/PR |
+| 14 | Theme & UI Shell | Global layout + design tokens before building screens |
+| 5a | Tasks CRUD — Backend | Core domain model and API |
+| 5b | Tasks CRUD — Frontend | Tasks screen; first TanStack Query adoption |
 | 6 | Lists CRUD & Task–List Association | Builds on tasks |
 | 7 | Task Mute & Snooze | Quick win on tasks |
-| 8 | Reminder Schedules & Nudge Engine | Depends on tasks (and lists for list-level nudge) |
+| 8a | Nudge Engine — Spike & Design | ⚠ Architectural spike before implementation |
+| 8b–n | Nudge Engine — Implementation | Sub-epics defined by spike output |
 | 9 | Habits & Completions | Parallel to tasks/lists |
 | 10 | Habit Reminders | Depends on habits and Epic 8 |
 | 11 | Friends & Invitations | Social foundation |
 | 12 | Friends – Task Linking & Create for Friend | Depends on friends and tasks |
-| 13 | Push Notifications & Device Registration | Depends on nudge engine |
-| 14 | Theme & UI Shell | Can be done earlier (e.g. after Auth) if desired |
+| 13a | Push Notification Dependencies | ⏳ Start in parallel with Epics 9–12 |
+| 13b | Push Notifications & Device Registration | Depends on nudge engine + 13a credentials |
 | 15 | Settings & Account | Ties profile, theme, prefs |
-| 16 | E2E, CI & Release Readiness | Final validation and deploy |
-
-*Theme & UI Shell (14) can be moved earlier—e.g. after Auth—so all subsequent epics use the same layout and theme from the start.*
+| 16 | E2E & Release Readiness | Final E2E tests, staging, deploy |

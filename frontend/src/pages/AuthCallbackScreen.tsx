@@ -46,8 +46,13 @@ export function AuthCallbackScreen() {
     }
 
     loginWithOAuthTokens(access, refresh)
-      .then(() => {
-        if (!cancelled) navigate('/', { replace: true })
+      .then((user) => {
+        if (cancelled) return
+        if (user?.needs_profile_completion) {
+          navigate('/profile', { replace: true })
+        } else {
+          navigate('/', { replace: true })
+        }
       })
       .catch(() => {
         if (!cancelled) {

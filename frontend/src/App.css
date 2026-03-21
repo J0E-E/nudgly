@@ -1,17 +1,15 @@
 /**
  * App shell – root layout using semantic theme tokens.
- * Flat design; no shadows or gradients. See .docs/Design Docs/style-guide.md.
  */
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 1rem;
   min-height: 100vh;
   box-sizing: border-box;
-  background-color: var(--color-surface);
+  background-color: var(--color-surface-alt);
 }
 
 #app-root {
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }

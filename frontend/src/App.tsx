@@ -1,7 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { QueryProvider } from './providers/QueryProvider'
 import { AuthProvider } from './contexts/AuthContext'
 import { AppHeader } from './components/AppHeader'
+import { OfflineBanner } from './components/OfflineBanner'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { TasksScreen } from './pages/TasksScreen'
 import { HealthScreen } from './pages/HealthScreen'
 import { LoginScreen } from './pages/LoginScreen'
 import { RegisterScreen } from './pages/RegisterScreen'
@@ -18,49 +22,63 @@ import './App.css'
 function App() {
   return (
     <div id="app-root">
-      <AuthProvider>
-        <BrowserRouter>
-          <AppHeader />
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <HealthScreen />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfileScreen />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsPlaceholderScreen />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="/register" element={<RegisterScreen />} />
-            <Route
-              path="/reset-password"
-              element={<PasswordResetRequestScreen />}
-            />
-            <Route
-              path="/reset-password/confirm"
-              element={<PasswordResetConfirmScreen />}
-            />
-            <Route path="/auth/callback" element={<AuthCallbackScreen />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppHeader />
+            <OfflineBanner />
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Navigate to="/tasks" replace />} />
+                <Route
+                  path="/tasks"
+                  element={
+                    <ProtectedRoute>
+                      <TasksScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/health"
+                  element={
+                    <ProtectedRoute>
+                      <HealthScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfileScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <SettingsPlaceholderScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/login" element={<LoginScreen />} />
+                <Route path="/register" element={<RegisterScreen />} />
+                <Route
+                  path="/reset-password"
+                  element={<PasswordResetRequestScreen />}
+                />
+                <Route
+                  path="/reset-password/confirm"
+                  element={<PasswordResetConfirmScreen />}
+                />
+                <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryProvider>
     </div>
   )
 }

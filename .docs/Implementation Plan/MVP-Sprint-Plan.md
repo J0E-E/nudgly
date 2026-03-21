@@ -168,7 +168,7 @@
 
 ---
 
-## Epic 4c: CI Pipeline (Lint, Format & Tests)
+## Epic 4c: CI Pipeline (Lint, Format & Tests) — COMPLETED
 
 **Objective:** GitHub Actions CI that runs lint/format checks and test suites on every push/PR so regressions are caught before merge.
 
@@ -186,16 +186,24 @@
 - Fail-fast: if lint fails, skip tests.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- Single workflow file: `.github/workflows/ci.yml`
+- Two parallel jobs: `Backend (lint, format, test)` and `Frontend (lint, format, test)`
+- Backend: Python 3.11, pip cache (keyed on both `requirements.txt` and `requirements-dev.txt`), installs both requirements files, runs `ruff check .`, `ruff format --check .`, `python manage.py test` (SQLite in-memory, no services needed). `working-directory: backend` set as job default.
+- Frontend: Node 22, npm cache via `package-lock.json`, `npm ci`, `npm run lint`, `npm run format:check`, `npm test`. `working-directory: frontend` set as job default.
+- Concurrency group (`ci-${{ github.ref }}`) with `cancel-in-progress: true` to cancel stale runs on new pushes.
+- Fail-fast: sequential steps within each job — lint/format failures prevent tests from running.
+- No Docker services required in CI; all Django env vars have defaults, tests use SQLite in-memory.
+- **Plan vs implementation:** No material deviation. All planned deliverables implemented as specified.
 
 ---
 
-## Epic 5a: Tasks CRUD — Backend
+## Epic 5a: Tasks CRUD — Backend — COMPLETED
 
 **Objective:** Task model and full REST API: create, list, edit, delete, mark complete; categories and priorities per app-idea §3–§4.
 
 ### Backend
-- Task model per schema §8: title, description, due_date, category, tag, priority, recurring (nullable), status, list_id (nullable), created_at, completed_at, muted_until (nullable). Omit friend-related fields until Epic 12.
+- Task model per schema §8: title, description, due_date, category, tag, priority, recurring (nullable), status, list_id (nullable), created_at, completed_at, muted_until (nullable), created_by_user_id (nullable FK to users), plus `task_linked_friends` join table (task_id, user_id). Include friend-related fields now — the DB is rebuilt from scratch during MVP testing so there is no migration concern. Friend-field API exposure and validation is deferred to Epic 12.
 - Categories and priorities: use defined enums/choices from app-idea §3.
 - API: `GET /tasks` (pagination: limit/offset; filter by status, list_id later), `POST /tasks`, `GET /tasks/{id}`, `PATCH /tasks/{id}`, `DELETE /tasks/{id}`.
 - Ordering: due_date (nulls last), then created_at ascending.
@@ -205,11 +213,19 @@
 - No frontend work in this epic.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Plan vs implementation:** No material deviation. All planned deliverables implemented as specified.
+- **Model:** `Task` in `core/models.py` with all §8 fields. `linked_friends` uses Django `ManyToManyField` (auto-creates join table) rather than a manually defined `task_linked_friends` table — semantically identical. `created_by` is a nullable FK with `on_delete=SET_NULL`. `list_id` is a plain `IntegerField` (no FK) since the Lists model does not exist yet.
+- **Enums:** `TaskCategory` (TextChoices), `TaskPriority` (IntegerChoices 0–5), `TaskStatus` (TextChoices: pending/completed/cancelled) defined at top of `core/models.py`.
+- **API:** Mounted at `/api/tasks/` via `core/tasks/` package (views, serializers, urls). Uses plain DRF `APIView` classes, not `ModelViewSet`.
+- **Pagination:** Custom limit/offset implementation in views (not DRF's built-in pagination classes). Default limit 50, max 100. Response shape: `{count, limit, offset, results}`.
+- **Ordering:** `F("due_date").asc(nulls_last=True), "created_at"` — uses Django's `F()` expression for null handling.
+- **completed_at auto-management:** Setting status to `completed` auto-stamps `completed_at`; reverting to `pending`/`cancelled` clears it. Handled in both create and patch serializers.
+- **Friend fields deferred:** `linked_friends` and `created_by` exist on the model but are not exposed in the API serializers — deferred to Epic 12 as planned.
+- **Tests:** 29 tests in `core/tests/test_tasks.py` covering model behavior, all CRUD endpoints, validation, auth, ownership isolation, pagination, ordering, and status filter.
 
 ---
 
-## Epic 5b: Tasks CRUD — Frontend
+## Epic 5b: Tasks CRUD — Frontend — COMPLETED
 
 **Objective:** Tasks screen UI with full CRUD interactions, powered by the API from Epic 5a. First screen to adopt TanStack Query for data fetching and resilience patterns (see Standards).
 
@@ -227,7 +243,43 @@
 - Optimistic update on task completion (checkbox toggle).
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **TanStack Query setup:** `QueryProvider` wraps `AuthProvider` (outermost provider) in `App.tsx`. Default config: `staleTime: 5min`, `gcTime: 10min`, `retry: 2` for queries, `retry: 0` for mutations. `onlineManager` is configured with `navigator.onLine` events; TanStack Query auto-pauses mutations when offline. Capacitor Network plugin integration is deferred (TODO in `QueryProvider.tsx`) — `navigator.onLine` is sufficient for web MVP but has limitations on native platforms.
+- **TanStack Query + auth bridge pattern:** Each hook calls `useAuth().getApiDeps()` inside `queryFn`/`mutationFn` at call time (not closure time) so the access token is always fresh. This avoids stale closures. Follow this pattern for all future data-fetching hooks.
+- **Query key factory:** `taskKeys` in `useTasks.ts` — `['tasks', 'list', { status }]`. Future screens should adopt the same `entityKeys` pattern for consistent cache invalidation.
+- **`authDelete` added to `apiClient.ts`:** Returns `void`, throws on non-ok status. Available for all future delete endpoints.
+- **TypeScript `enum` not used:** Project has `erasableSyntaxOnly` enabled. `TaskCategory` and `TaskStatus` are `const` objects with derived union types (`type TaskCategory = (typeof TaskCategory)[keyof typeof TaskCategory]`). Future type definitions must follow this pattern.
+- **Form modals use native `<dialog>`:** `showModal()`/`close()` for focus trap and backdrop. Tests must mock `HTMLDialogElement.prototype.showModal/close` in `beforeEach` for happy-dom compatibility. Focus is saved on open and restored on close.
+- **Search/filter is client-side:** The backend only supports `?status=` filter. Title/description search and category/priority filters are applied in `TasksScreen` via `useMemo` over `data.results`. This is acceptable for MVP (max 100 tasks per page). Server-side search can be added if task volume grows.
+- **Routing changes:** `/` now redirects to `/tasks`. `HealthScreen` moved to `/health`. Catch-all `*` redirects to `/`.
+- **Mutation error feedback:** Toggle and delete mutation errors render an inline alert banner in `TasksScreen`. Form mutations show errors inline in `TaskFormModal`.
+- **Theme token added:** `--color-backdrop` for dialog overlays; `--color-success` for completed task indicators.
+- **114 frontend tests** across 19 test files (27 new tests added in this epic).
+
+---
+
+## Epic 5c: Task Detail View (Tap-to-Expand) — COMPLETED
+
+**Objective:** Let users view full task details inline by tapping a task row, using a tap-to-expand (accordion) pattern — the most idiomatic mobile UX for revealing detail without leaving context.
+
+### Backend
+- No backend work in this epic (all fields already returned by `GET /tasks`).
+
+### Frontend
+- **Tap-to-expand on `TaskListItem`:** Tapping the task content area (not checkbox) toggles an expanded section below the title/meta row.
+- **Expanded section shows:** description (if non-empty), tag (if non-empty), created date, status / completed date (if completed), muted until (if set).
+- **Action buttons relocated:** Edit and Delete buttons move from always-visible into the expanded section, decluttering the collapsed row.
+- **Transition:** CSS transition for smooth expand/collapse.
+- **Accessibility:** `aria-expanded` on the toggle target; keyboard Enter/Space to toggle.
+- **Tests:** expand/collapse behavior, detail fields rendered when expanded, actions accessible only when expanded.
+
+### Implementation Notes:
+- **Plan vs implementation:** No material deviation. All planned deliverables implemented as specified.
+- **Tap-to-expand pattern:** The content area is a native `<button>` element (not a `<div>` with `onClick`), which provides keyboard Enter/Space toggle for free without custom `onKeyDown` handling. The checkbox is in a separate wrapper so clicking it does not trigger expand.
+- **CSS transition technique:** Uses the `grid-template-rows: 0fr` → `1fr` pattern on a wrapper `<div>`, with `overflow: hidden` on the inner container. This animates height smoothly without needing explicit pixel values or `max-height` hacks. The transition duration uses the shared `--transition-expand` token (250ms ease-out) defined in `theme-tokens.css`.
+- **Accessibility:** `aria-expanded` on the toggle button, `aria-controls` pointing to the details panel ID, `aria-hidden` on the panel toggled in sync, and `role="region"` with `aria-labelledby` linking to the task title. `focus-visible` outline on the content button for keyboard users.
+- **Action buttons relocated:** Edit and Delete buttons are rendered exclusively inside the expanded details panel. They were never rendered outside it in the previous epic (5b had them always-visible in each row); this epic moved them into the collapsible section to declutter the collapsed row.
+- **Detail fields:** Description and tag are conditionally rendered (only when non-empty). Created date and status are always shown. Completed date appends to the status line when the task is completed. Muted-until is conditionally rendered when set. All dates use a shared `formatDateTime` helper (month short, day, year).
+- **Tests:** 28 tests in `TaskListItem.test.tsx` covering: collapsed-by-default, expand/collapse toggle, checkbox independence, all detail fields (description, tag, created, status, completed date, muted until) with present/absent cases, action button accessibility only when expanded, and aria attribute correctness.
 
 ---
 
@@ -299,6 +351,7 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 - **Scheduling logic:** Create/update schedules on task create/update; link to due dates and RRULE recurrence.
 - **Worker logic:** Process due schedules, respect mute/snooze, create events, send notifications (stub), update next_trigger_at with retry + jitter.
 - **Escalation:** Priority → retry_interval and max_attempts mapping per §9.1; persistent nudging.
+- **Friend-created tasks:** Nudges and reminders always target the task **owner** (recipient), never the creating friend (`created_by_user_id`). The worker must resolve the owner's devices/preferences, not the creator's.
 
 ### Frontend
 - Optional: show “Next nudge” or “Last nudge” on task/habit card if API exposes it (read-only). Enables validation that schedules exist and worker runs.
@@ -351,10 +404,11 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 ### Backend
 - Friendships (user_id, friend_id; unique pair, normalized so user_id < friend_id). FriendInvitations: from_user_id, to_user_id or to_email, status (pending, accepted, declined), responded_at.
 - API: `GET /friends`, `POST /friends/invite` (to_email or to_username), `GET /friends/invitations` (sent/received, optional ?status=pending), `PATCH /friends/invitations/{id}` (accept/decline), `DELETE /friends/{user_id}` (remove friendship). On accept: create both (A,B) and (B,A) friendship rows; one pending invite per (from, to) or (from, to_email).
+- **Invite-by-email (non-user flow):** When the invited email does not match an existing account, send an email (via the email system interface from Epic 1b) containing a sign-up link. The invitation is stored with `to_email` (no `to_user_id` yet) and status `pending`. When the recipient registers with that email, the system links the pending invitation to their new account (sets `to_user_id`) so it appears in their received invitations for acceptance. The friendship is **not** auto-created — the new user must still explicitly accept.
 
 ### Frontend
 - Friends screen (from header or Settings): list friends; list sent/received invitations (pending, accepted, declined).
-- Invite: enter email or username; send invite.
+- Invite: enter email or username; send invite. Show status "Awaiting signup" for invitations sent to non-users.
 - Accept/decline on received invite. Remove friend with confirmation.
 
 ### Implementation Notes:
@@ -368,10 +422,13 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 
 ### Backend
 - task_linked_friends (task_id, user_id); tasks.created_by_user_id. Only allow link/create when inviter and owner are friends; recipient is task owner.
-- API: PATCH task with linked_friend_ids; or POST to create task for friend (e.g. `POST /users/{id}/tasks` or `POST /tasks` with owner_id/created_for_user_id). Notify linked friends when task completed/overdue (can be stub or real in Epic 13).
+- API: PATCH task with linked_friend_ids; or POST to create task for friend (e.g. `POST /users/{id}/tasks` or `POST /tasks` with owner_id/created_for_user_id).
+- **Filter:** `GET /tasks?created_for_me=true` (or equivalent) to let users see tasks created for them by friends. Also support filtering by `created_by_user_id` for attribution views.
+- **Notifications (MVP):** When a task with linked friends is completed or becomes overdue, notify linked friends via the nudge engine / push notification system (Epic 13b). This is in-scope for MVP, not deferred.
 
 ### Frontend
 - Task create/edit: multi-select to link friends to task; optional “Create for friend” (select friend) so task appears in friend’s list. Show “Created by [friend]” / “Suggested by [friend]” and linked friends on task.
+- Filter/view for “Created for me” tasks so users can easily find friend-assigned tasks.
 
 ### Implementation Notes:
 *(To be completed when epic is done.)*
@@ -404,6 +461,7 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 ### Backend
 - DeviceTokens: user_id, device_id, platform (ios/android/web), token. `POST /device/register` (auth; body: platform, token, optional device_id). One token per (user_id, device_id); replace on re-register.
 - Worker: when sending nudge, resolve user’s device tokens and send via FCM. On FCM invalid/unregistered, remove token.
+- **Friend-linked task notifications:** When a task with linked friends is completed or becomes overdue, send a push notification to each linked friend’s devices. Notification type should be distinguishable from standard nudges (e.g. "Your friend completed [task]" or "[task] assigned to [owner] is overdue").
 - Rate limiting: per-user caps on nudges per hour/day per §12.
 
 ### Frontend
@@ -471,10 +529,11 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 | 3 | Authentication (OAuth) | Optional but part of MVP scope |
 | 4 | User Profile & Username | Needed for Friends (username) |
 | 4b | Pre-commit Hooks (Lint & Format) | Enforce code quality from this point forward |
-| 4c | CI Pipeline (Lint, Format & Tests) | Catch regressions on every push/PR |
+| 4c | CI Pipeline (Lint, Format & Tests) — COMPLETED | Catch regressions on every push/PR |
 | 14 | Theme & UI Shell | Global layout + design tokens before building screens |
 | 5a | Tasks CRUD — Backend | Core domain model and API |
 | 5b | Tasks CRUD — Frontend | Tasks screen; first TanStack Query adoption |
+| 5c | Task Detail View (Tap-to-Expand) | View task details inline; quick win before lists |
 | 6 | Lists CRUD & Task–List Association | Builds on tasks |
 | 7 | Task Mute & Snooze | Quick win on tasks |
 | 8a | Nudge Engine — Spike & Design | ⚠ Architectural spike before implementation |

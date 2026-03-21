@@ -1,0 +1,270 @@
+/**
+ * Task form modal: add or edit a task via native <dialog>.
+ */
+
+import { useState, useRef, useEffect, useMemo } from 'react'
+import type { Task, TaskCreatePayload, TaskUpdatePayload } from '../types/task'
+import {
+  TaskCategory,
+  TASK_CATEGORY_LABELS,
+  TASK_PRIORITY_LABELS,
+} from '../types/task'
+import { useCreateTask, useUpdateTask } from '../hooks/useTasks'
+import './TaskFormModal.css'
+
+interface TaskFormModalProps {
+  open: boolean
+  mode: 'create' | 'edit'
+  task?: Task
+  onClose: () => void
+}
+
+interface FormValues {
+  title: string
+  description: string
+  dueDate: string
+  category: string
+  priority: string
+  tag: string
+}
+
+const EMPTY_FORM: FormValues = {
+  title: '',
+  description: '',
+  dueDate: '',
+  category: '',
+  priority: '0',
+  tag: '',
+}
+
+function getInitialValues(mode: 'create' | 'edit', task?: Task): FormValues {
+  if (mode === 'edit' && task) {
+    return {
+      title: task.title,
+      description: task.description,
+      dueDate: task.due_date ?? '',
+      category: task.category as string,
+      priority: String(task.priority),
+      tag: task.tag,
+    }
+  }
+  return EMPTY_FORM
+}
+
+const VALID_CATEGORIES = new Set<string>(Object.values(TaskCategory))
+
+export function TaskFormModal({
+  open,
+  mode,
+  task,
+  onClose,
+}: TaskFormModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const triggerRef = useRef<Element | null>(null)
+
+  const createMutation = useCreateTask()
+  const updateMutation = useUpdateTask()
+
+  const initialValues = useMemo(
+    () => (open ? getInitialValues(mode, task) : null),
+    [open, mode, task]
+  )
+
+  const [form, setForm] = useState<FormValues>(EMPTY_FORM)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [appliedInit, setAppliedInit] = useState<typeof initialValues>(null)
+
+  if (initialValues && initialValues !== appliedInit) {
+    setForm(initialValues)
+    setFormError(null)
+    setAppliedInit(initialValues)
+  }
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    if (open && !dialog.open) {
+      triggerRef.current = document.activeElement
+      dialog.showModal()
+    } else if (!open && dialog.open) {
+      dialog.close()
+      if (triggerRef.current instanceof HTMLElement) {
+        triggerRef.current.focus()
+      }
+    }
+  }, [open])
+
+  function handleClose() {
+    setFormError(null)
+    onClose()
+  }
+
+  function updateField<K extends keyof FormValues>(
+    key: K,
+    value: FormValues[K]
+  ) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setFormError(null)
+
+    if (!form.title.trim()) {
+      setFormError('Title is required.')
+      return
+    }
+    if (!form.category || !VALID_CATEGORIES.has(form.category)) {
+      setFormError('Category is required.')
+      return
+    }
+
+    try {
+      const common = {
+        title: form.title.trim(),
+        category: form.category as TaskCategory,
+        description: form.description.trim(),
+        due_date: form.dueDate || null,
+        priority: Number(form.priority),
+        tag: form.tag.trim(),
+      }
+      if (mode === 'create') {
+        await createMutation.mutateAsync(common as TaskCreatePayload)
+      } else if (task) {
+        await updateMutation.mutateAsync({
+          id: task.id,
+          payload: common as TaskUpdatePayload,
+        })
+      }
+      handleClose()
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Something went wrong.')
+    }
+  }
+
+  const submitting = createMutation.isPending || updateMutation.isPending
+
+  return (
+    <dialog
+      id="task-form-dialog"
+      ref={dialogRef}
+      className="task-form-dialog"
+      aria-labelledby="task-form-title"
+      onClose={handleClose}
+    >
+      <h2 id="task-form-title" className="task-form-title">
+        {mode === 'create' ? 'Add task' : 'Edit task'}
+      </h2>
+      <form id="task-form" onSubmit={handleSubmit} noValidate>
+        {formError && (
+          <p id="task-form-error" className="task-form-error" role="alert">
+            {formError}
+          </p>
+        )}
+        <div className="task-form-field">
+          <label htmlFor="task-form-title-input">Title</label>
+          <input
+            id="task-form-title-input"
+            type="text"
+            value={form.title}
+            onChange={(e) => updateField('title', e.target.value)}
+            required
+            maxLength={500}
+            disabled={submitting}
+          />
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-description-input">Description</label>
+          <textarea
+            id="task-form-description-input"
+            value={form.description}
+            onChange={(e) => updateField('description', e.target.value)}
+            maxLength={5000}
+            rows={3}
+            disabled={submitting}
+          />
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-due-date-input">Due date</label>
+          <input
+            id="task-form-due-date-input"
+            type="date"
+            value={form.dueDate}
+            onChange={(e) => updateField('dueDate', e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-category-input">Category</label>
+          <select
+            id="task-form-category-input"
+            value={form.category}
+            onChange={(e) => updateField('category', e.target.value)}
+            required
+            disabled={submitting}
+          >
+            <option value="" disabled>
+              Select category
+            </option>
+            {Object.values(TaskCategory).map((cat) => (
+              <option key={cat} value={cat}>
+                {TASK_CATEGORY_LABELS[cat]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-priority-input">Priority</label>
+          <select
+            id="task-form-priority-input"
+            value={form.priority}
+            onChange={(e) => updateField('priority', e.target.value)}
+            disabled={submitting}
+          >
+            {Object.entries(TASK_PRIORITY_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-tag-input">Tag (optional)</label>
+          <input
+            id="task-form-tag-input"
+            type="text"
+            value={form.tag}
+            onChange={(e) => updateField('tag', e.target.value)}
+            maxLength={255}
+            disabled={submitting}
+          />
+        </div>
+        <div className="task-form-actions">
+          <button
+            id="task-form-cancel-btn"
+            type="button"
+            className="task-form-cancel"
+            onClick={handleClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            id="task-form-submit-btn"
+            type="submit"
+            className="task-form-submit"
+            disabled={submitting}
+            aria-busy={submitting}
+          >
+            {submitting
+              ? 'Saving...'
+              : mode === 'create'
+                ? 'Add task'
+                : 'Save changes'}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  )
+}

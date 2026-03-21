@@ -1,11 +1,11 @@
 /**
- * Semantic theme tokens – Mystic Aqua Serenity (Teal).
+ * Semantic theme tokens – Mystic Aqua Serenity.
  * All themeable UI colors use these variables; no hard-coded hex in components.
  * See .docs/Design Docs/theme-tokens.md for contract and usage.
  */
 
 :root {
-  /* Primary palette (Mystic Aqua Serenity) */
+  /* Primary palette – Mystic Aqua Serenity */
   --color-jet-black: #17252a;
   --color-pine-blue: #2b7a78;
   --color-tropical-teal: #3aafa9;
@@ -18,13 +18,30 @@
   --color-primary: var(--color-jet-black);
   --color-surface: var(--color-white);
   --color-surface-alt: var(--color-azure-mist);
+  --color-surface-inset: #e8f4f3;
   --color-accent: var(--color-tropical-teal);
   --color-secondary: var(--color-pine-blue);
   --color-text: var(--color-jet-black);
   --color-text-muted: var(--color-pine-blue);
   --color-border: var(--color-pine-blue);
+  --color-border-light: #c4e3e2;
   --color-focus: var(--color-tropical-teal);
   --color-alert-bg: #fef2f2;
   --color-on-alert: var(--color-alert);
   --color-on-accent: var(--color-white);
+  --color-success: var(--color-tropical-teal);
+  --color-backdrop: rgba(23, 37, 42, 0.45);
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(27, 58, 75, 0.08);
+  --shadow-modal: 0 8px 32px rgba(27, 58, 75, 0.16);
+
+  /* Radii */
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --radius-input: 12px;
+  --radius-panel: 12px;
+
+  /* Transitions */
+  --transition-expand: 250ms ease-out;
 }

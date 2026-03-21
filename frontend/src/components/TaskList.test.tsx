@@ -1,0 +1,49 @@
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { TaskList } from './TaskList'
+import { TaskCategory, TaskStatus } from '../types/task'
+import type { Task } from '../types/task'
+
+const mockTask: Task = {
+  id: 1,
+  title: 'Test task',
+  description: '',
+  due_date: null,
+  category: TaskCategory.ADULTING,
+  tag: '',
+  priority: 0,
+  recurring: null,
+  status: TaskStatus.PENDING,
+  muted_until: null,
+  created_at: '2026-03-20T10:00:00Z',
+  completed_at: null,
+}
+
+describe('TaskList', () => {
+  const handlers = {
+    onToggleComplete: vi.fn(),
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
+  }
+
+  it('renders empty state when no tasks', () => {
+    render(<TaskList tasks={[]} {...handlers} />)
+    expect(screen.getByText(/no tasks found/i)).toBeInTheDocument()
+  })
+
+  it('renders task items', () => {
+    render(
+      <TaskList
+        tasks={[mockTask, { ...mockTask, id: 2, title: 'Second task' }]}
+        {...handlers}
+      />
+    )
+    expect(screen.getByText('Test task')).toBeInTheDocument()
+    expect(screen.getByText('Second task')).toBeInTheDocument()
+  })
+
+  it('renders a list element', () => {
+    render(<TaskList tasks={[mockTask]} {...handlers} />)
+    expect(screen.getByRole('list')).toBeInTheDocument()
+  })
+})

@@ -1,0 +1,219 @@
+.task-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border-light);
+  list-style: none;
+}
+
+.task-list-item:last-child {
+  border-bottom: none;
+}
+
+.task-list-item--completed {
+  opacity: 0.6;
+}
+
+.task-list-item-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.task-list-item-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.task-list-item-checkbox:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Content toggle button – reset native button styles */
+.task-list-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-list-item-content:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.task-list-item-content-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-list-item-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.task-list-item-title--completed {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.task-list-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.75rem;
+}
+
+.task-list-item-due {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--color-text-muted);
+}
+
+.task-list-item-due--overdue {
+  background: var(--color-alert-bg);
+  color: var(--color-on-alert);
+  font-weight: 600;
+}
+
+.task-list-item-category {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
+.task-list-item-priority {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* Chevron icon */
+.task-list-item-chevron {
+  flex-shrink: 0;
+  margin-left: 12px;
+  color: var(--color-text-muted);
+  transition: transform 200ms ease;
+}
+
+.task-list-item--expanded .task-list-item-chevron {
+  transform: rotate(90deg);
+}
+
+/* Expand/collapse detail panel using CSS grid animation */
+.task-list-item-details {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-expand);
+}
+
+.task-list-item--expanded .task-list-item-details {
+  grid-template-rows: 1fr;
+}
+
+.task-list-item-details-inner {
+  overflow: hidden;
+  padding: 0 0 0 56px;
+}
+
+.task-list-item--expanded .task-list-item-details-inner {
+  margin-top: 12px;
+  padding: 14px 20px 8px;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-surface-inset);
+  border-radius: var(--radius-panel);
+}
+
+/* Detail field rows */
+.task-list-item-detail-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  margin: 0;
+  word-break: break-word;
+}
+
+.task-list-item-detail-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* Action buttons (inside expanded panel) */
+.task-list-item-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.task-list-item-edit {
+  min-height: 44px;
+  padding: 6px 20px;
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.task-list-item-edit:hover {
+  background: var(--color-surface-alt);
+}
+
+.task-list-item-delete {
+  min-height: 44px;
+  padding: 6px 20px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.task-list-item-delete:hover {
+  background: var(--color-alert-bg);
+  color: var(--color-on-alert);
+  border-color: var(--color-alert);
+}
+
+.task-list-item-edit:focus,
+.task-list-item-delete:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

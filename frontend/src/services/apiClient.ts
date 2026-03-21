@@ -128,3 +128,17 @@ export async function authPatch<T>(
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
+
+/**
+ * DELETE url with auth; returns void or throws.
+ */
+export async function authDelete(
+  url: string,
+  deps: ApiClientDeps
+): Promise<void> {
+  const res = await authFetch(url, { method: 'DELETE' }, deps)
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Request failed: ${res.status} ${text}`)
+  }
+}

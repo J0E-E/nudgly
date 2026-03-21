@@ -1,0 +1,14 @@
+.task-list {
+  margin: 0;
+  padding: 12px 0;
+  list-style: none;
+}
+
+.task-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 28px;
+  text-align: center;
+  color: var(--color-text-muted);
+}

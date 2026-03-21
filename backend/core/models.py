@@ -1,10 +1,33 @@
 """
-Core models: custom User and PasswordResetToken.
+Core models: custom User, PasswordResetToken, Task.
 User uses email as the login identifier; username is for @userName identity (e.g. friends).
 """
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
+
+
+class TaskCategory(models.TextChoices):
+    TREAT_MYSELF = "treat_myself", "Treat Myself"
+    GLOW_UP = "glow_up", "Glow-Up Agenda"
+    ADULTING = "adulting", "Adulting\u2122"
+    I_SAID_I_WOULD = "i_said_i_would", "I Said I Would"
+    THE_INEVITABLE = "the_inevitable", "The Inevitable"
+
+
+class TaskPriority(models.IntegerChoices):
+    NO_ONE_CARES = 0, "No one cares"
+    NO_ONE_IS_WATCHING = 1, "No one is watching"
+    ILL_FEEL_GUILTY = 2, "I'll feel guilty"
+    OTHERS_ARE_WATCHING = 3, "Others are watching"
+    OTHERS_WILL_BE_LET_DOWN = 4, "Others will be let down"
+    ILL_LET_MYSELF_DOWN = 5, "I'll let myself down"
+
+
+class TaskStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    COMPLETED = "completed", "Completed"
+    CANCELLED = "cancelled", "Cancelled"
 
 
 class UserManager(BaseUserManager):
@@ -74,3 +97,47 @@ class PasswordResetToken(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["token_hash"])]
+
+
+class Task(models.Model):
+    """
+    Task model per schema §8.
+    Categories and priorities from app-idea §3–§4.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
+    title = models.CharField(max_length=500)
+    description = models.TextField(blank=True, default="")
+    due_date = models.DateField(null=True, blank=True)
+    category = models.CharField(max_length=30, choices=TaskCategory.choices)
+    tag = models.CharField(max_length=255, blank=True, default="")
+    priority = models.IntegerField(
+        choices=TaskPriority.choices, default=TaskPriority.NO_ONE_CARES
+    )
+    recurring = models.TextField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20, choices=TaskStatus.choices, default=TaskStatus.PENDING
+    )
+    list_id = models.IntegerField(null=True, blank=True)
+    muted_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_tasks",
+    )
+    linked_friends = models.ManyToManyField(
+        User, blank=True, related_name="linked_tasks"
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["user", "due_date"]),
+        ]
+
+    def __str__(self):
+        return self.title[:50]

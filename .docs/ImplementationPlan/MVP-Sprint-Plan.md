@@ -340,7 +340,7 @@
 > **⚠ HIGH RISK — Spike required before implementation.**
 > This is the most architecturally complex epic in the MVP. It introduces Celery (Beat + worker), idempotent event processing, retry/escalation logic, and cross-model scheduling. A dedicated spike (Epic 8a) must be completed first to produce a detailed design and validate assumptions before any code is written.
 
-### Epic 8a: Nudge Engine — Spike & Design
+### Epic 8a: Nudge Engine — Spike & Design ✅ COMPLETED
 
 **Objective:** Produce a detailed technical design document for the nudge engine. Validate architectural decisions with a proof-of-concept.
 
@@ -350,24 +350,95 @@
 - Output: Sub-epic breakdown (8b, 8c, 8d, …) with scope and ordering for implementation.
 
 #### Implementation Notes:
+- Full design doc: `.docs/Design Docs/nudge-engine-design.md`
+- Added `celery[redis]>=5.4,<6` to requirements; Celery app in `config/celery.py`, wired in `config/__init__.py`
+- Celery settings in `config/settings.py`: CELERY_BROKER_URL (Redis), CELERY_BEAT_SCHEDULE (60s tick), CELERY_TASK_ALWAYS_EAGER for tests
+- ReminderSchedule + ReminderEvent models in `core/models.py` with CheckConstraint (task XOR habit_id) and UniqueConstraint (schedule + triggered_at_bucket for idempotency)
+- `habit_id` is a plain IntegerField (not FK) -- Habit model does not exist until Epic 9; will become FK then
+- Worker task `process_due_reminders` in `core/nudge.py` (not `core/tasks.py` which is the Task views package). Push notification is a stub (logs only) until Epic 8c.
+- `core.nudge` is explicitly included via `app.conf.include` in `config/celery.py` because `autodiscover_tasks()` only finds `tasks.py` modules; without this the worker would fail with `NotRegistered`
+- Idempotent insert in the worker loop is wrapped in `transaction.atomic()` — required for PostgreSQL, which aborts the entire transaction on a bare `IntegrityError` (SQLite in tests does not surface this)
+- Docker Compose: `celery_worker` and `celery_beat` services added, both depend on `django_api` (healthy) to ensure migrations run first
+- 17 tests in `core/tests/test_nudge_engine.py` covering models, constraints, worker logic, muting, retry advancement, deactivation, and idempotency
+- Sub-epic breakdown: 8b (Schedule API & Auto-creation) -> 8c (Push Notification Infra) -> 8d (List-Level Nudges) -> 8e (Nudge Copy & Tuning)
+
+### Epic 8b: Schedule API & Auto-creation
+
+**Objective:** Automatically create, update, and delete ReminderSchedules when tasks change; expose an acknowledge endpoint so users can dismiss active nudges.
+
+#### Backend
+- **Auto-creation:** When a task is created or updated with a `due_date`, auto-create or update a ReminderSchedule for that task. Use `PRIORITY_NUDGE_CONFIG` (defined in `core/nudge.py`) to set `retry_interval_minutes` and `max_attempts` based on the task's priority. Set `next_trigger_at` to the task's `due_date` (or `due_date - lead_time` if a lead-time offset is defined).
+- **Auto-update:** When a task's `due_date`, `priority`, or `status` changes via `PATCH /tasks/{id}`, update the associated schedule. If `due_date` is cleared or task is completed/cancelled, deactivate the schedule (`is_active = False`). If priority changes, update `retry_interval_minutes` and `max_attempts`.
+- **Auto-delete:** Task deletion cascades to schedules (already enforced by `on_delete=CASCADE`).
+- **Reset on reactivation:** If a completed/cancelled task is set back to `pending` with a `due_date`, re-create or reactivate the schedule with `attempt_count = 0`.
+- **Acknowledge endpoint:** `POST /api/reminders/{schedule_id}/acknowledge/` — sets the most recent ReminderEvent's `acknowledged = True` and deactivates the schedule (`is_active = False`). Only the task owner can acknowledge. Returns 204.
+- **Read endpoint (optional):** `GET /api/tasks/{id}/schedule/` — returns the active schedule for a task (next_trigger_at, attempt_count, is_active) or 404 if none. Read-only; used by frontend to show “Next nudge” info.
+- **Friend-created tasks:** Schedule's `user` FK always points to the task **owner** (the `user` field on Task), never `created_by`. The worker resolves the owner's devices/preferences.
+- **Tests:** Auto-creation on task create, auto-update on due_date/priority/status change, deactivation on complete/cancel, reactivation on pending, acknowledge endpoint, ownership isolation.
+
+#### Frontend
+- No frontend work in this sub-epic (schedule management is automatic; frontend display deferred to 8e or a later polish pass).
+
+#### Implementation Notes:
 *(To be completed when epic is done.)*
 
-### Epic 8b–8n: Nudge Engine — Implementation (sub-epics TBD by spike)
+### Epic 8c: Push Notification Infrastructure
 
-**Objective:** Implement the nudge engine per the design produced in Epic 8a.
+**Objective:** Register user devices, integrate with FCM (Firebase Cloud Messaging), and replace the stub notification sender in the worker with real push delivery.
 
-The spike (8a) will produce the specific sub-epic breakdown. Expected areas include:
-- **Infrastructure:** Celery Beat + worker containers in Docker Compose; Redis as broker.
-- **Models:** ReminderSchedule, ReminderEvent with idempotency constraints.
-- **Scheduling logic:** Create/update schedules on task create/update; link to due dates and RRULE recurrence.
-- **Worker logic:** Process due schedules, respect mute/snooze, create events, send notifications (stub), update next_trigger_at with retry + jitter.
-- **Escalation:** Priority → retry_interval and max_attempts mapping per §9.1; persistent nudging.
-- **Friend-created tasks:** Nudges and reminders always target the task **owner** (recipient), never the creating friend (`created_by_user_id`). The worker must resolve the owner's devices/preferences, not the creator's.
+> **Depends on:** Epic 8a (worker infrastructure) and Epic 13a (push notification dependencies — Firebase project setup, service account key).
 
-### Frontend
-- Optional: show “Next nudge” or “Last nudge” on task/habit card if API exposes it (read-only). Enables validation that schedules exist and worker runs.
+#### Backend
+- **DeviceToken model:** `user` (FK, CASCADE), `token` (CharField, unique), `platform` (choices: ios, android, web), `is_active` (BooleanField, default True), `created_at`, `updated_at`. Index on `(user, is_active)`.
+- **Device registration API:** `POST /api/devices/register/` — upsert device token (create or reactivate if token exists). `DELETE /api/devices/{token}/` — deactivate token. Both require authentication.
+- **FCM adapter:** Follow the EmailSender interface/adapter pattern. Define `NotificationSender` protocol with `send(user_id, title, body, data=None)`. Implement `FCMAdapter` using `firebase-admin` SDK. Implement `StdoutNotificationAdapter` for dev/test (logs to console). Wire via `NOTIFICATION_SENDER` env var (default `stdout`).
+- **Replace stub in worker:** In `core/nudge.py`, replace `logger.info(“NUDGE: ...”)` with a call to `get_notification_sender().send(...)`. Resolve all active device tokens for `schedule.user` and send to each.
+- **Stale token cleanup:** When FCM returns “invalid registration” or “not registered”, mark the token as `is_active = False`. Add a periodic Celery task (e.g. weekly) to purge tokens inactive for > 30 days.
+- **Tests:** Device registration (create, upsert, deactivate), FCM adapter with mocked firebase-admin, stdout adapter, worker integration with notification sender, stale token handling.
 
-### Implementation Notes:
+#### Frontend
+- **Device registration on login:** After successful login or app launch (if already authenticated), call `POST /api/devices/register/` with the device's push token. On Capacitor/native, use `@capacitor/push-notifications` to request permission and obtain the token. On web, use Firebase JS SDK for web push (optional; can be deferred).
+- **Permission prompt:** Request notification permission on first login; if denied, show a settings hint. Do not block login flow.
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+### Epic 8d: List-Level Nudges
+
+**Objective:** Send aggregate nudge reminders at the list level, summarizing pending tasks in a list.
+
+> **Depends on:** Epic 8b (schedule auto-creation pattern). Can be parallelized with Epic 8c.
+
+#### Backend
+- **List schedule creation:** When a list has pending tasks and a user-configured reminder (or default), create a ReminderSchedule with `task = None` and a new `list` FK on ReminderSchedule (nullable FK to List, CASCADE). Extend the XOR CheckConstraint to allow `list` as a third option: exactly one of `task`, `habit_id`, or `list` must be set.
+- **Priority mapping:** Use the **list's priority** (not individual task priorities) for `retry_interval_minutes` and `max_attempts` via `PRIORITY_NUDGE_CONFIG`.
+- **Aggregate message:** Notification body summarizes the list: e.g. “**Adulting** has 5 items left” or “3 tasks due today in **Glow-Up Agenda**”.
+- **Mute respect:** Check `list.muted_until` before sending (already handled in worker for task-level schedules; extend to list-level).
+- **Tests:** List schedule creation, priority mapping from list, aggregate message formatting, mute respect, cascade delete on list deletion.
+
+#### Frontend
+- No frontend work in this sub-epic (notifications are push-based; list view already shows task counts).
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+### Epic 8e: Nudge Copy & Tuning
+
+**Objective:** Replace generic notification text with the witty, sarcastic nudge messages from the app spec; add per-user rate limiting and timing refinements.
+
+> **Depends on:** Epic 8c (push notification infra must be in place for real message delivery).
+
+#### Backend
+- **Message templates:** Define nudge message templates per priority level (from app-idea §5 tone guidelines). Store as a list of strings per priority; worker selects randomly. Examples: Priority 5 → “You literally said you'd let yourself down. Don't do that.”, Priority 0 → “This task exists. That's about all anyone can say.”
+- **Template selection:** In `core/nudge.py`, after determining the schedule is due and not muted, select a message template based on `task.priority` and `attempt_number` (escalation = more urgent tone). Pass `title` and `body` to the notification sender.
+- **Per-user rate limiting:** Cap nudges per user per hour (e.g. max 5/hour) to prevent notification fatigue when many tasks come due simultaneously. Implement as a simple counter check (query ReminderEvents for user in the last hour) before sending. If over limit, defer the schedule's `next_trigger_at` by the retry interval.
+- **Jitter refinement:** Current jitter is +-5 minutes (random.randint). Refine to +-2 minutes for high-priority (4-5) and +-5 minutes for low-priority (0-2) to make urgent nudges more predictable.
+- **Tests:** Template selection by priority, escalation tone by attempt number, rate limiting enforcement, jitter range validation by priority.
+
+#### Frontend
+- **”Next nudge” display (optional):** If `GET /api/tasks/{id}/schedule/` is available (from 8b), show “Next nudge: in 45 min” or “Last nudge: 2h ago” on the task detail expanded view. Read-only; no interaction needed.
+
+#### Implementation Notes:
 *(To be completed when epic is done.)*
 
 ---

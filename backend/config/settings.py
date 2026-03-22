@@ -160,3 +160,20 @@ SIMPLE_JWT = {
 # Security
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = "DENY"
+
+# Celery: async task queue backed by Redis.
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = None  # fire-and-forget; results stored as ReminderEvent rows
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_BEAT_SCHEDULE = {
+    "process-due-reminders": {
+        "task": "core.nudge.process_due_reminders",
+        "schedule": 60.0,  # every 60 seconds
+    },
+}
+
+# In test mode, run Celery tasks synchronously (no Redis/worker needed).
+if "test" in sys.argv:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True

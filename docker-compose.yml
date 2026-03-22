@@ -62,6 +62,40 @@ services:
       retries: 3
       start_period: 10s
 
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      DEBUG: ${DEBUG:-true}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,localhost:9000,127.0.0.1:9000,django_api}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:9000}
+      DATABASE_URL: postgres://${POSTGRES_USER:-nudgly}:${POSTGRES_PASSWORD:-nudgly}@postgres:5432/${POSTGRES_DB:-nudgly}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      django_api: { condition: service_healthy }
+    command: celery -A config worker --loglevel=info --concurrency=1
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      DEBUG: ${DEBUG:-true}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,localhost:9000,127.0.0.1:9000,django_api}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:9000}
+      DATABASE_URL: postgres://${POSTGRES_USER:-nudgly}:${POSTGRES_PASSWORD:-nudgly}@postgres:5432/${POSTGRES_DB:-nudgly}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      django_api: { condition: service_healthy }
+    command: celery -A config beat --loglevel=info
+
   frontend:
     build:
       context: .

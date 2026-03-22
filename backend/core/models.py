@@ -168,3 +168,82 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title[:50]
+
+
+class ReminderSchedule(models.Model):
+    """
+    Nudge schedule per schema §8.
+    Links to a task (or habit via plain int until Epic 9 adds the Habit model).
+    The worker queries next_trigger_at to find due reminders.
+    """
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="reminder_schedules"
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reminder_schedules",
+    )
+    # Plain int — Habit model does not exist yet (Epic 9). Will become FK then.
+    habit_id = models.IntegerField(null=True, blank=True)
+    recurrence_rule = models.TextField(blank=True, default="")
+    next_trigger_at = models.DateTimeField()
+    retry_interval_minutes = models.PositiveIntegerField()
+    persistent = models.BooleanField(default=True)
+    max_attempts = models.PositiveIntegerField()
+    attempt_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["next_trigger_at", "is_active"]),
+            models.Index(fields=["user"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(task__isnull=False, habit_id__isnull=True)
+                    | models.Q(task__isnull=True, habit_id__isnull=False)
+                ),
+                name="reminder_schedule_task_xor_habit",
+            ),
+        ]
+
+    def __str__(self):
+        target = f"task={self.task_id}" if self.task_id else f"habit={self.habit_id}"
+        return f"ReminderSchedule({target}, next={self.next_trigger_at})"
+
+
+class ReminderEvent(models.Model):
+    """
+    Immutable record of a nudge firing. Idempotency enforced via unique
+    constraint on (schedule, triggered_at_bucket).
+    """
+
+    schedule = models.ForeignKey(
+        ReminderSchedule, on_delete=models.CASCADE, related_name="events"
+    )
+    triggered_at = models.DateTimeField()
+    triggered_at_bucket = models.DateTimeField()
+    attempt_number = models.PositiveIntegerField()
+    acknowledged = models.BooleanField(default=False)
+    notification_sent = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "triggered_at_bucket"],
+                name="unique_schedule_trigger_bucket",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"ReminderEvent(schedule={self.schedule_id}, "
+            f"attempt={self.attempt_number})"
+        )

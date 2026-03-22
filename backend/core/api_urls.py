@@ -9,4 +9,5 @@ urlpatterns = [
     path("users/", include("core.profile.urls")),
     path("tasks/", include("core.tasks.urls")),
     path("lists/", include("core.lists.urls")),
+    path("reminders/", include("core.reminders.urls")),
 ]

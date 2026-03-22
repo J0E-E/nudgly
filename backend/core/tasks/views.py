@@ -100,3 +100,26 @@ class TaskDetailView(APIView):
         task = self._get_task(request, pk)
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TaskScheduleView(APIView):
+    """GET /api/tasks/{id}/schedule/ — active schedule for a task."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        task = get_object_or_404(Task, pk=pk, user=request.user)
+        schedule = task.reminder_schedules.filter(is_active=True).first()
+        if not schedule:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "id": schedule.id,
+                "next_trigger_at": schedule.next_trigger_at.isoformat(),
+                "retry_interval_minutes": schedule.retry_interval_minutes,
+                "max_attempts": schedule.max_attempts,
+                "attempt_count": schedule.attempt_count,
+                "is_active": schedule.is_active,
+                "created_at": schedule.created_at.isoformat(),
+            }
+        )

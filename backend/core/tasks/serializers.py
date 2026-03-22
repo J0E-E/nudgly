@@ -78,7 +78,12 @@ class TaskCreateSerializer(serializers.Serializer):
             "status"
         ) == TaskStatus.COMPLETED and not validated_data.get("completed_at"):
             validated_data["completed_at"] = timezone.now()
-        return Task.objects.create(user=user, **validated_data)
+        task = Task.objects.create(user=user, **validated_data)
+
+        from core.schedules import sync_task_schedule
+
+        sync_task_schedule(task)
+        return task
 
 
 class TaskPatchSerializer(serializers.Serializer):
@@ -140,4 +145,11 @@ class TaskPatchSerializer(serializers.Serializer):
                     update_fields.append("completed_at")
 
         instance.save(update_fields=update_fields)
+
+        schedule_fields = {"due_date", "priority", "status"}
+        if schedule_fields & set(validated_data.keys()):
+            from core.schedules import sync_task_schedule
+
+            sync_task_schedule(instance)
+
         return instance

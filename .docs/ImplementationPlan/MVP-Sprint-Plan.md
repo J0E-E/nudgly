@@ -362,7 +362,7 @@
 - 17 tests in `core/tests/test_nudge_engine.py` covering models, constraints, worker logic, muting, retry advancement, deactivation, and idempotency
 - Sub-epic breakdown: 8b (Schedule API & Auto-creation) -> 8c (Push Notification Infra) -> 8d (List-Level Nudges) -> 8e (Nudge Copy & Tuning)
 
-### Epic 8b: Schedule API & Auto-creation
+### Epic 8b: Schedule API & Auto-creation — COMPLETED
 
 **Objective:** Automatically create, update, and delete ReminderSchedules when tasks change; expose an acknowledge endpoint so users can dismiss active nudges.
 
@@ -380,7 +380,14 @@
 - No frontend work in this sub-epic (schedule management is automatic; frontend display deferred to 8e or a later polish pass).
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- Schedule lifecycle managed by `sync_task_schedule(task)` in `core/schedules.py` — single function handles create, update, deactivate, and reactivate
+- Integrated via explicit calls in serializers (`TaskCreateSerializer.create()` and `TaskPatchSerializer.update()`), not Django signals — consistent with existing codebase pattern where all side effects live in serializers
+- `next_trigger_at` computed as 9 AM on `due_date` in the user's timezone (via `zoneinfo.ZoneInfo`), converted to UTC; if the resulting datetime is in the past, `timezone.now()` is used instead (trigger immediately)
+- No lead-time offset implemented — plan mentioned `due_date - lead_time` as optional; deferred since no lead-time field exists on Task yet
+- Acknowledge endpoint at `POST /api/reminders/{schedule_id}/acknowledge/` in new `core/reminders/` package; read endpoint at `GET /api/tasks/{id}/schedule/` in existing tasks views
+- No new migrations — all models were delivered in Epic 8a; this epic only adds application logic
+- One schedule per task enforced by `filter(task=task).first()` convention, not a DB unique constraint — acceptable for MVP; concurrent requests could theoretically create duplicates but the worker handles them gracefully
+- 25 tests in `core/tests/test_schedules.py` covering unit + API integration for all specified behaviors
 
 ### Epic 8c: Push Notification Infrastructure
 

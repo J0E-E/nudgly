@@ -2,10 +2,18 @@
 Serializers for Task CRUD.
 """
 
+from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework import serializers
 
 from core.models import TaskCategory, TaskPriority, TaskStatus
+
+MUTE_PRESET_DURATIONS = {
+    "1h": timedelta(hours=1),
+    "1d": timedelta(days=1),
+    "1wk": timedelta(weeks=1),
+}
 
 
 def task_payload(task):
@@ -51,9 +59,7 @@ class TaskCreateSerializer(serializers.Serializer):
     muted_until = serializers.DateTimeField(
         required=False, allow_null=True, default=None
     )
-    list_id = serializers.IntegerField(
-        required=False, allow_null=True, default=None
-    )
+    list_id = serializers.IntegerField(required=False, allow_null=True, default=None)
 
     def validate_list_id(self, value):
         if value is not None:
@@ -68,10 +74,9 @@ class TaskCreateSerializer(serializers.Serializer):
         from core.models import Task
 
         user = self.context["user"]
-        if (
-            validated_data.get("status") == TaskStatus.COMPLETED
-            and not validated_data.get("completed_at")
-        ):
+        if validated_data.get(
+            "status"
+        ) == TaskStatus.COMPLETED and not validated_data.get("completed_at"):
             validated_data["completed_at"] = timezone.now()
         return Task.objects.create(user=user, **validated_data)
 
@@ -87,11 +92,12 @@ class TaskPatchSerializer(serializers.Serializer):
     category = serializers.ChoiceField(choices=TaskCategory.choices, required=False)
     tag = serializers.CharField(required=False, allow_blank=True, max_length=255)
     priority = serializers.IntegerField(required=False, min_value=0, max_value=5)
-    recurring = serializers.CharField(
-        required=False, allow_null=True, allow_blank=True
-    )
+    recurring = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     status = serializers.ChoiceField(choices=TaskStatus.choices, required=False)
     muted_until = serializers.DateTimeField(required=False, allow_null=True)
+    mute_preset = serializers.ChoiceField(
+        choices=list(MUTE_PRESET_DURATIONS.keys()), required=False
+    )
     list_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_list_id(self, value):
@@ -102,6 +108,16 @@ class TaskPatchSerializer(serializers.Serializer):
             if not List.objects.filter(pk=value, user=user).exists():
                 raise serializers.ValidationError("List not found.")
         return value
+
+    def validate(self, attrs):
+        if "mute_preset" in attrs and "muted_until" in attrs:
+            raise serializers.ValidationError(
+                "Cannot send both mute_preset and muted_until."
+            )
+        preset = attrs.pop("mute_preset", None)
+        if preset:
+            attrs["muted_until"] = timezone.now() + MUTE_PRESET_DURATIONS[preset]
+        return attrs
 
     def update(self, instance, validated_data):
         update_fields = []

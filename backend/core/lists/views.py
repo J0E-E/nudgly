@@ -9,12 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.models import List
 from core.lists.serializers import (
     ListCreateSerializer,
     ListPatchSerializer,
     list_payload,
 )
+from core.models import List
 
 
 def _parse_pagination(request):
@@ -35,9 +35,7 @@ class ListListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = List.objects.filter(user=request.user).annotate(
-            task_count=Count("tasks")
-        )
+        qs = List.objects.filter(user=request.user).annotate(task_count=Count("tasks"))
 
         # Exclude archived by default.
         include_archived = request.query_params.get("include_archived", "").lower()

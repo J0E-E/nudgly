@@ -18,6 +18,7 @@ interface TaskListItemProps {
   onToggleComplete: (task: Task) => void
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
+  onSnooze: (task: Task) => void
 }
 
 function isOverdue(task: Task): boolean {
@@ -43,6 +44,10 @@ function formatDateTime(isoStr: string): string {
   })
 }
 
+function isMutedNow(task: Task): boolean {
+  return task.muted_until !== null && new Date(task.muted_until) > new Date()
+}
+
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
@@ -52,10 +57,12 @@ export function TaskListItem({
   onToggleComplete,
   onEdit,
   onDelete,
+  onSnooze,
 }: TaskListItemProps) {
   const [expanded, setExpanded] = useState(false)
   const completed = task.status === TaskStatus.COMPLETED
   const overdue = isOverdue(task)
+  const muted = isMutedNow(task)
 
   return (
     <li
@@ -109,10 +116,31 @@ export function TaskListItem({
                 {TASK_PRIORITY_LABELS[task.priority]}
               </span>
             )}
+            {muted && (
+              <span
+                id={`task-${task.id}-muted`}
+                className="task-list-item-muted"
+              >
+                Muted
+              </span>
+            )}
           </div>
         </div>
-        <svg className="task-list-item-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg
+          className="task-list-item-chevron"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M7 4l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
       <div
@@ -163,6 +191,15 @@ export function TaskListItem({
               aria-label={`Edit "${task.title}"`}
             >
               Edit
+            </button>
+            <button
+              id={`task-${task.id}-snooze-btn`}
+              type="button"
+              className="task-list-item-snooze"
+              onClick={() => onSnooze(task)}
+              aria-label={`${muted ? 'Manage snooze for' : 'Snooze'} "${task.title}"`}
+            >
+              Snooze
             </button>
             <button
               id={`task-${task.id}-delete-btn`}

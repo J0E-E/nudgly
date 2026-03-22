@@ -4,15 +4,18 @@
 
 import { useState, useMemo } from 'react'
 import type { Task } from '../types/task'
+import type { MutePreset } from '../types/task'
 import {
   useTaskList,
   useToggleTaskComplete,
+  useUpdateTask,
   useDeleteTask,
 } from '../hooks/useTasks'
 import { TaskFilterBar } from '../components/TaskFilterBar'
 import { TaskList } from '../components/TaskList'
 import { TaskFormModal } from '../components/TaskFormModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { SnoozeTaskDialog } from '../components/SnoozeTaskDialog'
 import './TasksScreen.css'
 
 interface FormModalState {
@@ -26,6 +29,11 @@ interface DeleteConfirmState {
   task?: Task
 }
 
+interface SnoozeState {
+  open: boolean
+  task?: Task
+}
+
 export function TasksScreen() {
   const [searchText, setSearchText] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -33,14 +41,21 @@ export function TasksScreen() {
   const [listFilter, setListFilter] = useState('')
 
   const listIdParam = listFilter === 'none' ? ('none' as const) : undefined
-  const { data, isLoading, isError, error } = useTaskList(undefined, listIdParam)
+  const { data, isLoading, isError, error } = useTaskList(
+    undefined,
+    listIdParam
+  )
   const toggleComplete = useToggleTaskComplete()
+  const updateMutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
   const [formModal, setFormModal] = useState<FormModalState>({
     open: false,
     mode: 'create',
   })
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
+    open: false,
+  })
+  const [snoozeState, setSnoozeState] = useState<SnoozeState>({
     open: false,
   })
 
@@ -87,6 +102,34 @@ export function TasksScreen() {
     setDeleteConfirm({ open: false })
   }
 
+  function handleSnoozeRequest(task: Task) {
+    setSnoozeState({ open: true, task })
+  }
+
+  function handleSnoozeConfirm(preset: MutePreset) {
+    if (snoozeState.task) {
+      updateMutation.mutate({
+        id: snoozeState.task.id,
+        payload: { mute_preset: preset },
+      })
+    }
+    setSnoozeState({ open: false })
+  }
+
+  function handleUnmute() {
+    if (snoozeState.task) {
+      updateMutation.mutate({
+        id: snoozeState.task.id,
+        payload: { muted_until: null },
+      })
+    }
+    setSnoozeState({ open: false })
+  }
+
+  function handleSnoozeCancel() {
+    setSnoozeState({ open: false })
+  }
+
   return (
     <main id="tasks-screen" className="tasks-screen" aria-label="Tasks">
       <h1 id="tasks-screen-title" className="tasks-screen-title">
@@ -103,17 +146,19 @@ export function TasksScreen() {
         listFilter={listFilter}
         onListFilterChange={setListFilter}
       />
-      {(toggleComplete.isError || deleteMutation.isError) && (
-        <div
-          id="tasks-mutation-error"
-          className="tasks-mutation-error"
-          role="alert"
-        >
-          <p>
-            {toggleComplete.isError
-              ? 'Failed to update task. Please try again.'
-              : 'Failed to delete task. Please try again.'}
-          </p>
+      {deleteMutation.isError && (
+        <div className="tasks-mutation-error" role="alert">
+          <p>Failed to delete task. Please try again.</p>
+        </div>
+      )}
+      {toggleComplete.isError && (
+        <div className="tasks-mutation-error" role="alert">
+          <p>Failed to update task status. Please try again.</p>
+        </div>
+      )}
+      {updateMutation.isError && (
+        <div className="tasks-mutation-error" role="alert">
+          <p>Failed to update task. Please try again.</p>
         </div>
       )}
       {isLoading && (
@@ -139,6 +184,7 @@ export function TasksScreen() {
           onToggleComplete={handleToggleComplete}
           onEdit={handleEdit}
           onDelete={handleDeleteRequest}
+          onSnooze={handleSnoozeRequest}
         />
       )}
       <TaskFormModal
@@ -158,6 +204,18 @@ export function TasksScreen() {
         confirmLabel="Delete"
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+      />
+      <SnoozeTaskDialog
+        open={snoozeState.open}
+        taskTitle={snoozeState.task?.title ?? ''}
+        isMuted={
+          snoozeState.task?.muted_until !== undefined &&
+          snoozeState.task?.muted_until !== null &&
+          new Date(snoozeState.task.muted_until) > new Date()
+        }
+        onSnooze={handleSnoozeConfirm}
+        onUnmute={handleUnmute}
+        onCancel={handleSnoozeCancel}
       />
     </main>
   )

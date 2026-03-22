@@ -19,7 +19,12 @@ const LISTS_BASE = `${API_BASE_URL.replace(/\/$/, '')}/api/lists`
  */
 export async function listLists(
   deps: ApiClientDeps,
-  params?: { search?: string; include_archived?: boolean; limit?: number; offset?: number }
+  params?: {
+    search?: string
+    include_archived?: boolean
+    limit?: number
+    offset?: number
+  }
 ): Promise<ListResponse> {
   const query = new URLSearchParams()
   if (params?.search) query.set('search', params.search)

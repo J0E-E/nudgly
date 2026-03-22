@@ -69,6 +69,14 @@ export interface TaskCreatePayload {
   list_id?: number | null
 }
 
+export type MutePreset = '1h' | '1d' | '1wk'
+
+export const MUTE_PRESET_LABELS: Record<MutePreset, string> = {
+  '1h': '1 Hour',
+  '1d': '1 Day',
+  '1wk': '1 Week',
+}
+
 export interface TaskUpdatePayload {
   title?: string
   description?: string
@@ -79,5 +87,6 @@ export interface TaskUpdatePayload {
   recurring?: string | null
   status?: TaskStatus
   muted_until?: string | null
+  mute_preset?: MutePreset
   list_id?: number | null
 }

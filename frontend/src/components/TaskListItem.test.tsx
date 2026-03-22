@@ -25,13 +25,16 @@ function renderItem(taskOverrides: Partial<Task> = {}) {
     onToggleComplete: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
+    onSnooze: vi.fn(),
   }
   render(<TaskListItem {...props} />)
   return props
 }
 
 function getToggleButton() {
-  return document.querySelector('[aria-controls="task-1-details"]') as HTMLElement
+  return document.querySelector(
+    '[aria-controls="task-1-details"]'
+  ) as HTMLElement
 }
 
 function expand() {
@@ -226,5 +229,33 @@ describe('TaskListItem', () => {
     expand()
     const details = document.getElementById('task-1-details')
     expect(details).toHaveAttribute('aria-hidden', 'false')
+  })
+
+  // --- Muted badge ---
+
+  it('shows muted badge when muted_until is in the future', () => {
+    const futureDate = new Date(Date.now() + 86400000).toISOString()
+    renderItem({ muted_until: futureDate })
+    expect(screen.getByText('Muted')).toBeInTheDocument()
+  })
+
+  it('hides muted badge when muted_until is null', () => {
+    renderItem({ muted_until: null })
+    expect(screen.queryByText('Muted')).not.toBeInTheDocument()
+  })
+
+  it('hides muted badge when muted_until is in the past', () => {
+    const pastDate = new Date(Date.now() - 86400000).toISOString()
+    renderItem({ muted_until: pastDate })
+    expect(screen.queryByText('Muted')).not.toBeInTheDocument()
+  })
+
+  // --- Snooze button ---
+
+  it('calls onSnooze when snooze button clicked (after expanding)', () => {
+    const { onSnooze } = renderItem()
+    expand()
+    fireEvent.click(screen.getByText('Snooze'))
+    expect(onSnooze).toHaveBeenCalledWith(baseTask)
   })
 })

@@ -11,6 +11,7 @@ interface TaskListProps {
   onToggleComplete: (task: Task) => void
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
+  onSnooze: (task: Task) => void
 }
 
 export function TaskList({
@@ -18,6 +19,7 @@ export function TaskList({
   onToggleComplete,
   onEdit,
   onDelete,
+  onSnooze,
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -38,6 +40,7 @@ export function TaskList({
           onToggleComplete={onToggleComplete}
           onEdit={onEdit}
           onDelete={onDelete}
+          onSnooze={onSnooze}
         />
       ))}
     </ul>

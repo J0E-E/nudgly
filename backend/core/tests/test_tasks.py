@@ -2,10 +2,11 @@
 Unit tests for Task CRUD: model, list/create, detail/update/delete.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -43,9 +44,7 @@ class TaskModelTests(TestCase):
         self.user = _create_user()
 
     def test_create_task_with_defaults(self):
-        task = Task.objects.create(
-            user=self.user, title="Test", category="adulting"
-        )
+        task = Task.objects.create(user=self.user, title="Test", category="adulting")
         self.assertEqual(task.status, "pending")
         self.assertEqual(task.priority, 0)
         self.assertEqual(task.description, "")
@@ -54,9 +53,7 @@ class TaskModelTests(TestCase):
         self.assertIsNotNone(task.created_at)
 
     def test_str_truncates(self):
-        task = Task.objects.create(
-            user=self.user, title="A" * 100, category="adulting"
-        )
+        task = Task.objects.create(user=self.user, title="A" * 100, category="adulting")
         self.assertEqual(str(task), "A" * 50)
 
     def test_cascade_delete_user(self):
@@ -109,15 +106,11 @@ class TaskCreateViewTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_missing_title_returns_400(self):
-        resp = self.client.post(
-            "/api/tasks/", {"category": "adulting"}, format="json"
-        )
+        resp = self.client.post("/api/tasks/", {"category": "adulting"}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_missing_category_returns_400(self):
-        resp = self.client.post(
-            "/api/tasks/", {"title": "No category"}, format="json"
-        )
+        resp = self.client.post("/api/tasks/", {"title": "No category"}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_invalid_category_returns_400(self):
@@ -179,9 +172,7 @@ class TaskListViewTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_ordering_due_date_nulls_last(self):
-        Task.objects.create(
-            user=self.user, title="No date", category="adulting"
-        )
+        Task.objects.create(user=self.user, title="No date", category="adulting")
         Task.objects.create(
             user=self.user,
             title="Later",
@@ -215,9 +206,7 @@ class TaskListViewTests(TestCase):
 
     def test_list_pagination(self):
         for i in range(5):
-            Task.objects.create(
-                user=self.user, title=f"Task {i}", category="adulting"
-            )
+            Task.objects.create(user=self.user, title=f"Task {i}", category="adulting")
 
         resp = self.client.get("/api/tasks/?limit=2&offset=0")
         data = resp.json()
@@ -338,3 +327,92 @@ class TaskDetailViewTests(TestCase):
         )
         resp = self.client.delete(f"/api/tasks/{other_task.id}/")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # ── Mute / Snooze ──────────────────────────────────────────────────
+
+    def test_patch_mute_preset_1h(self):
+        before = timezone.now()
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"mute_preset": "1h"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        muted = resp.json()["muted_until"]
+        self.assertIsNotNone(muted)
+        from datetime import datetime
+
+        muted_dt = datetime.fromisoformat(muted)
+        expected_min = before + timedelta(hours=1) - timedelta(seconds=5)
+        expected_max = before + timedelta(hours=1) + timedelta(seconds=5)
+        self.assertGreaterEqual(muted_dt, expected_min)
+        self.assertLessEqual(muted_dt, expected_max)
+
+    def test_patch_mute_preset_1d(self):
+        before = timezone.now()
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"mute_preset": "1d"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        from datetime import datetime
+
+        muted_dt = datetime.fromisoformat(resp.json()["muted_until"])
+        expected = before + timedelta(days=1)
+        self.assertAlmostEqual(muted_dt.timestamp(), expected.timestamp(), delta=5)
+
+    def test_patch_mute_preset_1wk(self):
+        before = timezone.now()
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"mute_preset": "1wk"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        from datetime import datetime
+
+        muted_dt = datetime.fromisoformat(resp.json()["muted_until"])
+        expected = before + timedelta(weeks=1)
+        self.assertAlmostEqual(muted_dt.timestamp(), expected.timestamp(), delta=5)
+
+    def test_patch_muted_until_explicit(self):
+        dt = "2026-06-01T12:00:00Z"
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"muted_until": dt},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        from datetime import datetime
+
+        stored = datetime.fromisoformat(resp.json()["muted_until"])
+        expected = datetime.fromisoformat("2026-06-01T12:00:00+00:00")
+        self.assertEqual(stored, expected)
+
+    def test_patch_unmute(self):
+        self.task.muted_until = timezone.now() + timedelta(hours=1)
+        self.task.save()
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"muted_until": None},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsNone(resp.json()["muted_until"])
+
+    def test_patch_mute_preset_and_muted_until_rejects(self):
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"mute_preset": "1h", "muted_until": "2026-06-01T12:00:00Z"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_invalid_mute_preset_rejects(self):
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"mute_preset": "2h"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

@@ -19,7 +19,9 @@ def list_payload(lst):
         "muted_until": lst.muted_until.isoformat() if lst.muted_until else None,
         "archived_at": lst.archived_at.isoformat() if lst.archived_at else None,
         "created_at": lst.created_at.isoformat(),
-        "task_count": lst.task_count if hasattr(lst, "task_count") else lst.tasks.count(),
+        "task_count": lst.task_count
+        if hasattr(lst, "task_count")
+        else lst.tasks.count(),
     }
 
 

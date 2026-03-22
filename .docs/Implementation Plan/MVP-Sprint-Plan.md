@@ -314,7 +314,7 @@
 
 ---
 
-## Epic 7: Task Mute & Snooze
+## Epic 7: Task Mute & Snooze — COMPLETED
 
 **Objective:** Users can mute a task (or snooze from UI) so the nudge engine skips it until `muted_until`.
 
@@ -327,7 +327,11 @@
 - Visual indicator on task when muted (e.g. icon or label until time).
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Backend**: Added `mute_preset` ChoiceField (`1h`, `1d`, `1wk`) to `TaskPatchSerializer`. Cross-field validation rejects sending both `mute_preset` and `muted_until` simultaneously. Preset computes `muted_until = now + duration` server-side. Unmute via `PATCH { muted_until: null }`.
+- **Frontend**: Created `SnoozeTaskDialog` (native `<dialog>`) with 3 preset buttons + conditional Unmute button. Added "Muted" pill badge in `TaskListItem` meta row (visible only when `muted_until` is in the future). "Snooze" action button in expanded task detail panel. `TasksScreen` orchestrates dialog state and calls `useUpdateTask` with `mute_preset` or `muted_until: null`.
+- **Types**: Added `MutePreset` type and `MUTE_PRESET_LABELS` map to `task.ts`; extended `TaskUpdatePayload` with optional `mute_preset`.
+- **Tests**: 7 new backend tests (preset durations, explicit datetime, unmute, mutual exclusivity, invalid preset). 4 new `TaskListItem` tests (muted badge visibility, snooze callback). 9 new `SnoozeTaskDialog` tests (presets, unmute, cancel).
+- **No model/migration changes** required; `muted_until` field already existed.
 
 ---
 

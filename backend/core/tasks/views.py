@@ -42,6 +42,17 @@ class TaskListCreateView(APIView):
         if status_filter and status_filter in TaskStatus.values:
             qs = qs.filter(status=status_filter)
 
+        # Optional list_id filter.
+        list_id_param = request.query_params.get("list_id")
+        if list_id_param is not None:
+            if list_id_param.lower() == "none":
+                qs = qs.filter(list__isnull=True)
+            else:
+                try:
+                    qs = qs.filter(list_id=int(list_id_param))
+                except (ValueError, TypeError):
+                    pass
+
         qs = qs.order_by(F("due_date").asc(nulls_last=True), "created_at")
 
         total = qs.count()
@@ -78,7 +89,9 @@ class TaskDetailView(APIView):
 
     def patch(self, request, pk):
         task = self._get_task(request, pk)
-        serializer = TaskPatchSerializer(data=request.data)
+        serializer = TaskPatchSerializer(
+            data=request.data, context={"user": request.user}
+        )
         serializer.is_valid(raise_exception=True)
         task = serializer.update(task, serializer.validated_data)
         return Response(task_payload(task))

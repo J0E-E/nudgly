@@ -1,5 +1,5 @@
 /**
- * Search and filter bar for the tasks screen.
+ * Search and filter bar for the lists screen.
  */
 
 import {
@@ -7,45 +7,41 @@ import {
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
 } from '../types/task'
-import './TaskFilterBar.css'
+import './ListFilterBar.css'
 
-interface TaskFilterBarProps {
+interface ListFilterBarProps {
   searchText: string
   onSearchChange: (value: string) => void
   categoryFilter: string
   onCategoryChange: (value: string) => void
   priorityFilter: string
   onPriorityChange: (value: string) => void
-  onAddTask: () => void
-  listFilter?: string
-  onListFilterChange?: (value: string) => void
+  onAddList: () => void
 }
 
-export function TaskFilterBar({
+export function ListFilterBar({
   searchText,
   onSearchChange,
   categoryFilter,
   onCategoryChange,
   priorityFilter,
   onPriorityChange,
-  onAddTask,
-  listFilter,
-  onListFilterChange,
-}: TaskFilterBarProps) {
+  onAddList,
+}: ListFilterBarProps) {
   return (
-    <div id="task-filter-bar" className="task-filter-bar">
+    <div id="list-filter-bar" className="list-filter-bar">
       <input
-        id="task-filter-search"
+        id="list-filter-search"
         type="search"
-        className="task-filter-search"
-        placeholder="Search tasks..."
+        className="list-filter-search"
+        placeholder="Search lists..."
         value={searchText}
         onChange={(e) => onSearchChange(e.target.value)}
-        aria-label="Search tasks by title or description"
+        aria-label="Search lists by name"
       />
       <select
-        id="task-filter-category"
-        className="task-filter-select"
+        id="list-filter-category"
+        className="list-filter-select"
         value={categoryFilter}
         onChange={(e) => onCategoryChange(e.target.value)}
         aria-label="Filter by category"
@@ -58,8 +54,8 @@ export function TaskFilterBar({
         ))}
       </select>
       <select
-        id="task-filter-priority"
-        className="task-filter-select"
+        id="list-filter-priority"
+        className="list-filter-select"
         value={priorityFilter}
         onChange={(e) => onPriorityChange(e.target.value)}
         aria-label="Filter by priority"
@@ -71,25 +67,13 @@ export function TaskFilterBar({
           </option>
         ))}
       </select>
-      {onListFilterChange && (
-        <select
-          id="task-filter-list"
-          className="task-filter-select"
-          value={listFilter ?? ''}
-          onChange={(e) => onListFilterChange(e.target.value)}
-          aria-label="Filter by list assignment"
-        >
-          <option value="">All tasks</option>
-          <option value="none">Unassigned only</option>
-        </select>
-      )}
       <button
-        id="task-add-btn"
+        id="list-add-btn"
         type="button"
-        className="task-add-btn"
-        onClick={onAddTask}
+        className="list-add-btn"
+        onClick={onAddList}
       >
-        Add task
+        Add list
       </button>
     </div>
   )

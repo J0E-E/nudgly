@@ -1,0 +1,96 @@
+.list-card {
+  list-style: none;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.list-card:last-child {
+  border-bottom: none;
+}
+
+.list-card-link {
+  display: block;
+  padding: 16px 24px;
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+}
+
+.list-card-link:hover {
+  background: var(--color-surface-alt);
+}
+
+.list-card-link:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.list-card-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.list-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.list-card-count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.list-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.list-card-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.list-card-priority {
+  background: var(--color-warning);
+  color: var(--color-primary);
+}
+
+.list-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 12px;
+}
+
+.list-card-action-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.list-card-action-btn:hover {
+  background: var(--color-surface-alt);
+}
+
+.list-card-action-btn--danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.list-card-action-btn--danger:hover {
+  background: var(--color-danger);
+  color: #fff;
+}

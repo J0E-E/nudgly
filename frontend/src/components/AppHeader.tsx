@@ -19,6 +19,16 @@ export function AppHeader() {
     <header id="app-header" role="banner">
       <h1 id="app-header-title">Nudgly</h1>
       {isAuthenticated && (
+        <nav id="app-header-nav" aria-label="Main navigation">
+          <Link to="/tasks" className="app-header-nav-link">
+            Tasks
+          </Link>
+          <Link to="/lists" className="app-header-nav-link">
+            Lists
+          </Link>
+        </nav>
+      )}
+      {isAuthenticated && (
         <div id="app-header-actions">
           <Link
             id="app-header-username"

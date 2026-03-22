@@ -14,6 +14,8 @@ import { PasswordResetConfirmScreen } from './pages/PasswordResetConfirmScreen'
 import { AuthCallbackScreen } from './pages/AuthCallbackScreen'
 import { ProfileScreen } from './pages/ProfileScreen'
 import { SettingsPlaceholderScreen } from './pages/SettingsPlaceholderScreen'
+import { ListsScreen } from './pages/ListsScreen'
+import { ListDetailScreen } from './pages/ListDetailScreen'
 import './App.css'
 
 /**
@@ -51,6 +53,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ProfileScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/lists"
+                  element={
+                    <ProtectedRoute>
+                      <ListsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/lists/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ListDetailScreen />
                     </ProtectedRoute>
                   }
                 />

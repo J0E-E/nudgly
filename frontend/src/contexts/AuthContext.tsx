@@ -88,8 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authApi
       .refreshAccessToken(stored)
       .then((access) => {
-        if (cancelled || !access) {
-          if (!access) clearAuth()
+        if (cancelled) return null
+        if (!access) {
+          clearAuth()
           setLoading(false)
           return null
         }

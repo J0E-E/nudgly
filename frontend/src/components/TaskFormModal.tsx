@@ -17,6 +17,10 @@ interface TaskFormModalProps {
   mode: 'create' | 'edit'
   task?: Task
   onClose: () => void
+  listId?: number
+  defaultCategory?: string
+  defaultTag?: string
+  defaultPriority?: number
 }
 
 interface FormValues {
@@ -37,7 +41,17 @@ const EMPTY_FORM: FormValues = {
   tag: '',
 }
 
-function getInitialValues(mode: 'create' | 'edit', task?: Task): FormValues {
+interface ListDefaults {
+  defaultCategory?: string
+  defaultTag?: string
+  defaultPriority?: number
+}
+
+function getInitialValues(
+  mode: 'create' | 'edit',
+  task?: Task,
+  listDefaults?: ListDefaults
+): FormValues {
   if (mode === 'edit' && task) {
     return {
       title: task.title,
@@ -46,6 +60,14 @@ function getInitialValues(mode: 'create' | 'edit', task?: Task): FormValues {
       category: task.category as string,
       priority: String(task.priority),
       tag: task.tag,
+    }
+  }
+  if (listDefaults) {
+    return {
+      ...EMPTY_FORM,
+      category: listDefaults.defaultCategory ?? '',
+      tag: listDefaults.defaultTag ?? '',
+      priority: String(listDefaults.defaultPriority ?? 0),
     }
   }
   return EMPTY_FORM
@@ -58,6 +80,10 @@ export function TaskFormModal({
   mode,
   task,
   onClose,
+  listId,
+  defaultCategory,
+  defaultTag,
+  defaultPriority,
 }: TaskFormModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const triggerRef = useRef<Element | null>(null)
@@ -66,8 +92,15 @@ export function TaskFormModal({
   const updateMutation = useUpdateTask()
 
   const initialValues = useMemo(
-    () => (open ? getInitialValues(mode, task) : null),
-    [open, mode, task]
+    () =>
+      open
+        ? getInitialValues(mode, task, {
+            defaultCategory,
+            defaultTag,
+            defaultPriority,
+          })
+        : null,
+    [open, mode, task, defaultCategory, defaultTag, defaultPriority]
   )
 
   const [form, setForm] = useState<FormValues>(EMPTY_FORM)
@@ -130,7 +163,11 @@ export function TaskFormModal({
         tag: form.tag.trim(),
       }
       if (mode === 'create') {
-        await createMutation.mutateAsync(common as TaskCreatePayload)
+        const createPayload: TaskCreatePayload = {
+          ...common,
+          ...(listId != null ? { list_id: listId } : {}),
+        }
+        await createMutation.mutateAsync(createPayload)
       } else if (task) {
         await updateMutation.mutateAsync({
           id: task.id,

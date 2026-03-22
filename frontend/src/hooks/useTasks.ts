@@ -15,15 +15,15 @@ import { TaskStatus } from '../types/task'
 export const taskKeys = {
   all: ['tasks'] as const,
   lists: () => [...taskKeys.all, 'list'] as const,
-  list: (filters: { status?: string }) =>
+  list: (filters: { status?: string; list_id?: number | 'none' }) =>
     [...taskKeys.lists(), filters] as const,
 }
 
-export function useTaskList(status?: string) {
+export function useTaskList(status?: string, listId?: number | 'none') {
   const { getApiDeps } = useAuth()
   return useQuery({
-    queryKey: taskKeys.list({ status }),
-    queryFn: () => taskApi.listTasks(getApiDeps(), { status }),
+    queryKey: taskKeys.list({ status, list_id: listId }),
+    queryFn: () => taskApi.listTasks(getApiDeps(), { status, list_id: listId }),
   })
 }
 

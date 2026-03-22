@@ -23,6 +23,7 @@ def task_payload(task):
         "muted_until": task.muted_until.isoformat() if task.muted_until else None,
         "created_at": task.created_at.isoformat(),
         "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+        "list_id": task.list_id,
     }
 
 
@@ -50,6 +51,18 @@ class TaskCreateSerializer(serializers.Serializer):
     muted_until = serializers.DateTimeField(
         required=False, allow_null=True, default=None
     )
+    list_id = serializers.IntegerField(
+        required=False, allow_null=True, default=None
+    )
+
+    def validate_list_id(self, value):
+        if value is not None:
+            from core.models import List
+
+            user = self.context["user"]
+            if not List.objects.filter(pk=value, user=user).exists():
+                raise serializers.ValidationError("List not found.")
+        return value
 
     def create(self, validated_data):
         from core.models import Task
@@ -79,6 +92,16 @@ class TaskPatchSerializer(serializers.Serializer):
     )
     status = serializers.ChoiceField(choices=TaskStatus.choices, required=False)
     muted_until = serializers.DateTimeField(required=False, allow_null=True)
+    list_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_list_id(self, value):
+        if value is not None:
+            from core.models import List
+
+            user = self.context["user"]
+            if not List.objects.filter(pk=value, user=user).exists():
+                raise serializers.ValidationError("List not found.")
+        return value
 
     def update(self, instance, validated_data):
         update_fields = []

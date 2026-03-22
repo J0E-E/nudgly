@@ -19,10 +19,16 @@ const TASKS_BASE = `${API_BASE_URL.replace(/\/$/, '')}/api/tasks`
  */
 export async function listTasks(
   deps: ApiClientDeps,
-  params?: { status?: string; limit?: number; offset?: number }
+  params?: {
+    status?: string
+    list_id?: number | 'none'
+    limit?: number
+    offset?: number
+  }
 ): Promise<TaskListResponse> {
   const query = new URLSearchParams()
   if (params?.status) query.set('status', params.status)
+  if (params?.list_id != null) query.set('list_id', String(params.list_id))
   if (params?.limit != null) query.set('limit', String(params.limit))
   if (params?.offset != null) query.set('offset', String(params.offset))
   const qs = query.toString()

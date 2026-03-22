@@ -1,0 +1,60 @@
+.list-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  margin: 0 16px;
+}
+
+.list-filter-search {
+  flex: 1;
+  min-width: 180px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.list-filter-search:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.list-filter-select {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.list-filter-select:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.list-add-btn {
+  min-height: 44px;
+  padding: 8px 24px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.list-add-btn:hover {
+  background: var(--color-secondary);
+}
+
+.list-add-btn:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

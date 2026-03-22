@@ -99,6 +99,31 @@ class PasswordResetToken(models.Model):
         indexes = [models.Index(fields=["token_hash"])]
 
 
+class List(models.Model):
+    """List model per schema §8. Groups tasks; delete nullifies task.list_id."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="lists")
+    name = models.CharField(max_length=200)
+    category = models.CharField(
+        max_length=30, choices=TaskCategory.choices, blank=True, default=""
+    )
+    tag = models.CharField(max_length=255, blank=True, default="")
+    priority = models.IntegerField(
+        choices=TaskPriority.choices, default=TaskPriority.NO_ONE_CARES
+    )
+    sort_order = models.IntegerField(default=0)
+    muted_until = models.DateTimeField(null=True, blank=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "sort_order"])]
+        ordering = ["sort_order", "created_at"]
+
+    def __str__(self):
+        return self.name[:50]
+
+
 class Task(models.Model):
     """
     Task model per schema §8.
@@ -118,7 +143,9 @@ class Task(models.Model):
     status = models.CharField(
         max_length=20, choices=TaskStatus.choices, default=TaskStatus.PENDING
     )
-    list_id = models.IntegerField(null=True, blank=True)
+    list = models.ForeignKey(
+        "List", on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
+    )
     muted_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)

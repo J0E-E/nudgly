@@ -1,0 +1,118 @@
+.list-form-dialog {
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-modal);
+}
+
+.list-form-dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+.list-form-title {
+  margin: 0 0 16px;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.list-form-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-alert-bg);
+  color: var(--color-on-alert);
+  font-size: 0.875rem;
+}
+
+.list-form-field {
+  margin-bottom: 16px;
+}
+
+.list-form-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.list-form-field input,
+.list-form-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.list-form-field input:focus,
+.list-form-field select:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.list-form-field input:disabled,
+.list-form-field select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.list-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.list-form-cancel {
+  min-height: 44px;
+  padding: 8px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.list-form-cancel:hover {
+  background: var(--color-surface-alt);
+}
+
+.list-form-cancel:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.list-form-submit {
+  min-height: 44px;
+  padding: 8px 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.list-form-submit:hover {
+  background: var(--color-secondary);
+}
+
+.list-form-submit:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.list-form-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

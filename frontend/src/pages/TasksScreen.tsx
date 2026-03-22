@@ -27,13 +27,15 @@ interface DeleteConfirmState {
 }
 
 export function TasksScreen() {
-  const { data, isLoading, isError, error } = useTaskList()
-  const toggleComplete = useToggleTaskComplete()
-  const deleteMutation = useDeleteTask()
-
   const [searchText, setSearchText] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+  const [listFilter, setListFilter] = useState('')
+
+  const listIdParam = listFilter === 'none' ? ('none' as const) : undefined
+  const { data, isLoading, isError, error } = useTaskList(undefined, listIdParam)
+  const toggleComplete = useToggleTaskComplete()
+  const deleteMutation = useDeleteTask()
   const [formModal, setFormModal] = useState<FormModalState>({
     open: false,
     mode: 'create',
@@ -98,6 +100,8 @@ export function TasksScreen() {
         priorityFilter={priorityFilter}
         onPriorityChange={setPriorityFilter}
         onAddTask={() => setFormModal({ open: true, mode: 'create' })}
+        listFilter={listFilter}
+        onListFilterChange={setListFilter}
       />
       {(toggleComplete.isError || deleteMutation.isError) && (
         <div

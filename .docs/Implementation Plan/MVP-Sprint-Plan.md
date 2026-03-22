@@ -283,7 +283,7 @@
 
 ---
 
-## Epic 6: Lists CRUD & Task–List Association
+## Epic 6: Lists CRUD & Task–List Association — COMPLETED
 
 **Objective:** Lists as grouped tasks; create/edit/delete list; move tasks to list; list delete moves tasks to default Tasks.
 
@@ -303,7 +303,14 @@
 - Tasks screen: filter or link to “Tasks” (list_id null) vs lists.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Plan vs implementation:** All planned deliverables implemented as specified. No material deviations.
+- **Backend architecture:** List CRUD follows the same module pattern as tasks (`core/lists/` with `urls.py`, `views.py`, `serializers.py`). Serializers use plain function `list_payload()` for response formatting (consistent with `task_payload()`) plus DRF serializers for input validation only.
+- **Task–list association:** Task model uses a ForeignKey to List with `on_delete=SET_NULL`, so deleting a list nullifies `task.list_id` rather than cascade-deleting tasks. The `related_name="tasks"` enables `list.tasks.all()` queries and the `task_count` annotation on list responses.
+- **Filtering semantics:** `GET /tasks?list_id={id}` filters tasks by list; the special value `list_id=none` returns tasks with no list assignment (`list__isnull=True`). This enables the Tasks screen to show "unassigned" tasks separately.
+- **List defaults inheritance:** When creating a task from ListDetailScreen, the list's category, tag, and priority are passed as `defaultCategory`, `defaultTag`, `defaultPriority` props to `TaskFormModal`, pre-filling the form. The `list_id` is included in the create payload automatically.
+- **Archive/mute:** Lists support `archived_at` and `muted_until` fields. `GET /lists` excludes archived lists by default; pass `include_archived=true` to include them. Mute is hardcoded to +1 day from the detail screen UI.
+- **Migration note:** Migration `0004` removes the old integer `list_id` field from Task and replaces it with a proper ForeignKey. Since DB is rebuilt from scratch during MVP, no data migration concerns.
+- **Tests:** 39 backend tests (model, CRUD views, task-list integration including cross-user validation) and 19 frontend tests (ListsScreen and ListDetailScreen covering loading/error/render/filter/action states).
 
 ---
 
@@ -534,7 +541,7 @@ The spike (8a) will produce the specific sub-epic breakdown. Expected areas incl
 | 5a | Tasks CRUD — Backend | Core domain model and API |
 | 5b | Tasks CRUD — Frontend | Tasks screen; first TanStack Query adoption |
 | 5c | Task Detail View (Tap-to-Expand) | View task details inline; quick win before lists |
-| 6 | Lists CRUD & Task–List Association | Builds on tasks |
+| 6 | Lists CRUD & Task–List Association — COMPLETED | Builds on tasks |
 | 7 | Task Mute & Snooze | Quick win on tasks |
 | 8a | Nudge Engine — Spike & Design | ⚠ Architectural spike before implementation |
 | 8b–n | Nudge Engine — Implementation | Sub-epics defined by spike output |

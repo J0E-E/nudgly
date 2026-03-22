@@ -46,6 +46,7 @@ export interface Task {
   muted_until: string | null
   created_at: string
   completed_at: string | null
+  list_id: number | null
 }
 
 export interface TaskListResponse {
@@ -65,6 +66,7 @@ export interface TaskCreatePayload {
   recurring?: string | null
   status?: TaskStatus
   muted_until?: string | null
+  list_id?: number | null
 }
 
 export interface TaskUpdatePayload {
@@ -77,4 +79,5 @@ export interface TaskUpdatePayload {
   recurring?: string | null
   status?: TaskStatus
   muted_until?: string | null
+  list_id?: number | null
 }

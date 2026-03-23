@@ -12,9 +12,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import ReminderEvent, ReminderSchedule, Task
+from core.models import List, ReminderEvent, ReminderSchedule, Task
 from core.nudge import PRIORITY_NUDGE_CONFIG
-from core.schedules import sync_task_schedule
+from core.schedules import sync_list_schedule, sync_task_schedule
 
 User = get_user_model()
 
@@ -415,3 +415,207 @@ class TaskScheduleReadTests(TestCase):
 
         resp = other_client.get(f"/api/tasks/{task.id}/schedule/")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
+# ── sync_list_schedule unit tests ─────────────────────────────────────
+
+
+def _create_list(user, **kwargs):
+    defaults = {"name": "Test List"}
+    defaults.update(kwargs)
+    return List.objects.create(user=user, **defaults)
+
+
+class SyncListScheduleTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.lst = _create_list(self.user)
+
+    def test_creates_schedule_for_list_with_pending_tasks(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+
+        schedule = ReminderSchedule.objects.get(list=self.lst)
+        cfg = PRIORITY_NUDGE_CONFIG[self.lst.priority]
+        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
+        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.is_active)
+        self.assertEqual(schedule.user, self.user)
+
+    def test_no_schedule_when_no_pending_tasks(self):
+        sync_list_schedule(self.lst)
+        self.assertFalse(ReminderSchedule.objects.filter(list=self.lst).exists())
+
+    def test_deactivates_when_all_tasks_completed(self):
+        task = _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+        self.assertTrue(ReminderSchedule.objects.get(list=self.lst).is_active)
+
+        task.status = "completed"
+        task.save(update_fields=["status"])
+        sync_list_schedule(self.lst)
+        self.assertFalse(ReminderSchedule.objects.get(list=self.lst).is_active)
+
+    def test_deactivates_when_list_archived(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+        self.assertTrue(ReminderSchedule.objects.get(list=self.lst).is_active)
+
+        self.lst.archived_at = timezone.now()
+        self.lst.save(update_fields=["archived_at"])
+        sync_list_schedule(self.lst)
+        self.assertFalse(ReminderSchedule.objects.get(list=self.lst).is_active)
+
+    def test_reactivates_when_task_added_back(self):
+        task = _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+
+        task.status = "completed"
+        task.save(update_fields=["status"])
+        sync_list_schedule(self.lst)
+        schedule = ReminderSchedule.objects.get(list=self.lst)
+        self.assertFalse(schedule.is_active)
+
+        # Bump attempt_count to verify reset.
+        schedule.attempt_count = 5
+        schedule.save(update_fields=["attempt_count"])
+
+        task.status = "pending"
+        task.save(update_fields=["status"])
+        sync_list_schedule(self.lst)
+        schedule.refresh_from_db()
+        self.assertTrue(schedule.is_active)
+        self.assertEqual(schedule.attempt_count, 0)
+
+    def test_priority_mapping_from_list(self):
+        lst = _create_list(self.user, name="P4 List", priority=4)
+        _create_task(self.user, list=lst, status="pending")
+        sync_list_schedule(lst)
+
+        schedule = ReminderSchedule.objects.get(list=lst)
+        cfg = PRIORITY_NUDGE_CONFIG[4]
+        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
+        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+
+    def test_priority_change_updates_config(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+
+        self.lst.priority = 5
+        self.lst.save(update_fields=["priority"])
+        sync_list_schedule(self.lst)
+
+        schedule = ReminderSchedule.objects.get(list=self.lst)
+        cfg = PRIORITY_NUDGE_CONFIG[5]
+        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
+        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+
+    def test_no_duplicate_schedules(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        sync_list_schedule(self.lst)
+        sync_list_schedule(self.lst)
+        self.assertEqual(ReminderSchedule.objects.filter(list=self.lst).count(), 1)
+
+
+# ── List schedule API integration tests ─────────────────────────────────
+
+
+class ListScheduleIntegrationTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.client = APIClient()
+        _auth_client(self.client, "u@example.com", "Pass1234")
+
+    def test_task_create_in_list_triggers_list_schedule(self):
+        lst = _create_list(self.user)
+        resp = self.client.post(
+            "/api/tasks/",
+            {
+                "title": "Task in list",
+                "category": "adulting",
+                "list_id": lst.id,
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
+        )
+
+    def test_task_complete_deactivates_list_schedule_when_last_pending(self):
+        lst = _create_list(self.user)
+        resp = self.client.post(
+            "/api/tasks/",
+            {
+                "title": "Only task",
+                "category": "adulting",
+                "list_id": lst.id,
+            },
+            format="json",
+        )
+        task_id = resp.json()["id"]
+        self.assertTrue(
+            ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
+        )
+
+        self.client.patch(
+            f"/api/tasks/{task_id}/",
+            {"status": "completed"},
+            format="json",
+        )
+        self.assertFalse(
+            ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
+        )
+
+    def test_task_delete_syncs_list_schedule(self):
+        lst = _create_list(self.user)
+        resp = self.client.post(
+            "/api/tasks/",
+            {
+                "title": "Task to delete",
+                "category": "adulting",
+                "list_id": lst.id,
+            },
+            format="json",
+        )
+        task_id = resp.json()["id"]
+        self.assertTrue(
+            ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
+        )
+
+        self.client.delete(f"/api/tasks/{task_id}/")
+        self.assertFalse(
+            ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
+        )
+
+    def test_list_patch_priority_updates_schedule(self):
+        lst = _create_list(self.user, priority=1)
+        _create_task(self.user, list=lst, status="pending")
+        sync_list_schedule(lst)
+
+        self.client.patch(
+            f"/api/lists/{lst.id}/",
+            {"priority": 5},
+            format="json",
+        )
+        schedule = ReminderSchedule.objects.get(list=lst)
+        cfg = PRIORITY_NUDGE_CONFIG[5]
+        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
+        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+
+    def test_list_patch_archive_deactivates_schedule(self):
+        lst = _create_list(self.user)
+        _create_task(self.user, list=lst, status="pending")
+        sync_list_schedule(lst)
+        self.assertTrue(
+            ReminderSchedule.objects.get(list=lst).is_active
+        )
+
+        self.client.patch(
+            f"/api/lists/{lst.id}/",
+            {"archived_at": timezone.now().isoformat()},
+            format="json",
+        )
+        self.assertFalse(
+            ReminderSchedule.objects.get(list=lst).is_active
+        )

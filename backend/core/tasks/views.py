@@ -98,7 +98,12 @@ class TaskDetailView(APIView):
 
     def delete(self, request, pk):
         task = self._get_task(request, pk)
+        list_to_sync = task.list
         task.delete()
+        if list_to_sync:
+            from core.schedules import sync_list_schedule
+
+            sync_list_schedule(list_to_sync)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

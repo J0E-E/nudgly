@@ -80,9 +80,11 @@ class TaskCreateSerializer(serializers.Serializer):
             validated_data["completed_at"] = timezone.now()
         task = Task.objects.create(user=user, **validated_data)
 
-        from core.schedules import sync_task_schedule
+        from core.schedules import sync_list_schedule, sync_task_schedule
 
         sync_task_schedule(task)
+        if task.list_id:
+            sync_list_schedule(task.list)
         return task
 
 
@@ -125,6 +127,8 @@ class TaskPatchSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
+        old_list_id = instance.list_id
+
         update_fields = []
         for field, value in validated_data.items():
             setattr(instance, field, value)
@@ -151,5 +155,19 @@ class TaskPatchSerializer(serializers.Serializer):
             from core.schedules import sync_task_schedule
 
             sync_task_schedule(instance)
+
+        # Sync list-level schedules when task status or list assignment changes.
+        list_schedule_fields = {"status", "list_id"}
+        if list_schedule_fields & set(validated_data.keys()):
+            from core.schedules import sync_list_schedule
+
+            if instance.list_id:
+                sync_list_schedule(instance.list)
+            if old_list_id and old_list_id != instance.list_id:
+                from core.models import List
+
+                old_list = List.objects.filter(pk=old_list_id).first()
+                if old_list:
+                    sync_list_schedule(old_list)
 
         return instance

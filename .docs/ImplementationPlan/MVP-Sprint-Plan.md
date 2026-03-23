@@ -389,7 +389,7 @@
 - One schedule per task enforced by `filter(task=task).first()` convention, not a DB unique constraint — acceptable for MVP; concurrent requests could theoretically create duplicates but the worker handles them gracefully
 - 25 tests in `core/tests/test_schedules.py` covering unit + API integration for all specified behaviors
 
-### Epic 8c: Push Notification Infrastructure
+### Epic 8c: Push Notification Infrastructure — COMPLETED
 
 **Objective:** Register user devices, integrate with FCM (Firebase Cloud Messaging), and replace the stub notification sender in the worker with real push delivery.
 
@@ -408,9 +408,17 @@
 - **Permission prompt:** Request notification permission on first login; if denied, show a settings hint. Do not block login flow.
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Notification adapter pattern** mirrors the email adapter exactly: `NotificationSender` protocol in `core/notifications/interface.py`, `StdoutNotificationAdapter` and `FCMAdapter` in `core/notifications/adapters/`, factory `get_notification_sender()` in `core/notifications/__init__.py`, wired via `NOTIFICATION_SENDER` env var (default `”stdout”`).
+- **FCM adapter uses lazy Firebase init:** `firebase_admin.initialize_app()` runs in `FCMAdapter.__init__()` (not at module import time) to avoid crashes when `NOTIFICATION_SENDER=stdout` and no Firebase credentials are configured. This differs from the email adapter's module-level pattern and was an intentional design choice.
+- **Device API** lives in `core/devices/` (views, serializers, urls, tasks). Routes: `POST /api/devices/register/`, `DELETE /api/devices/{token}/`.
+- **Stale token purge** runs weekly via Celery Beat (`purge_stale_device_tokens`); deletes inactive tokens older than 30 days. FCM adapter also deactivates tokens inline on `UNREGISTERED`, `NOT_FOUND`, or `INVALID_ARGUMENT` errors.
+- **Worker integration:** `get_notification_sender()` is called once per `process_due_reminders()` invocation (outside the schedule loop), not per-schedule.
+- **Frontend:** `usePushNotifications` hook in `PushNotificationRegistrar` component. Listeners are added before `PushNotifications.register()` to prevent a race condition. `registeredRef` resets on logout so re-login re-registers. `permissionDenied` state exposed for a settings hint banner. Web push deferred (native only via `@capacitor/push-notifications`).
+- **Migration:** `0006_devicetoken.py` adds the `DeviceToken` model.
+- **Tests:** 16 tests in `test_devices.py` (model, register API, deactivate API, purge task) + 11 tests in `test_notifications.py` (stdout adapter, factory, FCM adapter with mocked firebase-admin, worker integration).
 
-### Epic 8d: List-Level Nudges
+### Epic 8d: List-Level Nudges — COMPLETED
 
 **Objective:** Send aggregate nudge reminders at the list level, summarizing pending tasks in a list.
 
@@ -427,7 +435,13 @@
 - No frontend work in this sub-epic (notifications are push-based; list view already shows task counts).
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Model:** Added nullable `list` FK on `ReminderSchedule` (CASCADE). XOR constraint extended to 3-way: exactly one of `task`, `habit_id`, or `list`. Migration `0007`.
+- **Trigger timing:** `_compute_next_trigger_no_due_date()` targets 9 AM in the user's timezone (today if before 9 AM, tomorrow otherwise). Only applied on schedule creation or reactivation — in-flight schedules are not reset by task count changes.
+- **Sync triggers:** `sync_list_schedule(lst)` called from: task create (if `list_id` set), task patch (on `status`/`list_id` change, including old list on reassignment), task delete (if belonged to a list), and list patch (on `priority`/`archived_at` change). Not called on list create (no tasks yet).
+- **Aggregate message:** `_build_list_nudge_body()` uses user's timezone for "due today" calculation. Formats: "{N} task(s) due today in {name}" or "{name} has {N} item(s) left". Notification data includes `list_id` instead of `task_id`.
+- **Mute:** `_is_muted()` extended to check `schedule.list.muted_until` for list-level schedules.
+- **Tests:** 21 new tests across `test_nudge_engine.py` (model constraints, worker behavior) and `test_schedules.py` (sync unit tests, API integration).
+- **Deviation from plan:** The plan did not specify behavior when `sync_list_schedule` is called on an already-active schedule (e.g. adding a second task). The implementation intentionally skips updating `next_trigger_at` for active schedules to avoid pushing back an in-flight nudge cycle. Only priority-driven config changes (`retry_interval_minutes`, `max_attempts`) are applied to active schedules.
 
 ### Epic 8e: Nudge Copy & Tuning
 

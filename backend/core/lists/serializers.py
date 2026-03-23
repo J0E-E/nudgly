@@ -70,4 +70,11 @@ class ListPatchSerializer(serializers.Serializer):
             update_fields.append(field)
 
         instance.save(update_fields=update_fields)
+
+        schedule_fields = {"priority", "archived_at"}
+        if schedule_fields & set(validated_data.keys()):
+            from core.schedules import sync_list_schedule
+
+            sync_list_schedule(instance)
+
         return instance

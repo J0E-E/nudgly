@@ -189,6 +189,13 @@ class ReminderSchedule(models.Model):
     )
     # Plain int — Habit model does not exist yet (Epic 9). Will become FK then.
     habit_id = models.IntegerField(null=True, blank=True)
+    list = models.ForeignKey(
+        "List",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reminder_schedules",
+    )
     recurrence_rule = models.TextField(blank=True, default="")
     next_trigger_at = models.DateTimeField()
     retry_interval_minutes = models.PositiveIntegerField()
@@ -206,15 +213,33 @@ class ReminderSchedule(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=(
-                    models.Q(task__isnull=False, habit_id__isnull=True)
-                    | models.Q(task__isnull=True, habit_id__isnull=False)
+                    models.Q(
+                        task__isnull=False,
+                        habit_id__isnull=True,
+                        list__isnull=True,
+                    )
+                    | models.Q(
+                        task__isnull=True,
+                        habit_id__isnull=False,
+                        list__isnull=True,
+                    )
+                    | models.Q(
+                        task__isnull=True,
+                        habit_id__isnull=True,
+                        list__isnull=False,
+                    )
                 ),
-                name="reminder_schedule_task_xor_habit",
+                name="reminder_schedule_task_xor_habit_xor_list",
             ),
         ]
 
     def __str__(self):
-        target = f"task={self.task_id}" if self.task_id else f"habit={self.habit_id}"
+        if self.task_id:
+            target = f"task={self.task_id}"
+        elif self.habit_id:
+            target = f"habit={self.habit_id}"
+        else:
+            target = f"list={self.list_id}"
         return f"ReminderSchedule({target}, next={self.next_trigger_at})"
 
 

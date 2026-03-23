@@ -35,15 +35,37 @@ def compute_bucket(dt):
 
 
 def _is_muted(schedule, now):
-    """Check whether the schedule's target task or its list is currently muted."""
+    """Check whether the schedule's target (task or list) is currently muted."""
     task = schedule.task
-    if not task:
+    if task:
+        if task.muted_until and task.muted_until > now:
+            return True
+        if task.list and task.list.muted_until and task.list.muted_until > now:
+            return True
         return False
-    if task.muted_until and task.muted_until > now:
-        return True
-    if task.list and task.list.muted_until and task.list.muted_until > now:
+    lst = schedule.list
+    if lst and lst.muted_until and lst.muted_until > now:
         return True
     return False
+
+
+def _build_list_nudge_body(lst, user_tz_name, attempt):
+    """Build an aggregate nudge message for a list."""
+    from zoneinfo import ZoneInfo
+
+    from core.models import TaskStatus
+
+    pending_count = lst.tasks.filter(status=TaskStatus.PENDING).count()
+    user_today = timezone.now().astimezone(ZoneInfo(user_tz_name)).date()
+    due_today_count = lst.tasks.filter(
+        status=TaskStatus.PENDING, due_date=user_today
+    ).count()
+
+    if due_today_count > 0:
+        s = "s" if due_today_count != 1 else ""
+        return f"{due_today_count} task{s} due today in {lst.name} (attempt {attempt})"
+    s = "s" if pending_count != 1 else ""
+    return f"{lst.name} has {pending_count} item{s} left (attempt {attempt})"
 
 
 @shared_task(name="core.nudge.process_due_reminders")
@@ -56,7 +78,7 @@ def process_due_reminders():
     due_schedules = ReminderSchedule.objects.filter(
         next_trigger_at__lte=now,
         is_active=True,
-    ).select_related("task", "task__list", "user")
+    ).select_related("task", "task__list", "user", "list")
 
     sender = get_notification_sender()
     processed = 0
@@ -82,16 +104,29 @@ def process_due_reminders():
         # Check mute status — still create the event but skip notification.
         muted = _is_muted(schedule, now)
         if not muted:
-            task_title = schedule.task.title if schedule.task else "Reminder"
+            if schedule.task:
+                body = f"Time to: {schedule.task.title} (attempt {attempt})"
+                data = {
+                    "schedule_id": str(schedule.id),
+                    "task_id": str(schedule.task_id),
+                    "attempt": str(attempt),
+                }
+            elif schedule.list:
+                body = _build_list_nudge_body(schedule.list, schedule.user.timezone, attempt)
+                data = {
+                    "schedule_id": str(schedule.id),
+                    "list_id": str(schedule.list_id),
+                    "attempt": str(attempt),
+                }
+            else:
+                body = f"Reminder (attempt {attempt})"
+                data = {"schedule_id": str(schedule.id), "attempt": str(attempt)}
+
             sender.send(
                 user_id=schedule.user_id,
                 title="Nudge!",
-                body=f"Time to: {task_title} (attempt {attempt})",
-                data={
-                    "schedule_id": str(schedule.id),
-                    "task_id": str(schedule.task_id) if schedule.task_id else "",
-                    "attempt": str(attempt),
-                },
+                body=body,
+                data=data,
             )
             event.notification_sent = True
             event.save(update_fields=["notification_sent"])

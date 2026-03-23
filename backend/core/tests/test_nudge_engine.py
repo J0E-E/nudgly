@@ -11,7 +11,7 @@ from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from core.models import ReminderEvent, ReminderSchedule, Task
+from core.models import List, ReminderEvent, ReminderSchedule, Task
 from core.nudge import compute_bucket, process_due_reminders
 
 User = get_user_model()
@@ -264,3 +264,119 @@ class ProcessDueRemindersIdempotencyTests(TransactionTestCase):
         process_due_reminders()
         # Should still be 1 event — duplicate bucket was silently skipped.
         self.assertEqual(ReminderEvent.objects.count(), 1)
+
+
+# ── List-level schedule model tests ─────────────────────────────────────
+
+
+def _create_list(user, **kwargs):
+    defaults = {"name": "Test List"}
+    defaults.update(kwargs)
+    return List.objects.create(user=user, **defaults)
+
+
+def _create_list_schedule(user, lst, **kwargs):
+    defaults = {
+        "next_trigger_at": timezone.now() - timedelta(minutes=5),
+        "retry_interval_minutes": 60,
+        "max_attempts": 10,
+    }
+    defaults.update(kwargs)
+    return ReminderSchedule.objects.create(user=user, list=lst, **defaults)
+
+
+class ListScheduleModelTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.lst = _create_list(self.user)
+
+    def test_xor_allows_list_only(self):
+        schedule = _create_list_schedule(self.user, self.lst)
+        self.assertTrue(schedule.is_active)
+        self.assertIsNone(schedule.task_id)
+        self.assertIsNone(schedule.habit_id)
+
+    def test_xor_rejects_task_and_list(self):
+        task = _create_task(self.user)
+        schedule = ReminderSchedule(
+            user=self.user,
+            task=task,
+            list=self.lst,
+            next_trigger_at=timezone.now(),
+            retry_interval_minutes=60,
+            max_attempts=5,
+        )
+        with self.assertRaises(IntegrityError):
+            schedule.save()
+
+    def test_cascade_delete_list_removes_schedule(self):
+        _create_list_schedule(self.user, self.lst)
+        self.assertEqual(ReminderSchedule.objects.count(), 1)
+        self.lst.delete()
+        self.assertEqual(ReminderSchedule.objects.count(), 0)
+
+    def test_str_shows_list(self):
+        schedule = _create_list_schedule(self.user, self.lst)
+        self.assertIn("list=", str(schedule))
+
+
+# ── List-level worker tests ─────────────────────────────────────────────
+
+
+class ProcessDueListRemindersTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.lst = _create_list(self.user)
+
+    def test_list_schedule_sends_aggregate_message(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        _create_task(self.user, list=self.lst, status="pending")
+        _create_task(self.user, list=self.lst, status="completed")
+        schedule = _create_list_schedule(self.user, self.lst)
+
+        with self.assertLogs("core.notifications", level="INFO") as cm:
+            process_due_reminders()
+
+        event = ReminderEvent.objects.first()
+        self.assertTrue(event.notification_sent)
+        # Should mention list name and item count.
+        log_output = "\n".join(cm.output)
+        self.assertIn("Test List", log_output)
+        self.assertIn("2 items left", log_output)
+
+    def test_list_schedule_due_today_message(self):
+        from datetime import date
+
+        _create_task(
+            self.user, list=self.lst, status="pending", due_date=date.today()
+        )
+        _create_task(self.user, list=self.lst, status="pending")
+        _create_list_schedule(self.user, self.lst)
+
+        with self.assertLogs("core.notifications", level="INFO") as cm:
+            process_due_reminders()
+
+        log_output = "\n".join(cm.output)
+        self.assertIn("1 task due today", log_output)
+        self.assertIn("Test List", log_output)
+
+    def test_list_mute_respected_for_list_schedule(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        self.lst.muted_until = timezone.now() + timedelta(hours=1)
+        self.lst.save(update_fields=["muted_until"])
+        _create_list_schedule(self.user, self.lst)
+
+        process_due_reminders()
+
+        event = ReminderEvent.objects.first()
+        self.assertFalse(event.notification_sent)
+
+    def test_list_schedule_advances_and_deactivates(self):
+        _create_task(self.user, list=self.lst, status="pending")
+        schedule = _create_list_schedule(
+            self.user, self.lst, max_attempts=1, attempt_count=0
+        )
+        process_due_reminders()
+        schedule.refresh_from_db()
+        self.assertFalse(schedule.is_active)
+        self.assertEqual(schedule.attempt_count, 1)

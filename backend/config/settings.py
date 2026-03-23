@@ -18,6 +18,7 @@ env = environ.Env(
     CORS_ALLOWED_ORIGINS=(list, []),
     CORS_ALLOW_ALL_ORIGINS=(bool, False),
     EMAIL_SENDER=(str, "stdout"),
+    NOTIFICATION_SENDER=(str, "stdout"),
     FRONTEND_ORIGIN=(str, "http://localhost:5173"),
     GOOGLE_CLIENT_ID=(str, ""),
     GOOGLE_CLIENT_SECRET=(str, ""),
@@ -133,6 +134,9 @@ REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 # Email: adapter name for get_email_sender(); "stdout" logs to logger (dev/test). Add sendgrid etc. later.
 EMAIL_SENDER = env("EMAIL_SENDER")
 
+# Push notification adapter: "stdout" (dev/test) or "fcm" (production with firebase-admin).
+NOTIFICATION_SENDER = env("NOTIFICATION_SENDER")
+
 # Frontend origin for password-reset links and OAuth callback redirect.
 FRONTEND_ORIGIN = env("FRONTEND_ORIGIN")
 
@@ -170,6 +174,10 @@ CELERY_BEAT_SCHEDULE = {
     "process-due-reminders": {
         "task": "core.nudge.process_due_reminders",
         "schedule": 60.0,  # every 60 seconds
+    },
+    "purge-stale-device-tokens": {
+        "task": "core.devices.tasks.purge_stale_device_tokens",
+        "schedule": 604800.0,  # weekly (7 days)
     },
 }
 

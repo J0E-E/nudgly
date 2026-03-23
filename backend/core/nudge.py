@@ -14,6 +14,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from core.models import ReminderEvent, ReminderSchedule
+from core.notifications import get_notification_sender
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def _is_muted(schedule, now):
 def process_due_reminders():
     """
     Worker loop: find all due schedules, create idempotent events,
-    send notifications (stub), and advance or deactivate schedules.
+    send notifications, and advance or deactivate schedules.
     """
     now = timezone.now()
     due_schedules = ReminderSchedule.objects.filter(
@@ -57,6 +58,7 @@ def process_due_reminders():
         is_active=True,
     ).select_related("task", "task__list", "user")
 
+    sender = get_notification_sender()
     processed = 0
     skipped = 0
 
@@ -80,12 +82,16 @@ def process_due_reminders():
         # Check mute status — still create the event but skip notification.
         muted = _is_muted(schedule, now)
         if not muted:
-            # Stub: log instead of sending push notification (Epic 8c).
-            logger.info(
-                "NUDGE: user=%s task=%s attempt=%d",
-                schedule.user_id,
-                schedule.task_id,
-                attempt,
+            task_title = schedule.task.title if schedule.task else "Reminder"
+            sender.send(
+                user_id=schedule.user_id,
+                title="Nudge!",
+                body=f"Time to: {task_title} (attempt {attempt})",
+                data={
+                    "schedule_id": str(schedule.id),
+                    "task_id": str(schedule.task_id) if schedule.task_id else "",
+                    "attempt": str(attempt),
+                },
             )
             event.notification_sent = True
             event.save(update_fields=["notification_sent"])

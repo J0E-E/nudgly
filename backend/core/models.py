@@ -247,3 +247,31 @@ class ReminderEvent(models.Model):
             f"ReminderEvent(schedule={self.schedule_id}, "
             f"attempt={self.attempt_number})"
         )
+
+
+class DevicePlatform(models.TextChoices):
+    IOS = "ios", "iOS"
+    ANDROID = "android", "Android"
+    WEB = "web", "Web"
+
+
+class DeviceToken(models.Model):
+    """
+    Push notification device token per Epic 8c.
+    Each device registers a token; FCM uses it for delivery.
+    """
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="device_tokens"
+    )
+    token = models.CharField(max_length=500, unique=True)
+    platform = models.CharField(max_length=10, choices=DevicePlatform.choices)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "is_active"])]
+
+    def __str__(self):
+        return f"DeviceToken(user={self.user_id}, platform={self.platform})"

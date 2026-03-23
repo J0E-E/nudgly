@@ -10,4 +10,5 @@ urlpatterns = [
     path("tasks/", include("core.tasks.urls")),
     path("lists/", include("core.lists.urls")),
     path("reminders/", include("core.reminders.urls")),
+    path("devices/", include("core.devices.urls")),
 ]

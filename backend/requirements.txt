@@ -16,6 +16,9 @@ redis>=5.0,<6
 # Async task queue
 celery[redis]>=5.4,<6
 
+# Push notifications (Firebase Cloud Messaging)
+firebase-admin>=6.5,<7
+
 # Environment and server
 django-environ>=0.11
 gunicorn>=22.0,<23

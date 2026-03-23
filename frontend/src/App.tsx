@@ -16,6 +16,8 @@ import { ProfileScreen } from './pages/ProfileScreen'
 import { SettingsPlaceholderScreen } from './pages/SettingsPlaceholderScreen'
 import { ListsScreen } from './pages/ListsScreen'
 import { ListDetailScreen } from './pages/ListDetailScreen'
+import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
+import { BottomNav } from './components/BottomNav'
 import './App.css'
 
 /**
@@ -26,6 +28,7 @@ function App() {
     <div id="app-root">
       <QueryProvider>
         <AuthProvider>
+          <PushNotificationRegistrar />
           <BrowserRouter>
             <AppHeader />
             <OfflineBanner />
@@ -94,6 +97,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ErrorBoundary>
+            <BottomNav />
           </BrowserRouter>
         </AuthProvider>
       </QueryProvider>

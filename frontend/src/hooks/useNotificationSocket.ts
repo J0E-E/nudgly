@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config/api'
-import { useAuth } from './useAuth'
+import { useAuth } from '../contexts/useAuth'
 import type { Notification } from '../types/notification'
 
 const MAX_BACKOFF_MS = 30_000

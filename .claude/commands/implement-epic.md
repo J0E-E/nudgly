@@ -15,22 +15,19 @@ Exit plan mode and implement the plan created in Phase 1. Work through each task
 
 ## Phase 3: Code Review
 
-Once implementation is complete, run the `/epic-code-review` skill against the current changes. Review its output carefully.
+Once implementation is complete, run the `/epic-code-review` skill against the current changes. Do NOT stop or present findings to the user — immediately proceed to Phase 4.
 
 ## Phase 4: Address Review Findings
 
-If the code review identified issues:
-- Fix every actionable finding from the review.
-- Re-run relevant tests to confirm fixes.
-- Do not commit yet.
+Using the review output from Phase 3, fix every actionable finding. Re-run relevant tests to confirm fixes. Do not commit. If the review found no issues, proceed directly to Phase 5.
 
-If the code review found no issues, skip this phase.
+Do NOT pause here — continue to Phase 5 immediately.
 
 ## Phase 5: Complete the Epic
 
 Run the `/complete-epic` skill to mark the epic as completed and update implementation notes.
 
 ## Important Notes
-- Pause between phases to confirm each phase completed successfully before moving on.
+- Only pause to confirm the build plan in Phase 1. Do NOT pause between any other phases — continue through all phases without stopping.
 - If any phase fails or encounters blockers, stop and ask the user for guidance.
 - Do not commit at any point — the user will handle commits separately.

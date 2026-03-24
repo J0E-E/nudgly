@@ -18,6 +18,9 @@ import { ListsScreen } from './pages/ListsScreen'
 import { ListDetailScreen } from './pages/ListDetailScreen'
 import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
 import { BottomNav } from './components/BottomNav'
+import { ToastProvider } from './contexts/ToastContext'
+import { NotificationProvider } from './contexts/NotificationContext'
+import { NotificationSocketBridge } from './components/NotificationSocketBridge'
 import './App.css'
 
 /**
@@ -30,6 +33,9 @@ function App() {
         <AuthProvider>
           <PushNotificationRegistrar />
           <BrowserRouter>
+            <NotificationProvider>
+            <ToastProvider>
+            <NotificationSocketBridge />
             <AppHeader />
             <OfflineBanner />
             <ErrorBoundary>
@@ -98,6 +104,8 @@ function App() {
               </Routes>
             </ErrorBoundary>
             <BottomNav />
+            </ToastProvider>
+            </NotificationProvider>
           </BrowserRouter>
         </AuthProvider>
       </QueryProvider>

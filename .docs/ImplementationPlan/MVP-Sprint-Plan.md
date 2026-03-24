@@ -610,7 +610,7 @@
 
 ---
 
-### Epic 8k: Frontend Notification UI
+### Epic 8k: Frontend Notification UI — COMPLETED
 
 **Objective:** Build the user-facing notification experience: toast alerts, notification bell with badge, notification history panel, and Browser Notification API integration.
 
@@ -627,7 +627,12 @@
 - No backend changes in this epic.
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **NotificationContext added:** The plan called for state to live in the bell/bridge components, but a lightweight `contexts/NotificationContext.tsx` was introduced to share `unreadCount`, `notifications`, `addNotification`, `handleMarkRead`, and `handleMarkAllRead` across the bell, panel, and bridge without prop drilling.
+- **Toast separation:** `ToastContext.tsx` owns queue logic only (add, auto-dismiss, max 3). Rendering lives in `components/Toast.tsx` + `Toast.css`, keeping the context layer free of JSX/CSS concerns.
+- **Auth guard on bridge:** `NotificationSocketBridge` checks `isAuthenticated` before requesting browser notification permission and renders nothing when unauthenticated, avoiding unnecessary hook execution on public pages (login, register).
+- **`handleMarkRead` guard:** The unread count is only decremented when the notification's `read_at` was actually null, preventing double-decrement if called on an already-read notification.
+- **Bug fix (Epic 8j):** `useNotificationSocket.ts` imported `useAuth` from `./useAuth` (nonexistent sibling); corrected to `../contexts/useAuth`. This was a pre-existing issue that blocked production builds.
+- **Mobile panel:** `NotificationPanel` switches to full-width fixed positioning at ≤768px (below the header) for mobile usability.
 
 ---
 

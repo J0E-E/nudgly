@@ -4,6 +4,7 @@
 
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
+import { NotificationBell } from './NotificationBell'
 import './AppHeader.css'
 
 const iconProps = {
@@ -62,6 +63,7 @@ export function AppHeader() {
       )}
       {isAuthenticated && (
         <div id="app-header-actions">
+          <NotificationBell />
           <Link
             to="/profile"
             className={`app-header-nav-link${isActive('/profile') ? ' app-header-nav-link--active' : ''}`}

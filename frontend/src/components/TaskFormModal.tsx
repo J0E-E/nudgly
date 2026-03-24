@@ -8,6 +8,8 @@ import {
   TaskCategory,
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
+  RecurringOptions,
+  RECURRING_LABELS,
 } from '../types/task'
 import { useCreateTask, useUpdateTask } from '../hooks/useTasks'
 import './TaskFormModal.css'
@@ -27,18 +29,22 @@ interface FormValues {
   title: string
   description: string
   dueDate: string
+  dueTime: string
   category: string
   priority: string
   tag: string
+  recurring: string
 }
 
 const EMPTY_FORM: FormValues = {
   title: '',
   description: '',
   dueDate: '',
+  dueTime: '',
   category: '',
   priority: '0',
   tag: '',
+  recurring: '',
 }
 
 interface ListDefaults {
@@ -57,9 +63,11 @@ function getInitialValues(
       title: task.title,
       description: task.description,
       dueDate: task.due_date ?? '',
+      dueTime: task.due_time ?? '',
       category: task.category as string,
       priority: String(task.priority),
       tag: task.tag,
+      recurring: task.recurring ?? '',
     }
   }
   if (listDefaults) {
@@ -159,8 +167,10 @@ export function TaskFormModal({
         category: form.category as TaskCategory,
         description: form.description.trim(),
         due_date: form.dueDate || null,
+        due_time: form.dueTime || null,
         priority: Number(form.priority),
         tag: form.tag.trim(),
+        recurring: form.recurring || null,
       }
       if (mode === 'create') {
         const createPayload: TaskCreatePayload = {
@@ -228,9 +238,42 @@ export function TaskFormModal({
             id="task-form-due-date-input"
             type="date"
             value={form.dueDate}
-            onChange={(e) => updateField('dueDate', e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              updateField('dueDate', val)
+              if (!val) {
+                updateField('dueTime', '')
+                updateField('recurring', '')
+              }
+            }}
             disabled={submitting}
           />
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-due-time-input">Due time (optional)</label>
+          <input
+            id="task-form-due-time-input"
+            type="time"
+            value={form.dueTime}
+            onChange={(e) => updateField('dueTime', e.target.value)}
+            disabled={submitting || !form.dueDate}
+          />
+        </div>
+        <div className="task-form-field">
+          <label htmlFor="task-form-recurring-input">Repeat (optional)</label>
+          <select
+            id="task-form-recurring-input"
+            value={form.recurring}
+            onChange={(e) => updateField('recurring', e.target.value)}
+            disabled={submitting || !form.dueDate}
+          >
+            <option value="">None</option>
+            {Object.values(RecurringOptions).map((val) => (
+              <option key={val} value={val}>
+                {RECURRING_LABELS[val]}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="task-form-field">
           <label htmlFor="task-form-category-input">Category</label>

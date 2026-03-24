@@ -24,6 +24,22 @@ export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
   [TaskCategory.THE_INEVITABLE]: 'The inevitable',
 }
 
+export const RecurringOptions = {
+  DAILY: 'daily',
+  WEEKLY: 'weekly',
+  MONTHLY: 'monthly',
+  YEARLY: 'yearly',
+} as const
+
+export type RecurringOption = (typeof RecurringOptions)[keyof typeof RecurringOptions]
+
+export const RECURRING_LABELS: Record<string, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+}
+
 export const TASK_PRIORITY_LABELS: Record<number, string> = {
   0: 'No one cares',
   1: 'No one is watching',
@@ -38,10 +54,12 @@ export interface Task {
   title: string
   description: string
   due_date: string | null
+  due_time: string | null
   category: TaskCategory
   tag: string
   priority: number
   recurring: string | null
+  stack_count: number
   status: TaskStatus
   muted_until: string | null
   created_at: string
@@ -61,6 +79,7 @@ export interface TaskCreatePayload {
   category: TaskCategory
   description?: string
   due_date?: string | null
+  due_time?: string | null
   tag?: string
   priority?: number
   recurring?: string | null
@@ -91,6 +110,7 @@ export interface TaskUpdatePayload {
   title?: string
   description?: string
   due_date?: string | null
+  due_time?: string | null
   category?: TaskCategory
   tag?: string
   priority?: number

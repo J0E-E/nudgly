@@ -159,6 +159,7 @@ def process_due_reminders():
                     attempt=attempt,
                     max_attempts=schedule.max_attempts,
                     task_title=schedule.task.title,
+                    stack_count=schedule.task.stack_count,
                 )
                 data = {
                     "schedule_id": str(schedule.id),

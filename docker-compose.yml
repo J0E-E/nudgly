@@ -54,7 +54,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: >
-      sh -c 'python manage.py migrate --noinput && gunicorn --bind 0.0.0.0:8000 --workers 1 config.wsgi:application'
+      sh -c 'python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application'
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')\" || exit 1"]
       interval: 10s
@@ -94,7 +94,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       django_api: { condition: service_healthy }
-    command: celery -A config beat --loglevel=info
+    command: celery -A config beat --loglevel=info -s /tmp/celerybeat-schedule
 
   frontend:
     build:

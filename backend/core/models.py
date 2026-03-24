@@ -30,6 +30,13 @@ class TaskStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class RecurringChoice(models.TextChoices):
+    DAILY = "daily", "Daily"
+    WEEKLY = "weekly", "Weekly"
+    MONTHLY = "monthly", "Monthly"
+    YEARLY = "yearly", "Yearly"
+
+
 class UserManager(BaseUserManager):
     """Custom manager for User with email as identifier."""
 
@@ -134,12 +141,16 @@ class Task(models.Model):
     title = models.CharField(max_length=500)
     description = models.TextField(blank=True, default="")
     due_date = models.DateField(null=True, blank=True)
+    due_time = models.TimeField(null=True, blank=True)
     category = models.CharField(max_length=30, choices=TaskCategory.choices)
     tag = models.CharField(max_length=255, blank=True, default="")
     priority = models.IntegerField(
         choices=TaskPriority.choices, default=TaskPriority.NO_ONE_CARES
     )
-    recurring = models.TextField(null=True, blank=True)
+    recurring = models.CharField(
+        max_length=10, choices=RecurringChoice.choices, null=True, blank=True
+    )
+    stack_count = models.PositiveIntegerField(default=0)
     status = models.CharField(
         max_length=20, choices=TaskStatus.choices, default=TaskStatus.PENDING
     )

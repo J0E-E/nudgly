@@ -89,7 +89,7 @@ class TaskCreateViewTests(TestCase):
             "category": "glow_up",
             "tag": "health",
             "priority": 3,
-            "recurring": "RRULE:FREQ=DAILY",
+            "recurring": "daily",
             "status": "pending",
             "muted_until": "2026-03-25T10:00:00Z",
         }

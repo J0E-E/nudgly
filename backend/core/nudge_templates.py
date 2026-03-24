@@ -203,11 +203,19 @@ def select_task_nudge(
     attempt: int,
     max_attempts: int,
     task_title: str,
+    stack_count: int = 0,
 ) -> tuple[str, str]:
     """Return (title, body) for a task nudge notification."""
     tier = get_escalation_tier(attempt, max_attempts)
+    # Stacked recurring tasks escalate faster.
+    if stack_count >= 2:
+        tier = LATE
+    elif stack_count >= 1 and tier == EARLY:
+        tier = MID
     templates = TASK_NUDGE_TEMPLATES[priority][tier]
     body = random.choice(templates).format(task_title=task_title)
+    if stack_count > 0:
+        body += f" (x{stack_count + 1})"
     title = random.choice(NUDGE_TITLES[priority])
     return title, body
 

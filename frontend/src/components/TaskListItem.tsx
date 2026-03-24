@@ -10,6 +10,7 @@ import {
   TaskStatus,
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
+  RECURRING_LABELS,
 } from '../types/task'
 import type { TaskSchedule } from '../types/task'
 import { useAuth } from '../contexts/useAuth'
@@ -26,17 +27,28 @@ interface TaskListItemProps {
 
 function isOverdue(task: Task): boolean {
   if (!task.due_date || task.status === TaskStatus.COMPLETED) return false
+  if (task.due_time) {
+    const dueDateTime = new Date(task.due_date + 'T' + task.due_time)
+    return dueDateTime < new Date()
+  }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return new Date(task.due_date) < today
 }
 
-function formatDueDate(dateStr: string): string {
+function formatDueDate(dateStr: string, timeStr?: string | null): string {
   const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString(undefined, {
+  const formatted = date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
   })
+  if (!timeStr) return formatted
+  const timeParts = timeStr.split(':')
+  const hours = parseInt(timeParts[0], 10)
+  const minutes = timeParts[1]
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  const h12 = hours % 12 || 12
+  return `${formatted} at ${h12}:${minutes} ${ampm}`
 }
 
 function formatDateTime(isoStr: string): string {
@@ -121,7 +133,7 @@ export function TaskListItem({
                 id={`task-${task.id}-due`}
                 className={`task-list-item-due${overdue ? ' task-list-item-due--overdue' : ''}`}
               >
-                {formatDueDate(task.due_date)}
+                {formatDueDate(task.due_date, task.due_time)}
               </span>
             )}
             <span
@@ -136,6 +148,22 @@ export function TaskListItem({
                 className="task-list-item-priority"
               >
                 {TASK_PRIORITY_LABELS[task.priority]}
+              </span>
+            )}
+            {task.recurring && (
+              <span
+                id={`task-${task.id}-recurring`}
+                className="task-list-item-recurring"
+              >
+                {RECURRING_LABELS[task.recurring] ?? task.recurring}
+              </span>
+            )}
+            {task.stack_count > 0 && (
+              <span
+                id={`task-${task.id}-stack`}
+                className="task-list-item-stack"
+              >
+                x{task.stack_count + 1}
               </span>
             )}
             {muted && (

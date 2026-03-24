@@ -90,7 +90,7 @@ class TaskDetailView(APIView):
     def patch(self, request, pk):
         task = self._get_task(request, pk)
         serializer = TaskPatchSerializer(
-            data=request.data, context={"user": request.user}
+            data=request.data, context={"user": request.user, "task": task}
         )
         serializer.is_valid(raise_exception=True)
         task = serializer.update(task, serializer.validated_data)

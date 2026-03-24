@@ -471,6 +471,159 @@
 
 ---
 
+### Epic 8f: Due Time — COMPLETED
+
+**Objective:** Allow users to optionally set a time alongside a due date. The nudge engine uses this time instead of the hardcoded 9 AM default.
+
+> **Depends on:** None (independent of 8e).
+
+#### Backend
+- **Model:** Add `due_time = TimeField(null=True, blank=True)` to Task, after `due_date`. Migration `0008`.
+- **Serializers:** Add `due_time` to `task_payload()`, `TaskCreateSerializer`, and `TaskPatchSerializer`. Add `"due_time"` to `schedule_fields` set so changing time re-syncs the schedule. Validation: `due_time` requires `due_date`.
+- **Schedule sync:** In `_compute_next_trigger()`, use `due_time` if set, else fallback to `time(9, 0)`. Pass `task.due_time` from `sync_task_schedule()`.
+- **Tests:** `_compute_next_trigger` with/without due_time, past time triggers immediately, serializer validation, payload inclusion, schedule re-sync on time change.
+
+#### Frontend
+- **Types:** Add `due_time: string | null` to `Task`, `TaskCreatePayload`, `TaskUpdatePayload`.
+- **TaskFormModal:** Add native `<input type="time">` after due date field, disabled when no due date set.
+- **TaskListItem:** Display time in due date format (e.g., "Mar 15 at 2:30 PM"). Update `isOverdue()` to compare full datetime when `due_time` is set.
+
+#### Implementation Notes:
+- **Approach:** Separate `TimeField` rather than changing `due_date` to `DateTimeField`. Kept due_date as DateField (referenced in 15+ locations); time is truly optional. Schedule sync change was a one-liner: `due_time if due_time else time(9, 0)`.
+- **View change:** `TaskDetailView.patch()` now passes `task` in serializer context (`context={"user": request.user, "task": task}`) so the patch validator can check existing `due_date` when only `due_time` is sent. This was not in the original plan but necessary for cross-field validation.
+- **Cascading clear:** Clearing `due_date` via PATCH auto-clears `due_time` (and `recurring`/`stack_count` from 8g) to prevent orphaned state. Frontend `dueDate` onChange handler also clears `dueTime` and `recurring` form fields.
+- **Frontend time format:** Manual 12-hour formatting via string parsing (`HH:MM` → `H:MM AM/PM`) — no external date library added. Native `<input type="time">` used.
+- **Tests:** 13 tests in `core/tests/test_due_time.py` covering trigger computation (4), serializer API (6), schedule sync (3).
+
+---
+
+### Epic 8g: Recurring Tasks — COMPLETED
+
+**Objective:** Implement MVP recurring tasks with stacking behavior. When a recurring task passes its due date without completion, its stack count increments (shown as "x2", "x3") and nudge intensity escalates. Completing resets the stack and advances to the next occurrence.
+
+> **Depends on:** Epic 8f (recurring tasks with a due time should use the time field).
+
+#### Backend
+- **Model:** Add `stack_count = PositiveIntegerField(default=0)` to Task. Define valid recurring values: "daily", "weekly", "monthly", "yearly". Migration `0009`.
+- **Serializers:** Add `stack_count` to payload. Change `recurring` to `ChoiceField` with valid values. Validation: `recurring` requires `due_date`. Clearing `recurring` resets `stack_count`.
+- **Completion hook:** In `TaskPatchSerializer.update()`, when a recurring task is completed: advance `due_date` to next occurrence, reset status to PENDING, reset `stack_count` to 0, clear `completed_at`. The task never truly "completes" — user removes the `recurring` value to stop recurrence.
+- **Recurrence logic:** New `core/recurrence.py` — `advance_due_date()` (daily +1d, weekly +7d, monthly +1mo, yearly +1yr via `dateutil.relativedelta`; skip-to-future if far past). `compute_stack_count()` — compute elapsed intervals past due datetime.
+- **Stacking Celery task:** New `core/stacking.py` — `update_stack_counts()` runs every 15 min via Beat, recomputes stack_count for all pending recurring tasks. Idempotent.
+- **Nudge escalation:** `select_task_nudge()` accepts `stack_count`; forces "late" tier at stack ≥ 2, "mid" at stack ≥ 1. Appends "(x{N})" to body.
+- **Tests:** Advancement logic, stack computation, completion behavior, serializer validation, nudge escalation, stacking task idempotency.
+
+#### Frontend
+- **Types:** Add `stack_count: number` to `Task`. Add `RecurringOptions` const and `RECURRING_LABELS` map.
+- **TaskFormModal:** Add recurring `<select>` (None/Daily/Weekly/Monthly/Yearly) after due time field.
+- **TaskListItem:** Show recurring label in meta row. Show "(x{N})" stack badge when `stack_count > 0`.
+
+#### Implementation Notes:
+- **Model constraint:** `recurring` was changed from `TextField` to `CharField(max_length=10, choices=RecurringChoice.choices)` with a new `RecurringChoice` TextChoices enum on the model (migration `0010`). This enforces valid values at the database level, not just the serializer. The original plan specified `TextField` with serializer-only validation.
+- **Timezone-aware advancement:** `advance_due_date()` accepts a `user_tz` parameter and computes "today" using `timezone.now().astimezone(tz).date()` instead of `date.today()`. This prevents incorrect skip-to-future behavior for users in non-server timezones.
+- **Stacking scalability:** `update_stack_counts()` uses `.iterator()` to stream rows and `bulk_update()` in batches of 500, rather than per-row `save()`. This avoids loading all recurring tasks into memory at once.
+- **Cascading clear on due_date removal:** PATCH `{"due_date": null}` on a task with `recurring` set auto-clears `recurring`, `stack_count`, and `due_time` in the serializer validation. This prevents orphaned state where `recurring="daily"` with `due_date=None` would crash `compute_stack_count` and `advance_due_date`. Test `test_clear_due_date_clears_recurring_and_stack` covers this.
+- **`stack_count` not API-writable:** `stack_count` is not declared as a serializer field, so DRF drops it from client payloads. It is only set internally via the completion hook (reset to 0), the "clearing recurring" validation (reset to 0), and the Celery beat task (recomputed).
+- **Completion flow:** When a recurring task status is set to `completed`, the serializer first sets `completed_at` (existing logic), then the recurring hook overrides: advances `due_date`, resets status to `pending`, clears `completed_at`, resets `stack_count`. The schedule re-sync then fires because `due_date` and `status` changed. The API response returns the task as `pending` with the next due date.
+- **`python-dateutil`:** Used for `relativedelta` (monthly/yearly advancement). Already installed as a transitive dependency — not added to requirements.
+- **Existing test fix:** `test_create_all_fields` in `test_tasks.py` updated from `"RRULE:FREQ=DAILY"` to `"daily"` to match the new ChoiceField validation.
+- **Tests:** 29 tests in `core/tests/test_recurring.py` covering advancement (8), stack computation (4), completion (5), validation (5), nudge escalation (3), stacking task (4).
+
+---
+
+### Epic 8h: ASGI & WebSocket Infrastructure — COMPLETED
+
+**Objective:** Migrate from WSGI to ASGI and add Django Channels so the backend can push real-time messages to connected browsers via WebSocket.
+
+> **Depends on:** None (infrastructure-only; no feature changes).
+
+#### Backend
+- **Dependencies:** Add `channels`, `channels-redis`, and `daphne` to `requirements.txt`.
+- **Settings:** Add `daphne` and `channels` to `INSTALLED_APPS`. Set `ASGI_APPLICATION = "config.asgi.application"`. Configure `CHANNEL_LAYERS` with Redis backend (reuse existing `REDIS_URL`).
+- **ASGI config:** Create `config/asgi.py` with `ProtocolTypeRouter` routing HTTP to Django's ASGI handler and WebSocket to a placeholder URL router (consumer added in Epic 8j).
+- **WebSocket JWT auth:** Create `core/ws/auth.py` — middleware that extracts JWT from WebSocket query string (`?token=<access_token>`), validates via `rest_framework_simplejwt`, and populates `scope["user"]`. Rejects unauthenticated connections.
+- **Server swap:** Change `Dockerfile` and `docker-compose.yml` `django_api` command from Gunicorn (`config.wsgi`) to Daphne (`config.asgi`). Celery worker/beat unchanged.
+- **Nginx:** Add WebSocket upgrade headers (`Upgrade`, `Connection`, `proxy_read_timeout`) to `/api/` location in both `nginx.conf` and `nginx.dev.conf`. Add `/ws/` location block proxying to Django with WebSocket headers.
+- **Tests:** WebSocket connects with valid JWT, rejects invalid/missing JWT, HTTP endpoints still work under Daphne.
+
+#### Frontend
+- No frontend changes in this epic.
+
+#### Implementation Notes:
+- **Auth rejection close code:** Uses custom WebSocket close code `4003` (in the 4000–4999 app-reserved range) to signal "authentication required". The middleware sends `websocket.close` without first sending `websocket.accept`, so the client sees a rejected upgrade.
+- **Valid-JWT test approach:** Because `websocket_urlpatterns` is empty (placeholder for Epic 8j), a valid-token WebSocket connection passes auth but raises `ValueError: No route found` at the router. The valid-JWT test therefore exercises `get_user_from_token()` directly rather than using `WebsocketCommunicator`. This should be extended to a full end-to-end connect test once Epic 8j adds a consumer route.
+- **Test base class:** WebSocket tests use `TransactionTestCase` (not `TestCase`) because `channels.testing.WebsocketCommunicator` runs async code that may access the DB from a different thread, which requires committed data visible across threads.
+- **CHANNEL_LAYERS test override:** Tests use `channels.layers.InMemoryChannelLayer` (set in the `if "test" in sys.argv` block in `settings.py`) so no running Redis is required for unit tests.
+- **Gunicorn retained in requirements:** `gunicorn` was kept in `requirements.txt` even though the server command now uses Daphne. It is harmless and available as a fallback if needed.
+- **`daphne` placement:** Must remain first in `INSTALLED_APPS` per Daphne docs (overrides the `runserver` management command).
+
+---
+
+### Epic 8i: Notification Model & REST API
+
+**Objective:** Store notification title/body when nudges fire and expose a REST API for reading notification history, unread counts, and marking notifications as read.
+
+> **Depends on:** Epic 8e (nudge templates must exist to generate title/body).
+
+#### Backend
+- **Model:** Add `title = CharField(max_length=200, blank=True, default="")`, `body = TextField(blank=True, default="")`, and `read_at = DateTimeField(null=True, blank=True)` to `ReminderEvent`. `read_at` is a lightweight "seen" flag, distinct from `acknowledged` which deactivates the schedule.
+- **Nudge engine:** In `core/nudge.py`, after `sender.send()` succeeds, store `title` and `body` on the event alongside `notification_sent`.
+- **REST API:** New module `core/in_app_notifications/` with four endpoints:
+  - `GET /api/notifications/` — list sent events for user, ordered by `-triggered_at`, paginated. Optional `?unread_only=true`.
+  - `GET /api/notifications/unread-count/` — returns `{"count": N}`.
+  - `POST /api/notifications/{id}/read/` — sets `read_at=now()`. Returns 204.
+  - `POST /api/notifications/read-all/` — bulk marks all unread as read. Returns 204.
+- **Tests:** All four endpoints, authorization isolation (user A can't see user B's events), pagination, nudge engine stores title/body on event.
+
+#### Frontend
+- No frontend changes in this epic (API only).
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
+### Epic 8j: WebSocket Notification Delivery
+
+**Objective:** Push nudge notifications to connected browsers in real time via WebSocket. When the nudge engine fires a notification, it also sends to the user's WebSocket channel.
+
+> **Depends on:** Epic 8h (ASGI + Channels infrastructure), Epic 8i (title/body stored on events).
+
+#### Backend
+- **Consumer:** Create `core/ws/consumers.py` — `NotificationConsumer(AsyncJsonWebsocketConsumer)`. On connect: authenticate (via JWT middleware from 8h), join channel group `notifications_{user_id}`. On disconnect: leave group. No client→server messages needed.
+- **Routing:** Create `core/ws/routing.py` — `ws/notifications/` → `NotificationConsumer`. Wire into `config/asgi.py` `ProtocolTypeRouter`.
+- **Nudge engine integration:** In `core/nudge.py`, after `sender.send()` and event save, send notification payload to channel layer via `async_to_sync(channel_layer.group_send)`.
+- **Tests:** Consumer receives notification when channel layer message sent. Integration test: `process_due_reminders` sends to channel layer.
+
+#### Frontend
+- **WebSocket hook:** Create `hooks/useNotificationSocket.ts` — connects to `ws://<host>/ws/notifications/?token=<accessToken>` when authenticated. Parses incoming JSON messages. Auto-reconnect with exponential backoff. Disconnects on logout.
+- **Types + API service:** Create `types/notification.ts` and `services/notificationApi.ts` (for REST endpoints from 8i — used by the notification panel).
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
+### Epic 8k: Frontend Notification UI
+
+**Objective:** Build the user-facing notification experience: toast alerts, notification bell with badge, notification history panel, and Browser Notification API integration.
+
+> **Depends on:** Epic 8j (WebSocket delivers notifications to the frontend).
+
+#### Frontend
+- **Toast system:** Create `contexts/ToastContext.tsx` (queue management, auto-dismiss 6s, max 3 visible) and `components/Toast.tsx` + `Toast.css` (fixed bottom-right overlay, slide-in animation, click navigates to task, dismiss X button).
+- **Browser notifications:** Create `hooks/useBrowserNotifications.ts` — `requestPermission()`, `showBrowserNotification(title, body)` via `new Notification()`. Skip on native platforms. No service worker needed (foreground only).
+- **Notification bell:** Create `components/NotificationBell.tsx` — bell SVG icon in `AppHeader`, red badge with unread count (initial from `GET /api/notifications/unread-count/`, then updated by WebSocket). Click toggles panel.
+- **Notification panel:** Create `components/NotificationPanel.tsx` + `.css` — dropdown below bell. Lists notifications from `GET /api/notifications/`. Title, body, relative time. Unread items highlighted. Click item → navigate to task + mark read. "Mark all read" button. Click-outside-to-close.
+- **App.tsx integration:** Add `ToastProvider` inside `BrowserRouter`. Add `NotificationSocketBridge` component (thin — runs WebSocket hook, bridges to toast + browser notifications + badge). Add `ToastContainer` after `BottomNav`. Add `NotificationBell` in `AppHeader`.
+
+#### Backend
+- No backend changes in this epic.
+
+#### Implementation Notes:
+*(To be completed when epic is done.)*
+
+---
+
 ## Epic 9: Habits & Completions
 
 **Objective:** Habits with target frequency and reminder times; log completion/skip; streak and history.

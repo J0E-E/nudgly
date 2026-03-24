@@ -42,6 +42,7 @@ AUTH_USER_MODEL = "core.User"
 
 # Application definition
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.sites",
     "django.contrib.contenttypes",
     "django.contrib.auth",
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "channels",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -104,6 +106,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls"
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 # CORS: allow origins from env; dev can use CORS_ALLOW_ALL_ORIGINS=True for permissive local dev
 CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS")
@@ -130,6 +133,14 @@ else:
 
 # Redis (for health check and future Celery)
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+
+# Django Channels: WebSocket layer backed by Redis.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [REDIS_URL]},
+    },
+}
 
 # Email: adapter name for get_email_sender(); "stdout" logs to logger (dev/test). Add sendgrid etc. later.
 EMAIL_SENDER = env("EMAIL_SENDER")
@@ -179,9 +190,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "core.devices.tasks.purge_stale_device_tokens",
         "schedule": 604800.0,  # weekly (7 days)
     },
+    "update-stack-counts": {
+        "task": "core.stacking.update_stack_counts",
+        "schedule": 900.0,  # every 15 minutes
+    },
 }
 
 # In test mode, run Celery tasks synchronously (no Redis/worker needed).
 if "test" in sys.argv:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+    }

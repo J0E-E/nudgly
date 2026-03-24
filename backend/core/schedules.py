@@ -17,13 +17,14 @@ from core.models import ReminderSchedule, TaskStatus
 from core.nudge import PRIORITY_NUDGE_CONFIG
 
 
-def _compute_next_trigger(due_date, user_tz_name):
-    """Return a UTC-aware datetime for 9 AM on due_date in the user's timezone.
+def _compute_next_trigger(due_date, user_tz_name, due_time=None):
+    """Return a UTC-aware datetime for due_time (or 9 AM) on due_date in the user's timezone.
 
     If the result is in the past, return now instead (trigger immediately).
     """
     tz = ZoneInfo(user_tz_name)
-    local_dt = datetime.combine(due_date, time(9, 0), tzinfo=tz)
+    trigger_time = due_time if due_time else time(9, 0)
+    local_dt = datetime.combine(due_date, trigger_time, tzinfo=tz)
     utc_dt = local_dt.astimezone(ZoneInfo("UTC"))
     now = timezone.now()
     return utc_dt if utc_dt > now else now
@@ -42,7 +43,7 @@ def sync_task_schedule(task):
 
     # Active task with a due_date — create or update schedule.
     cfg = PRIORITY_NUDGE_CONFIG[task.priority]
-    next_trigger = _compute_next_trigger(task.due_date, task.user.timezone)
+    next_trigger = _compute_next_trigger(task.due_date, task.user.timezone, task.due_time)
 
     if schedule is None:
         ReminderSchedule.objects.create(

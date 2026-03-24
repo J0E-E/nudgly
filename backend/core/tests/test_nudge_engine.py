@@ -13,7 +13,7 @@ from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from core.models import List, ReminderEvent, ReminderSchedule, Task
+from core.models import Habit, List, ReminderEvent, ReminderSchedule, Task
 from core.nudge import (
     JITTER_RANGES,
     MAX_NUDGES_PER_HOUR,
@@ -85,10 +85,13 @@ class ReminderScheduleModelTests(TestCase):
         self.assertIsNotNone(schedule.created_at)
 
     def test_xor_constraint_rejects_both_set(self):
+        habit = Habit.objects.create(
+            user=self.user, name="Test Habit", frequency="daily"
+        )
         schedule = ReminderSchedule(
             user=self.user,
             task=self.task,
-            habit_id=99,
+            habit=habit,
             next_trigger_at=timezone.now(),
             retry_interval_minutes=60,
             max_attempts=5,
@@ -100,7 +103,7 @@ class ReminderScheduleModelTests(TestCase):
         schedule = ReminderSchedule(
             user=self.user,
             task=None,
-            habit_id=None,
+            habit=None,
             next_trigger_at=timezone.now(),
             retry_interval_minutes=60,
             max_attempts=5,

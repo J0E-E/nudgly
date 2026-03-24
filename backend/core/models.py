@@ -37,6 +37,12 @@ class RecurringChoice(models.TextChoices):
     YEARLY = "yearly", "Yearly"
 
 
+class HabitFrequency(models.TextChoices):
+    DAILY = "daily", "Daily"
+    WEEKLY = "weekly", "Weekly"
+    MONTHLY = "monthly", "Monthly"
+
+
 class UserManager(BaseUserManager):
     """Custom manager for User with email as identifier."""
 
@@ -181,10 +187,46 @@ class Task(models.Model):
         return self.title[:50]
 
 
+class Habit(models.Model):
+    """Habit with target frequency, reminder times, and streak tracking."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="habits")
+    name = models.CharField(max_length=200)
+    frequency = models.CharField(max_length=10, choices=HabitFrequency.choices)
+    target_count = models.PositiveIntegerField(default=1)
+    reminder_times = models.JSONField(default=list, blank=True)
+    streak_count = models.PositiveIntegerField(default=0)
+    last_completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user"])]
+
+    def __str__(self):
+        return self.name[:50]
+
+
+class HabitCompletion(models.Model):
+    """Record of a habit completion or skip."""
+
+    habit = models.ForeignKey(
+        Habit, on_delete=models.CASCADE, related_name="completions"
+    )
+    completed_at = models.DateTimeField(auto_now_add=True)
+    skipped = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [models.Index(fields=["habit", "completed_at"])]
+        ordering = ["-completed_at"]
+
+    def __str__(self):
+        return f"HabitCompletion(habit={self.habit_id}, skipped={self.skipped})"
+
+
 class ReminderSchedule(models.Model):
     """
     Nudge schedule per schema §8.
-    Links to a task (or habit via plain int until Epic 9 adds the Habit model).
+    Links to a task, habit, or list (exactly one via XOR constraint).
     The worker queries next_trigger_at to find due reminders.
     """
 
@@ -198,8 +240,13 @@ class ReminderSchedule(models.Model):
         blank=True,
         related_name="reminder_schedules",
     )
-    # Plain int — Habit model does not exist yet (Epic 9). Will become FK then.
-    habit_id = models.IntegerField(null=True, blank=True)
+    habit = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reminder_schedules",
+    )
     list = models.ForeignKey(
         "List",
         on_delete=models.CASCADE,
@@ -226,17 +273,17 @@ class ReminderSchedule(models.Model):
                 check=(
                     models.Q(
                         task__isnull=False,
-                        habit_id__isnull=True,
+                        habit__isnull=True,
                         list__isnull=True,
                     )
                     | models.Q(
                         task__isnull=True,
-                        habit_id__isnull=False,
+                        habit__isnull=False,
                         list__isnull=True,
                     )
                     | models.Q(
                         task__isnull=True,
-                        habit_id__isnull=True,
+                        habit__isnull=True,
                         list__isnull=False,
                     )
                 ),

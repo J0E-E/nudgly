@@ -16,6 +16,7 @@ import { ProfileScreen } from './pages/ProfileScreen'
 import { SettingsPlaceholderScreen } from './pages/SettingsPlaceholderScreen'
 import { ListsScreen } from './pages/ListsScreen'
 import { ListDetailScreen } from './pages/ListDetailScreen'
+import { HabitsScreen } from './pages/HabitsScreen'
 import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
 import { BottomNav } from './components/BottomNav'
 import { ToastProvider } from './contexts/ToastContext'
@@ -78,6 +79,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ListDetailScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/habits"
+                  element={
+                    <ProtectedRoute>
+                      <HabitsScreen />
                     </ProtectedRoute>
                   }
                 />

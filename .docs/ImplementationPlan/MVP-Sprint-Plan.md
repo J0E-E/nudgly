@@ -636,7 +636,7 @@
 
 ---
 
-## Epic 9: Habits & Completions
+## Epic 9: Habits & Completions — COMPLETED
 
 **Objective:** Habits with target frequency and reminder times; log completion/skip; streak and history.
 
@@ -652,7 +652,12 @@
 - Edit/delete habit with confirmation. Empty and loading states.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Status:** Done. All objectives met.
+- **Backend:** `Habit` and `HabitCompletion` models in `core/models.py`. `HabitFrequency` TextChoices enum (daily, weekly, monthly). API at `/api/habits/` with full CRUD + `POST /api/habits/{id}/complete/`. Module at `core/habits/` with `serializers.py`, `views.py`, `urls.py`, `streak.py`. Streak logic in `core/habits/streak.py`: period boundaries (daily/weekly/monthly) computed in user timezone via `zoneinfo.ZoneInfo`; streak increments when target_count met for current period and previous period was also met; resets to 1 when previous period missed. `period_completions` is a computed field returned per habit (count of non-skipped completions in current period). Complete endpoint accepts `{ skipped: bool }` — default `false` means “completed”, `true` means “skip” (does not affect streak or last_completed_at). 31 tests in `core/tests/test_habits.py`.
+- **Plan vs implementation:** The plan's single `target_frequency` field was split into two: `frequency` (the period type: daily/weekly/monthly) and `target_count` (how many completions per period, default 1). This provides cleaner semantics — e.g., “3 times per week” is `frequency=weekly, target_count=3`. The complete endpoint body uses `{ skipped: bool }` rather than `{ completed: bool }` — the default (no body or `skipped=false`) means a successful completion.
+- **ReminderSchedule FK migration:** Converted `habit_id = IntegerField` placeholder to `habit = ForeignKey(Habit, CASCADE)`. The 3-way XOR constraint updated Q lookups from `habit_id__isnull` to `habit__isnull`. Existing nudge engine tests (45 tests) updated and passing. Migration `0012`.
+- **Frontend:** `HabitsScreen` at `/habits` with search filter, add/edit/delete/complete/skip flows. Components: `HabitList`, `HabitListItem` (expand/collapse with streak badge, “+” done button, skip in expanded details), `HabitFormModal` (name, frequency select, target count, dynamic reminder time inputs). Types in `types/habit.ts`, API in `services/habitApi.ts`, hooks in `hooks/useHabits.ts`. BottomNav updated with Habits link (repeat/cycle icon).
+- **Caveats:** `period_completions` is computed per-habit in the list view (one count query per habit). For users with many habits this could become an N+1 concern — consider annotating the queryset with a filtered Count in a future optimization pass. `HabitCompletion.completed_at` uses `auto_now_add=True` so it cannot be set manually via `create()`; tests that need backdated completions use `.filter().update()`. Streak updates are not protected against concurrent requests (no `select_for_update` or `F()` expression) — acceptable for single-user MVP but may need hardening if habit completions become high-throughput.
 
 ---
 

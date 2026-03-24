@@ -1,3 +1,9 @@
-"""WebSocket URL routing. Consumers added in Epic 8j."""
+"""WebSocket URL routing."""
 
-websocket_urlpatterns = []
+from django.urls import path
+
+from core.ws.consumers import NotificationConsumer
+
+websocket_urlpatterns = [
+    path("ws/notifications/", NotificationConsumer.as_asgi()),
+]

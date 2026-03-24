@@ -10,10 +10,13 @@ import random
 from collections import Counter
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
 from celery import shared_task
+from channels.layers import get_channel_layer
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from core.in_app_notifications.views import notification_payload
 from core.models import ReminderEvent, ReminderSchedule
 from core.notifications import get_notification_sender
 from core.nudge_templates import select_list_nudge, select_task_nudge
@@ -196,6 +199,15 @@ def process_due_reminders():
             event.title = title
             event.body = body
             event.save(update_fields=["notification_sent", "title", "body"])
+
+            # Push to WebSocket channel layer for real-time delivery.
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{schedule.user_id}",
+                    {"type": "notify", "data": notification_payload(event)},
+                )
+
             rate_counts[schedule.user_id] = rate_counts.get(schedule.user_id, 0) + 1
 
         # Advance or deactivate.

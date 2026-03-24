@@ -586,7 +586,7 @@
 
 ---
 
-### Epic 8j: WebSocket Notification Delivery
+### Epic 8j: WebSocket Notification Delivery — COMPLETED
 
 **Objective:** Push nudge notifications to connected browsers in real time via WebSocket. When the nudge engine fires a notification, it also sends to the user's WebSocket channel.
 
@@ -603,7 +603,10 @@
 - **Types + API service:** Create `types/notification.ts` and `services/notificationApi.ts` (for REST endpoints from 8i — used by the notification panel).
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Routing file:** Used the existing `core/ws/urls.py` (created in Epic 8h as a placeholder) instead of creating a separate `core/ws/routing.py`. The URL patterns were already wired into `config/asgi.py`, so adding the route there avoided an unnecessary file and extra import.
+- **Channel layer guard:** `get_channel_layer()` is checked for `None` before sending, so the nudge engine degrades gracefully if the channel layer is unavailable (e.g. Redis down). Push notifications via FCM still fire regardless.
+- **Payload reuse:** The WebSocket payload reuses `notification_payload()` from `core/in_app_notifications/views.py` to keep the REST and WS shapes identical.
+- **Frontend reconnect guard:** A `closingRef` flag prevents the `onclose` handler from scheduling reconnects after an intentional disconnect (logout or unmount).
 
 ---
 

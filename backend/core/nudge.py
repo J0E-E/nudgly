@@ -193,7 +193,9 @@ def process_due_reminders():
                 data=data,
             )
             event.notification_sent = True
-            event.save(update_fields=["notification_sent"])
+            event.title = title
+            event.body = body
+            event.save(update_fields=["notification_sent", "title", "body"])
             rate_counts[schedule.user_id] = rate_counts.get(schedule.user_id, 0) + 1
 
         # Advance or deactivate.

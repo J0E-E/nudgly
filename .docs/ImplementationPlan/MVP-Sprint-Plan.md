@@ -558,7 +558,7 @@
 
 ---
 
-### Epic 8i: Notification Model & REST API
+### Epic 8i: Notification Model & REST API — COMPLETED
 
 **Objective:** Store notification title/body when nudges fire and expose a REST API for reading notification history, unread counts, and marking notifications as read.
 
@@ -578,7 +578,11 @@
 - No frontend changes in this epic (API only).
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **User scoping via join:** `ReminderEvent` has no direct `user` FK; all queries filter through `schedule__user=request.user`. This is a join query but fine for MVP scale.
+- **`read_at` vs `acknowledged`:** `read_at` marks "seen in notification center" (set by the REST API). `acknowledged` means "user actively dismissed the nudge" (deactivates the schedule). These are independent fields — reading a notification does not acknowledge the underlying schedule.
+- **`_parse_pagination` duplication:** The manual limit/offset pagination helper is duplicated across view modules (tasks, lists, in_app_notifications). This is intentional per existing codebase convention — no shared utility yet.
+- **Bulk mark-all-read preserves existing `read_at`:** The `read-all` endpoint only updates events where `read_at IS NULL`, so previously-read timestamps are not overwritten.
+- **`notification_payload` includes `schedule_id`:** Exposed so the frontend can link a notification back to its originating schedule/task if needed (e.g., for deep-linking to the task).
 
 ---
 

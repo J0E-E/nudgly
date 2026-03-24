@@ -268,6 +268,9 @@ class ReminderEvent(models.Model):
     attempt_number = models.PositiveIntegerField()
     acknowledged = models.BooleanField(default=False)
     notification_sent = models.BooleanField(default=False)
+    title = models.CharField(max_length=200, blank=True, default="")
+    body = models.TextField(blank=True, default="")
+    read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

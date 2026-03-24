@@ -11,4 +11,5 @@ urlpatterns = [
     path("lists/", include("core.lists.urls")),
     path("reminders/", include("core.reminders.urls")),
     path("devices/", include("core.devices.urls")),
+    path("notifications/", include("core.in_app_notifications.urls")),
 ]

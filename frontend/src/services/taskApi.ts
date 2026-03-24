@@ -10,6 +10,7 @@ import type {
   TaskListResponse,
   TaskCreatePayload,
   TaskUpdatePayload,
+  TaskSchedule,
 } from '../types/task'
 
 const TASKS_BASE = `${API_BASE_URL.replace(/\/$/, '')}/api/tasks`
@@ -64,4 +65,19 @@ export async function deleteTask(
   id: number
 ): Promise<void> {
   return authDelete(`${TASKS_BASE}/${id}/`, deps)
+}
+
+/**
+ * GET /api/tasks/{id}/schedule/ — active reminder schedule for a task.
+ * Returns null if no active schedule (404).
+ */
+export async function getTaskSchedule(
+  deps: ApiClientDeps,
+  id: number
+): Promise<TaskSchedule | null> {
+  try {
+    return await authGet<TaskSchedule>(`${TASKS_BASE}/${id}/schedule/`, deps)
+  } catch {
+    return null
+  }
 }

@@ -212,7 +212,8 @@ class NudgeEngineNotificationIntegrationTests(TestCase):
         mock_sender.send.assert_called_once()
         call_kwargs = mock_sender.send.call_args[1]
         self.assertEqual(call_kwargs["user_id"], self.user.id)
-        self.assertIn("Nudge!", call_kwargs["title"])
+        self.assertIsInstance(call_kwargs["title"], str)
+        self.assertTrue(len(call_kwargs["title"]) > 0)
         self.assertIn(self.task.title, call_kwargs["body"])
 
         event = ReminderEvent.objects.first()

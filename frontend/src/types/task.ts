@@ -77,6 +77,16 @@ export const MUTE_PRESET_LABELS: Record<MutePreset, string> = {
   '1wk': '1 Week',
 }
 
+export interface TaskSchedule {
+  id: number
+  next_trigger_at: string
+  retry_interval_minutes: number
+  max_attempts: number
+  attempt_count: number
+  is_active: boolean
+  created_at: string
+}
+
 export interface TaskUpdatePayload {
   title?: string
   description?: string

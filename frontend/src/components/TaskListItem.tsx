@@ -4,13 +4,16 @@
  * showing full task details and action buttons.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Task } from '../types/task'
 import {
   TaskStatus,
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
 } from '../types/task'
+import type { TaskSchedule } from '../types/task'
+import { useAuth } from '../contexts/useAuth'
+import { getTaskSchedule } from '../services/taskApi'
 import './TaskListItem.css'
 
 interface TaskListItemProps {
@@ -48,6 +51,15 @@ function isMutedNow(task: Task): boolean {
   return task.muted_until !== null && new Date(task.muted_until) > new Date()
 }
 
+function formatRelativeTime(isoStr: string): string {
+  const diff = new Date(isoStr).getTime() - Date.now()
+  if (diff < 0) return 'any moment now'
+  const mins = Math.round(diff / 60000)
+  if (mins < 60) return `in ${mins} min`
+  const hrs = Math.round(mins / 60)
+  return `in ${hrs}h`
+}
+
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
@@ -60,9 +72,19 @@ export function TaskListItem({
   onSnooze,
 }: TaskListItemProps) {
   const [expanded, setExpanded] = useState(false)
+  const [schedule, setSchedule] = useState<TaskSchedule | null>(null)
+  const { getApiDeps } = useAuth()
   const completed = task.status === TaskStatus.COMPLETED
   const overdue = isOverdue(task)
   const muted = isMutedNow(task)
+
+  useEffect(() => {
+    if (expanded && !completed) {
+      getTaskSchedule(getApiDeps(), task.id).then(setSchedule)
+    } else {
+      setSchedule(null)
+    }
+  }, [expanded, task.id, completed, getApiDeps])
 
   return (
     <li
@@ -180,6 +202,12 @@ export function TaskListItem({
             <p className="task-list-item-detail-row">
               <span className="task-list-item-detail-label">Muted until</span>
               <span>{formatDateTime(task.muted_until)}</span>
+            </p>
+          )}
+          {schedule && schedule.is_active && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Next nudge</span>
+              <span>{formatRelativeTime(schedule.next_trigger_at)}</span>
             </p>
           )}
           <div className="task-list-item-actions">

@@ -1,9 +1,11 @@
 """
-Unit tests for the nudge engine: ReminderSchedule/ReminderEvent models
-and the process_due_reminders Celery task.
+Unit tests for the nudge engine: ReminderSchedule/ReminderEvent models,
+the process_due_reminders Celery task, nudge templates, rate limiting,
+and priority-aware jitter.
 """
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -12,7 +14,24 @@ from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
 from core.models import List, ReminderEvent, ReminderSchedule, Task
-from core.nudge import compute_bucket, process_due_reminders
+from core.nudge import (
+    JITTER_RANGES,
+    MAX_NUDGES_PER_HOUR,
+    compute_bucket,
+    process_due_reminders,
+)
+from core.nudge_templates import (
+    EARLY,
+    LATE,
+    LIST_DUE_TODAY_TEMPLATES,
+    LIST_NUDGE_TEMPLATES,
+    MID,
+    NUDGE_TITLES,
+    TASK_NUDGE_TEMPLATES,
+    get_escalation_tier,
+    select_list_nudge,
+    select_task_nudge,
+)
 
 User = get_user_model()
 
@@ -217,13 +236,14 @@ class ProcessDueRemindersTests(TestCase):
             retry_interval_minutes=60,
             max_attempts=10,
         )
+        before = timezone.now()
         process_due_reminders()
         schedule.refresh_from_db()
         self.assertTrue(schedule.is_active)
         self.assertEqual(schedule.attempt_count, 1)
-        # next_trigger_at should be ~60 min from now (+-5 min jitter).
-        expected_min = timezone.now() + timedelta(minutes=55)
-        expected_max = timezone.now() + timedelta(minutes=65)
+        # next_trigger_at should be ~60 min from before (+-5 min jitter for priority 0).
+        expected_min = before + timedelta(minutes=55)
+        expected_max = before + timedelta(minutes=66)
         self.assertGreaterEqual(schedule.next_trigger_at, expected_min)
         self.assertLessEqual(schedule.next_trigger_at, expected_max)
 
@@ -238,6 +258,28 @@ class ProcessDueRemindersTests(TestCase):
         schedule.refresh_from_db()
         self.assertFalse(schedule.is_active)
         self.assertEqual(schedule.attempt_count, 3)
+
+    def test_notification_body_contains_task_title(self):
+        """Notification body should include the task title."""
+        _create_schedule(self.user, self.task)
+        with self.assertLogs("core.notifications", level="INFO") as cm:
+            process_due_reminders()
+        log_output = "\n".join(cm.output)
+        self.assertIn("Test task", log_output)
+
+    def test_notification_title_varies_by_priority(self):
+        """Notification title should come from the priority's title set."""
+        self.task.priority = 5
+        self.task.save(update_fields=["priority"])
+        _create_schedule(self.user, self.task)
+        with self.assertLogs("core.notifications", level="INFO") as cm:
+            process_due_reminders()
+        log_output = "\n".join(cm.output)
+        valid_titles = NUDGE_TITLES[5]
+        self.assertTrue(
+            any(t in log_output for t in valid_titles),
+            f"Expected one of {valid_titles} in log output",
+        )
 
 
 class ProcessDueRemindersIdempotencyTests(TransactionTestCase):
@@ -339,10 +381,10 @@ class ProcessDueListRemindersTests(TestCase):
 
         event = ReminderEvent.objects.first()
         self.assertTrue(event.notification_sent)
-        # Should mention list name and item count.
+        # Should mention list name and pending count.
         log_output = "\n".join(cm.output)
         self.assertIn("Test List", log_output)
-        self.assertIn("2 items left", log_output)
+        self.assertIn("2", log_output)
 
     def test_list_schedule_due_today_message(self):
         from datetime import date
@@ -357,7 +399,7 @@ class ProcessDueListRemindersTests(TestCase):
             process_due_reminders()
 
         log_output = "\n".join(cm.output)
-        self.assertIn("1 task due today", log_output)
+        self.assertIn("today", log_output.lower())
         self.assertIn("Test List", log_output)
 
     def test_list_mute_respected_for_list_schedule(self):
@@ -380,3 +422,172 @@ class ProcessDueListRemindersTests(TestCase):
         schedule.refresh_from_db()
         self.assertFalse(schedule.is_active)
         self.assertEqual(schedule.attempt_count, 1)
+
+
+# ── Template selection tests ─────────────────────────────────────────────
+
+
+class NudgeTemplateSelectionTests(TestCase):
+    def test_select_task_nudge_returns_title_and_body(self):
+        title, body = select_task_nudge(
+            priority=3, attempt=1, max_attempts=10, task_title="Buy groceries"
+        )
+        self.assertIsInstance(title, str)
+        self.assertIsInstance(body, str)
+        self.assertTrue(len(title) > 0)
+        self.assertTrue(len(body) > 0)
+
+    def test_task_title_interpolated(self):
+        _, body = select_task_nudge(
+            priority=2, attempt=1, max_attempts=10, task_title="Walk the dog"
+        )
+        self.assertIn("Walk the dog", body)
+
+    def test_each_priority_has_templates_for_all_tiers(self):
+        for priority in range(6):
+            for tier in (EARLY, MID, LATE):
+                templates = TASK_NUDGE_TEMPLATES[priority][tier]
+                self.assertTrue(
+                    len(templates) >= 1,
+                    f"Priority {priority}, tier {tier} has no templates",
+                )
+
+    def test_select_list_nudge_returns_title_and_body(self):
+        title, body = select_list_nudge(
+            attempt=1, max_attempts=10, list_name="Errands",
+            pending_count=3, due_today_count=0,
+        )
+        self.assertIsInstance(title, str)
+        self.assertIn("Errands", body)
+
+    def test_select_list_nudge_due_today_variant(self):
+        _, body = select_list_nudge(
+            attempt=1, max_attempts=10, list_name="Work",
+            pending_count=5, due_today_count=2,
+        )
+        self.assertIn("today", body.lower())
+
+
+# ── Escalation tier tests ───────────────────────────────────────────────
+
+
+class NudgeEscalationTests(TestCase):
+    def test_early_tier(self):
+        self.assertEqual(get_escalation_tier(1, 10), EARLY)
+
+    def test_mid_tier(self):
+        self.assertEqual(get_escalation_tier(5, 10), MID)
+
+    def test_late_tier(self):
+        self.assertEqual(get_escalation_tier(9, 10), LATE)
+
+    def test_single_attempt_is_late(self):
+        self.assertEqual(get_escalation_tier(1, 1), LATE)
+
+    def test_boundary_early_mid(self):
+        # 1/3 = 0.333... which is > 0.33, so mid
+        self.assertEqual(get_escalation_tier(1, 3), MID)
+
+    def test_boundary_mid_late(self):
+        # 2/3 = 0.666... which is > 0.66, so late
+        self.assertEqual(get_escalation_tier(2, 3), LATE)
+
+
+# ── Rate limiting tests ─────────────────────────────────────────────────
+
+
+class NudgeRateLimitTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.task = _create_task(self.user)
+
+    def _create_recent_events(self, count):
+        """Create count sent events for user in the last hour."""
+        for i in range(count):
+            task = _create_task(
+                self.user, title=f"Filler task {i}",
+            )
+            schedule = _create_schedule(
+                self.user, task,
+                next_trigger_at=timezone.now() - timedelta(minutes=30),
+                is_active=False,
+                attempt_count=1,
+            )
+            ReminderEvent.objects.create(
+                schedule=schedule,
+                triggered_at=timezone.now() - timedelta(minutes=15),
+                triggered_at_bucket=compute_bucket(
+                    timezone.now() - timedelta(minutes=30 + i)
+                ),
+                attempt_number=1,
+                notification_sent=True,
+            )
+
+    def test_under_limit_sends_notification(self):
+        self._create_recent_events(MAX_NUDGES_PER_HOUR - 1)
+        _create_schedule(self.user, self.task)
+        process_due_reminders()
+        event = ReminderEvent.objects.filter(schedule__task=self.task).first()
+        self.assertTrue(event.notification_sent)
+
+    def test_at_limit_skips_notification(self):
+        self._create_recent_events(MAX_NUDGES_PER_HOUR)
+        schedule = _create_schedule(self.user, self.task)
+        process_due_reminders()
+        event = ReminderEvent.objects.filter(schedule__task=self.task).first()
+        self.assertFalse(event.notification_sent)
+
+    def test_rate_limited_does_not_increment_attempt(self):
+        self._create_recent_events(MAX_NUDGES_PER_HOUR)
+        schedule = _create_schedule(self.user, self.task, attempt_count=2)
+        process_due_reminders()
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.attempt_count, 2)  # unchanged
+
+    def test_rate_limited_defers_next_trigger(self):
+        self._create_recent_events(MAX_NUDGES_PER_HOUR)
+        schedule = _create_schedule(
+            self.user, self.task,
+            retry_interval_minutes=60,
+        )
+        original_trigger = schedule.next_trigger_at
+        process_due_reminders()
+        schedule.refresh_from_db()
+        self.assertTrue(schedule.is_active)
+        # Should be deferred ~60 min from now (with jitter).
+        self.assertGreater(schedule.next_trigger_at, original_trigger)
+
+
+# ── Jitter by priority tests ────────────────────────────────────────────
+
+
+class JitterByPriorityTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+
+    def test_high_priority_jitter_range(self):
+        task = _create_task(self.user, priority=5)
+        schedule = _create_schedule(
+            self.user, task, retry_interval_minutes=20, max_attempts=20,
+        )
+        with patch("core.nudge.random.randint", return_value=1) as mock_randint:
+            process_due_reminders()
+            mock_randint.assert_called_with(-2, 2)
+
+    def test_low_priority_jitter_range(self):
+        task = _create_task(self.user, priority=0)
+        schedule = _create_schedule(
+            self.user, task, retry_interval_minutes=120, max_attempts=5,
+        )
+        with patch("core.nudge.random.randint", return_value=1) as mock_randint:
+            process_due_reminders()
+            mock_randint.assert_called_with(-5, 5)
+
+    def test_mid_priority_jitter_range(self):
+        task = _create_task(self.user, priority=3)
+        schedule = _create_schedule(
+            self.user, task, retry_interval_minutes=45, max_attempts=12,
+        )
+        with patch("core.nudge.random.randint", return_value=1) as mock_randint:
+            process_due_reminders()
+            mock_randint.assert_called_with(-3, 3)

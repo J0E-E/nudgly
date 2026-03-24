@@ -443,7 +443,7 @@
 - **Tests:** 21 new tests across `test_nudge_engine.py` (model constraints, worker behavior) and `test_schedules.py` (sync unit tests, API integration).
 - **Deviation from plan:** The plan did not specify behavior when `sync_list_schedule` is called on an already-active schedule (e.g. adding a second task). The implementation intentionally skips updating `next_trigger_at` for active schedules to avoid pushing back an in-flight nudge cycle. Only priority-driven config changes (`retry_interval_minutes`, `max_attempts`) are applied to active schedules.
 
-### Epic 8e: Nudge Copy & Tuning
+### Epic 8e: Nudge Copy & Tuning — COMPLETED
 
 **Objective:** Replace generic notification text with the witty, sarcastic nudge messages from the app spec; add per-user rate limiting and timing refinements.
 
@@ -460,7 +460,14 @@
 - **”Next nudge” display (optional):** If `GET /api/tasks/{id}/schedule/` is available (from 8b), show “Next nudge: in 45 min” or “Last nudge: 2h ago” on the task detail expanded view. Read-only; no interaction needed.
 
 #### Implementation Notes:
-*(To be completed when epic is done.)*
+- **Templates module:** New file `core/nudge_templates.py` houses all message copy, separated from worker logic in `core/nudge.py`. Templates use `str.format()` with `{task_title}`, `{list_name}`, `{count}`, `{due_today_count}` placeholders. 54 task templates (3 per priority × 3 tiers × 6 priorities), 18 list templates (regular + due-today variants), and per-priority title sets.
+- **Escalation tiers:** Three tiers (early/mid/late) derived from `attempt / max_attempts` ratio: ≤0.33 → early, ≤0.66 → mid, >0.66 → late. Note: a single-attempt schedule (attempt 1 of 1, ratio 1.0) always gets the “late” tier.
+- **Rate limiting:** `MAX_NUDGES_PER_HOUR = 5`. Pre-fetched via batch query (`_prefetch_rate_limits`) before the main loop to avoid N+1. Rate-limited nudges still create a `ReminderEvent` (for idempotency) but `notification_sent=False`. The schedule's `next_trigger_at` is deferred by `retry_interval_minutes` **without** incrementing `attempt_count` — rate-limited nudges do not consume attempts. The in-memory `rate_counts` dict is also incremented after each successful send so multiple schedules for the same user in a single tick respect the limit.
+- **Jitter:** `JITTER_RANGES` dict in `nudge.py`: priority 0-2 → ±5 min, priority 3 → ±3 min, priority 4-5 → ±2 min. Both task and list schedules use the target's priority for jitter via `_get_priority()`.
+- **Muted + rate-limited interaction:** If a schedule is both muted and rate-limited, the muted path takes precedence (event created, no notification, attempt consumed). This is consistent with existing mute behavior — mute is a user-intentional suppression, not a temporary deferral.
+- **Frontend:** “Next nudge” row in TaskListItem expanded view. Fetches `GET /api/tasks/{id}/schedule/` on expand; clears on collapse or when task is completed. Displays relative time (“in 45 min”, “in 2h”, “any moment now”). New `TaskSchedule` type, `getTaskSchedule()` API function. No new hooks — uses inline `useEffect`.
+- **Title variation:** Notification titles now vary by priority (e.g., priority 0: “Hey”/”Psst”; priority 5: “This matters”/”Don't let yourself down”), replacing the fixed “Nudge!” title.
+- **Tests:** 14 new tests across 4 classes: `NudgeTemplateSelectionTests` (5), `NudgeEscalationTests` (6), `NudgeRateLimitTests` (4), `JitterByPriorityTests` (3). Existing worker and integration tests updated for template-based output (assert body contains task title rather than exact format string).
 
 ---
 

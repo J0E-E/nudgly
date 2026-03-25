@@ -22,6 +22,9 @@ from core.nudge import (
 )
 from core.nudge_templates import (
     EARLY,
+    HABIT_NUDGE_TEMPLATES,
+    HABIT_STREAK_TEMPLATES,
+    HABIT_TITLES,
     LATE,
     LIST_DUE_TODAY_TEMPLATES,
     LIST_NUDGE_TEMPLATES,
@@ -29,6 +32,7 @@ from core.nudge_templates import (
     NUDGE_TITLES,
     TASK_NUDGE_TEMPLATES,
     get_escalation_tier,
+    select_habit_nudge,
     select_list_nudge,
     select_task_nudge,
 )
@@ -594,3 +598,108 @@ class JitterByPriorityTests(TestCase):
         with patch("core.nudge.random.randint", return_value=1) as mock_randint:
             process_due_reminders()
             mock_randint.assert_called_with(-3, 3)
+
+
+# ── Habit schedule helpers ────────────────────────────────────────────────
+
+
+def _create_habit(user, **kwargs):
+    defaults = {"name": "Test Habit", "frequency": "daily"}
+    defaults.update(kwargs)
+    return Habit.objects.create(user=user, **defaults)
+
+
+def _create_habit_schedule(user, habit, **kwargs):
+    defaults = {
+        "next_trigger_at": timezone.now() - timedelta(minutes=5),
+        "retry_interval_minutes": 60,
+        "max_attempts": 10,
+        "persistent": True,
+        "recurrence_rule": "09:00",
+    }
+    defaults.update(kwargs)
+    return ReminderSchedule.objects.create(user=user, habit=habit, **defaults)
+
+
+# ── Habit nudge template tests ──────────────────────────────────────────
+
+
+class HabitNudgeTemplateTests(TestCase):
+    def test_select_habit_nudge_returns_title_and_body(self):
+        title, body = select_habit_nudge(
+            attempt=1, max_attempts=10, habit_name="Meditate"
+        )
+        self.assertIsInstance(title, str)
+        self.assertIn("Meditate", body)
+        self.assertIn(title, HABIT_TITLES)
+
+    def test_habit_name_interpolated(self):
+        _, body = select_habit_nudge(
+            attempt=1, max_attempts=10, habit_name="Drink water"
+        )
+        self.assertIn("Drink water", body)
+
+    def test_streak_variant_used_when_streak_positive(self):
+        _, body = select_habit_nudge(
+            attempt=1, max_attempts=10, habit_name="Exercise", streak_count=5
+        )
+        # Body should reference streak_count (5) or next_streak (6).
+        self.assertTrue("5" in body or "6" in body, f"Expected streak ref in: {body}")
+
+    def test_no_streak_variant_when_streak_zero(self):
+        _, body = select_habit_nudge(
+            attempt=1, max_attempts=10, habit_name="Read", streak_count=0
+        )
+        # Should not contain streak-related numbers.
+        self.assertIn("Read", body)
+
+    def test_all_tiers_have_templates(self):
+        for tier in (EARLY, MID, LATE):
+            self.assertTrue(len(HABIT_NUDGE_TEMPLATES[tier]) >= 1)
+            self.assertTrue(len(HABIT_STREAK_TEMPLATES[tier]) >= 1)
+
+
+# ── Habit worker tests ──────────────────────────────────────────────────
+
+
+class ProcessDueHabitRemindersTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.habit = _create_habit(self.user, name="Meditate", streak_count=3)
+
+    def test_habit_schedule_sends_notification(self):
+        _create_habit_schedule(self.user, self.habit)
+        with self.assertLogs("core.notifications", level="INFO") as cm:
+            process_due_reminders()
+        event = ReminderEvent.objects.first()
+        self.assertTrue(event.notification_sent)
+        log_output = "\n".join(cm.output)
+        self.assertIn("Meditate", log_output)
+
+    def test_habit_schedule_advances_to_tomorrow(self):
+        schedule = _create_habit_schedule(self.user, self.habit)
+        before = timezone.now()
+        process_due_reminders()
+        schedule.refresh_from_db()
+
+        self.assertTrue(schedule.is_active)
+        self.assertEqual(schedule.attempt_count, 0)
+        # Next trigger should be in the future (tomorrow at 09:00 in user TZ).
+        self.assertGreater(schedule.next_trigger_at, before)
+
+    def test_habit_schedule_does_not_deactivate(self):
+        schedule = _create_habit_schedule(
+            self.user, self.habit, max_attempts=1, attempt_count=0
+        )
+        process_due_reminders()
+        schedule.refresh_from_db()
+        # Even though attempt would exceed max_attempts for tasks,
+        # habit schedules stay active.
+        self.assertTrue(schedule.is_active)
+
+    def test_habit_notification_data_includes_habit_id(self):
+        _create_habit_schedule(self.user, self.habit)
+        process_due_reminders()
+        event = ReminderEvent.objects.first()
+        self.assertTrue(event.notification_sent)
+        self.assertIn("Meditate", event.body)

@@ -2,7 +2,7 @@
 Habit CRUD views and completion endpoint.
 """
 
-from django.db.models import Count, Q
+from django.db.models import Count, Min, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -43,14 +43,24 @@ def _habit_with_period_completions(habit, user_timezone):
     """Compute period_completions for a single habit."""
     start, end = get_period_bounds(habit.frequency, user_timezone)
     count = count_completions_in_period(habit, start, end)
-    return habit_payload(habit, period_completions=count)
+    next_reminder = getattr(habit, "_next_reminder_at", None)
+    return habit_payload(habit, period_completions=count, next_reminder_at=next_reminder)
 
 
 class HabitListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = Habit.objects.filter(user=request.user).order_by("created_at")
+        qs = (
+            Habit.objects.filter(user=request.user)
+            .annotate(
+                _next_reminder_at=Min(
+                    "reminder_schedules__next_trigger_at",
+                    filter=Q(reminder_schedules__is_active=True),
+                )
+            )
+            .order_by("created_at")
+        )
         total = qs.count()
         limit, offset = _parse_pagination(request)
         habits = qs[offset : offset + limit]
@@ -73,8 +83,18 @@ class HabitListCreateView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         habit = serializer.save()
+        # Re-fetch with annotation for next_reminder_at.
+        habit = (
+            Habit.objects.annotate(
+                _next_reminder_at=Min(
+                    "reminder_schedules__next_trigger_at",
+                    filter=Q(reminder_schedules__is_active=True),
+                )
+            )
+            .get(pk=habit.pk)
+        )
         return Response(
-            habit_payload(habit, period_completions=0),
+            _habit_with_period_completions(habit, request.user.timezone or "UTC"),
             status=status.HTTP_201_CREATED,
         )
 
@@ -83,7 +103,13 @@ class HabitDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _get_habit(self, request, pk):
-        return get_object_or_404(Habit, pk=pk, user=request.user)
+        qs = Habit.objects.annotate(
+            _next_reminder_at=Min(
+                "reminder_schedules__next_trigger_at",
+                filter=Q(reminder_schedules__is_active=True),
+            )
+        )
+        return get_object_or_404(qs, pk=pk, user=request.user)
 
     def get(self, request, pk):
         habit = self._get_habit(request, pk)
@@ -97,7 +123,9 @@ class HabitDetailView(APIView):
             context={"user": request.user, "habit": habit},
         )
         serializer.is_valid(raise_exception=True)
-        habit = serializer.update(habit, serializer.validated_data)
+        serializer.update(habit, serializer.validated_data)
+        # Re-fetch with annotation for next_reminder_at.
+        habit = self._get_habit(request, pk)
         user_tz = request.user.timezone or "UTC"
         return Response(_habit_with_period_completions(habit, user_tz))
 

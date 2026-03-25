@@ -19,7 +19,7 @@ from django.utils import timezone
 from core.in_app_notifications.views import notification_payload
 from core.models import ReminderEvent, ReminderSchedule
 from core.notifications import get_notification_sender
-from core.nudge_templates import select_list_nudge, select_task_nudge
+from core.nudge_templates import select_habit_nudge, select_list_nudge, select_task_nudge
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def process_due_reminders():
         ReminderSchedule.objects.filter(
             next_trigger_at__lte=now,
             is_active=True,
-        ).select_related("task", "task__list", "user", "list")
+        ).select_related("task", "task__list", "user", "list", "habit")
     )
 
     # Pre-fetch rate limit counts for all affected users.
@@ -169,6 +169,18 @@ def process_due_reminders():
                     "task_id": str(schedule.task_id),
                     "attempt": str(attempt),
                 }
+            elif schedule.habit:
+                title, body = select_habit_nudge(
+                    attempt=attempt,
+                    max_attempts=schedule.max_attempts,
+                    habit_name=schedule.habit.name,
+                    streak_count=schedule.habit.streak_count,
+                )
+                data = {
+                    "schedule_id": str(schedule.id),
+                    "habit_id": str(schedule.habit_id),
+                    "attempt": str(attempt),
+                }
             elif schedule.list:
                 pending_count, due_today_count = _build_list_nudge_context(
                     schedule.list, schedule.user.timezone
@@ -211,26 +223,36 @@ def process_due_reminders():
             rate_counts[schedule.user_id] = rate_counts.get(schedule.user_id, 0) + 1
 
         # Advance or deactivate.
-        priority = _get_priority(schedule)
+        if schedule.habit and schedule.recurrence_rule:
+            # Habit schedules: advance to tomorrow at the same time, reset attempts.
+            from core.schedules import compute_next_habit_trigger
 
-        if rate_limited and not muted:
-            # Rate-limited: defer without consuming an attempt.
-            jitter = _get_jitter(priority)
-            schedule.next_trigger_at = now + timedelta(
-                minutes=schedule.retry_interval_minutes + jitter
+            schedule.next_trigger_at = compute_next_habit_trigger(
+                schedule.recurrence_rule, schedule.user.timezone or "UTC"
             )
-            schedule.save(update_fields=["next_trigger_at"])
-        elif schedule.persistent and attempt < schedule.max_attempts:
-            jitter = _get_jitter(priority)
-            schedule.next_trigger_at = now + timedelta(
-                minutes=schedule.retry_interval_minutes + jitter
-            )
-            schedule.attempt_count = attempt
+            schedule.attempt_count = 0
             schedule.save(update_fields=["next_trigger_at", "attempt_count"])
         else:
-            schedule.is_active = False
-            schedule.attempt_count = attempt
-            schedule.save(update_fields=["is_active", "attempt_count"])
+            priority = _get_priority(schedule)
+
+            if rate_limited and not muted:
+                # Rate-limited: defer without consuming an attempt.
+                jitter = _get_jitter(priority)
+                schedule.next_trigger_at = now + timedelta(
+                    minutes=schedule.retry_interval_minutes + jitter
+                )
+                schedule.save(update_fields=["next_trigger_at"])
+            elif schedule.persistent and attempt < schedule.max_attempts:
+                jitter = _get_jitter(priority)
+                schedule.next_trigger_at = now + timedelta(
+                    minutes=schedule.retry_interval_minutes + jitter
+                )
+                schedule.attempt_count = attempt
+                schedule.save(update_fields=["next_trigger_at", "attempt_count"])
+            else:
+                schedule.is_active = False
+                schedule.attempt_count = attempt
+                schedule.save(update_fields=["is_active", "attempt_count"])
 
         processed += 1
 

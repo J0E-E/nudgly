@@ -195,6 +195,48 @@ LIST_DUE_TODAY_TEMPLATES: dict[str, list[str]] = {
 LIST_TITLES: list[str] = ["List check-in", "Your list", "Nudge!"]
 
 
+# ── Habit nudge templates ───────────────────────────────────────────────
+# {habit_name} and {streak_count} interpolated via str.format().
+
+HABIT_NUDGE_TEMPLATES: dict[str, list[str]] = {
+    EARLY: [
+        "Time for {habit_name}. You've got this.",
+        "{habit_name} — small steps, big results.",
+        "Friendly reminder: {habit_name} is on your plate today.",
+    ],
+    MID: [
+        "{habit_name} is still waiting for you today.",
+        "Don't break the chain — {habit_name} needs your attention.",
+        "Still time for {habit_name}. Your future self will thank you.",
+    ],
+    LATE: [
+        "Last chance today for {habit_name}. Make it count.",
+        "{habit_name} — the day's almost over. Don't let it slip.",
+        "You'll regret skipping {habit_name} tomorrow. Go do it now.",
+    ],
+}
+
+HABIT_STREAK_TEMPLATES: dict[str, list[str]] = {
+    EARLY: [
+        "{habit_name} — {streak_count} day streak! Keep it alive.",
+        "{streak_count} days strong on {habit_name}. Let's make it {next_streak}.",
+        "Day {next_streak} of {habit_name}? Only if you show up.",
+    ],
+    MID: [
+        "Your {streak_count} day streak on {habit_name} is on the line.",
+        "{habit_name}: {streak_count} days and counting. Don't stop now.",
+        "{streak_count} days of {habit_name}. Today makes {next_streak}.",
+    ],
+    LATE: [
+        "{streak_count} day streak on {habit_name}. Don't blow it now.",
+        "You've done {habit_name} for {streak_count} days straight. Don't quit today.",
+        "Last nudge: {habit_name}. {streak_count} day streak is at stake.",
+    ],
+}
+
+HABIT_TITLES: list[str] = ["Habit time", "Stay consistent", "Daily habit"]
+
+
 # ── Selection functions ──────────────────────────────────────────────────
 
 
@@ -243,4 +285,26 @@ def select_list_nudge(
             count=pending_count,
         )
     title = random.choice(LIST_TITLES)
+    return title, body
+
+
+def select_habit_nudge(
+    attempt: int,
+    max_attempts: int,
+    habit_name: str,
+    streak_count: int = 0,
+) -> tuple[str, str]:
+    """Return (title, body) for a habit nudge notification."""
+    tier = get_escalation_tier(attempt, max_attempts)
+    if streak_count > 0:
+        templates = HABIT_STREAK_TEMPLATES[tier]
+        body = random.choice(templates).format(
+            habit_name=habit_name,
+            streak_count=streak_count,
+            next_streak=streak_count + 1,
+        )
+    else:
+        templates = HABIT_NUDGE_TEMPLATES[tier]
+        body = random.choice(templates).format(habit_name=habit_name)
+    title = random.choice(HABIT_TITLES)
     return title, body

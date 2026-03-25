@@ -9,7 +9,7 @@ from rest_framework import serializers
 from core.models import HabitFrequency
 
 
-def habit_payload(habit, period_completions=None):
+def habit_payload(habit, period_completions=None, next_reminder_at=None):
     """Convert a Habit instance to a response dict."""
     return {
         "id": habit.id,
@@ -23,6 +23,9 @@ def habit_payload(habit, period_completions=None):
         ),
         "created_at": habit.created_at.isoformat(),
         "period_completions": period_completions,
+        "next_reminder_at": (
+            next_reminder_at.isoformat() if next_reminder_at else None
+        ),
     }
 
 
@@ -83,7 +86,12 @@ class HabitCreateSerializer(serializers.Serializer):
         from core.models import Habit
 
         user = self.context["user"]
-        return Habit.objects.create(user=user, **validated_data)
+        habit = Habit.objects.create(user=user, **validated_data)
+
+        from core.schedules import sync_habit_schedule
+
+        sync_habit_schedule(habit)
+        return habit
 
 
 class HabitPatchSerializer(serializers.Serializer):
@@ -127,6 +135,12 @@ class HabitPatchSerializer(serializers.Serializer):
         for field, value in validated_data.items():
             setattr(instance, field, value)
         instance.save(update_fields=list(validated_data.keys()))
+
+        if "reminder_times" in validated_data:
+            from core.schedules import sync_habit_schedule
+
+            sync_habit_schedule(instance)
+
         return instance
 
 

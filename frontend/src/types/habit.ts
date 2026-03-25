@@ -22,6 +22,7 @@ export interface Habit {
   last_completed_at: string | null
   created_at: string
   period_completions: number
+  next_reminder_at: string | null
 }
 
 export interface HabitListResponse {

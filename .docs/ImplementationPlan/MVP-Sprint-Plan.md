@@ -661,7 +661,7 @@
 
 ---
 
-## Epic 10: Habit Reminders (Nudge Engine Integration)
+## Epic 10: Habit Reminders (Nudge Engine Integration) — COMPLETED
 
 **Objective:** Habits use same ReminderSchedules and nudge engine; list-level semantics for habit reminder times.
 
@@ -673,7 +673,13 @@
 - Habit form: set reminder times; display next reminder on habit card if API provides it.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **One ReminderSchedule per (habit, reminder_time):** A habit with `reminder_times: ["09:00", "18:00"]` creates two separate schedules. The `recurrence_rule` field stores the HH:MM string (not an RRULE) so the worker knows which time slot to advance to tomorrow.
+- **Daily cadence regardless of frequency:** Reminders fire every day at each configured time. The `frequency` field (daily/weekly/monthly) only controls streak/target tracking, not reminder cadence.
+- **Default priority 2** (`HABIT_DEFAULT_PRIORITY` in `schedules.py`): Habits have no priority field; all use `PRIORITY_NUDGE_CONFIG[2]` (60-min retry, 10 max attempts). If habit priority is needed later, add a model field and reference it in `sync_habit_schedule`.
+- **Habit-specific worker advancement:** After a habit reminder fires, the worker advances `next_trigger_at` to tomorrow at the same time and resets `attempt_count=0`, bypassing the normal retry/escalation/deactivation logic. Habits never deactivate from max_attempts — they recur indefinitely.
+- **`next_reminder_at` in API:** Computed via `Min('reminder_schedules__next_trigger_at', filter=Q(is_active=True))` annotation on Habit querysets. POST and PATCH re-fetch the habit with the annotation to include it in the response.
+- **Habit nudge templates:** `nudge_templates.py` has `HABIT_NUDGE_TEMPLATES` (no streak) and `HABIT_STREAK_TEMPLATES` (streak > 0) with `{habit_name}`, `{streak_count}`, and `{next_streak}` placeholders. Selection function is `select_habit_nudge()`.
+- **Caveats:** Habits have no mute mechanism — `_is_muted()` returns False for habit schedules. If habit muting is needed, add a `muted_until` field to Habit and update `_is_muted`. The `compute_next_habit_trigger` helper is public (used by both `schedules.py` and `nudge.py`).
 
 ---
 

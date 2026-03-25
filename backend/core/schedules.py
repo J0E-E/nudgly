@@ -16,6 +16,9 @@ from django.utils import timezone
 from core.models import ReminderSchedule, TaskStatus
 from core.nudge import PRIORITY_NUDGE_CONFIG
 
+# Default priority for habit reminders (no priority field on Habit model).
+HABIT_DEFAULT_PRIORITY = 2
+
 
 def _compute_next_trigger(due_date, user_tz_name, due_time=None):
     """Return a UTC-aware datetime for due_time (or 9 AM) on due_date in the user's timezone.
@@ -80,6 +83,84 @@ def _compute_next_trigger_no_due_date(user_tz_name):
     else:
         target = nine_am_today + timedelta(days=1)
     return target.astimezone(ZoneInfo("UTC"))
+
+
+def compute_next_habit_trigger(time_str, user_tz_name):
+    """Return a UTC-aware datetime for the next occurrence of HH:MM in the user's timezone.
+
+    If the time is still in the future today, return today at that time.
+    Otherwise, return tomorrow at that time.
+    """
+    tz = ZoneInfo(user_tz_name)
+    hour, minute = int(time_str[:2]), int(time_str[3:5])
+    now_local = timezone.now().astimezone(tz)
+    target_today = now_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target_today > now_local:
+        target = target_today
+    else:
+        target = target_today + timedelta(days=1)
+    return target.astimezone(ZoneInfo("UTC"))
+
+
+def sync_habit_schedule(habit):
+    """Create, update, or deactivate ReminderSchedules for *habit*.
+
+    One schedule per reminder_time. Each fires daily at that time.
+    The recurrence_rule field stores the HH:MM string for worker advancement.
+    """
+    existing = {
+        s.recurrence_rule: s
+        for s in ReminderSchedule.objects.filter(habit=habit)
+    }
+    reminder_times = habit.reminder_times or []
+    user_tz = habit.user.timezone or "UTC"
+    cfg = PRIORITY_NUDGE_CONFIG[HABIT_DEFAULT_PRIORITY]
+
+    # Deactivate all if no reminder times.
+    if not reminder_times:
+        ReminderSchedule.objects.filter(habit=habit, is_active=True).update(
+            is_active=False
+        )
+        return
+
+    seen_times = set()
+    for t in reminder_times:
+        seen_times.add(t)
+        next_trigger = compute_next_habit_trigger(t, user_tz)
+        schedule = existing.get(t)
+
+        if schedule is None:
+            ReminderSchedule.objects.create(
+                user=habit.user,
+                habit=habit,
+                recurrence_rule=t,
+                next_trigger_at=next_trigger,
+                retry_interval_minutes=cfg["retry_interval_minutes"],
+                max_attempts=cfg["max_attempts"],
+                persistent=True,
+            )
+        else:
+            update_fields = []
+            if not schedule.is_active:
+                schedule.is_active = True
+                schedule.attempt_count = 0
+                schedule.next_trigger_at = next_trigger
+                update_fields += ["is_active", "attempt_count", "next_trigger_at"]
+            if schedule.retry_interval_minutes != cfg["retry_interval_minutes"]:
+                schedule.retry_interval_minutes = cfg["retry_interval_minutes"]
+                update_fields.append("retry_interval_minutes")
+            if schedule.max_attempts != cfg["max_attempts"]:
+                schedule.max_attempts = cfg["max_attempts"]
+                update_fields.append("max_attempts")
+            if update_fields:
+                schedule.save(update_fields=update_fields)
+
+    # Remove orphan schedules (times no longer in reminder_times).
+    orphan_rules = set(existing.keys()) - seen_times
+    if orphan_rules:
+        ReminderSchedule.objects.filter(
+            habit=habit, recurrence_rule__in=orphan_rules
+        ).delete()
 
 
 def sync_list_schedule(lst):

@@ -40,6 +40,27 @@ function formatDateTime(isoStr: string): string {
   })
 }
 
+function formatNextReminder(isoStr: string): string {
+  const date = new Date(isoStr)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60))
+  const timeStr = formatTime12h(date.toTimeString().slice(0, 5))
+
+  if (diffHours < 1) {
+    const diffMins = Math.max(0, Math.round(diffMs / (1000 * 60)))
+    return diffMins <= 0 ? 'Any moment' : `In ${diffMins} min`
+  }
+
+  const todayDate = now.toDateString()
+  const tomorrowDate = new Date(now.getTime() + 86400000).toDateString()
+  const targetDate = date.toDateString()
+
+  if (targetDate === todayDate) return `Today at ${timeStr}`
+  if (targetDate === tomorrowDate) return `Tomorrow at ${timeStr}`
+  return formatDateTime(isoStr) + ` at ${timeStr}`
+}
+
 function formatTime12h(time24: string): string {
   const [hStr, mStr] = time24.split(':')
   const h = parseInt(hStr, 10)
@@ -135,6 +156,12 @@ export function HabitListItem({
               <span>
                 {habit.reminder_times.map(formatTime12h).join(', ')}
               </span>
+            </p>
+          )}
+          {habit.next_reminder_at && (
+            <p className="habit-list-item-detail-row">
+              <span className="habit-list-item-detail-label">Next reminder</span>
+              <span>{formatNextReminder(habit.next_reminder_at)}</span>
             </p>
           )}
           <p className="habit-list-item-detail-row">

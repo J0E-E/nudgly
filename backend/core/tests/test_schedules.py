@@ -12,9 +12,14 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import List, ReminderEvent, ReminderSchedule, Task
+from core.models import Habit, List, ReminderEvent, ReminderSchedule, Task
 from core.nudge import PRIORITY_NUDGE_CONFIG
-from core.schedules import sync_list_schedule, sync_task_schedule
+from core.schedules import (
+    HABIT_DEFAULT_PRIORITY,
+    sync_habit_schedule,
+    sync_list_schedule,
+    sync_task_schedule,
+)
 
 User = get_user_model()
 
@@ -619,3 +624,208 @@ class ListScheduleIntegrationTests(TestCase):
         self.assertFalse(
             ReminderSchedule.objects.get(list=lst).is_active
         )
+
+
+# ── sync_habit_schedule unit tests ──────────────────────────────────────
+
+
+def _create_habit(user, **kwargs):
+    defaults = {"name": "Test Habit", "frequency": "daily"}
+    defaults.update(kwargs)
+    return Habit.objects.create(user=user, **defaults)
+
+
+class SyncHabitScheduleTests(TestCase):
+    def setUp(self):
+        self.user = _create_user(timezone="US/Eastern")
+
+    def test_creates_schedule_per_reminder_time(self):
+        habit = _create_habit(self.user, reminder_times=["09:00", "18:00"])
+        sync_habit_schedule(habit)
+
+        schedules = ReminderSchedule.objects.filter(habit=habit).order_by("recurrence_rule")
+        self.assertEqual(schedules.count(), 2)
+        self.assertEqual(schedules[0].recurrence_rule, "09:00")
+        self.assertEqual(schedules[1].recurrence_rule, "18:00")
+        for s in schedules:
+            self.assertTrue(s.is_active)
+            self.assertTrue(s.persistent)
+            self.assertEqual(s.user, self.user)
+
+    def test_no_schedule_when_no_reminder_times(self):
+        habit = _create_habit(self.user, reminder_times=[])
+        sync_habit_schedule(habit)
+        self.assertFalse(ReminderSchedule.objects.filter(habit=habit).exists())
+
+    def test_deactivates_when_reminder_times_cleared(self):
+        habit = _create_habit(self.user, reminder_times=["09:00"])
+        sync_habit_schedule(habit)
+        self.assertTrue(ReminderSchedule.objects.get(habit=habit).is_active)
+
+        habit.reminder_times = []
+        habit.save(update_fields=["reminder_times"])
+        sync_habit_schedule(habit)
+        self.assertFalse(ReminderSchedule.objects.get(habit=habit).is_active)
+
+    def test_removes_orphan_schedules(self):
+        habit = _create_habit(self.user, reminder_times=["09:00", "12:00", "18:00"])
+        sync_habit_schedule(habit)
+        self.assertEqual(ReminderSchedule.objects.filter(habit=habit).count(), 3)
+
+        habit.reminder_times = ["09:00"]
+        habit.save(update_fields=["reminder_times"])
+        sync_habit_schedule(habit)
+        schedules = ReminderSchedule.objects.filter(habit=habit)
+        self.assertEqual(schedules.count(), 1)
+        self.assertEqual(schedules.first().recurrence_rule, "09:00")
+
+    def test_uses_default_priority_config(self):
+        habit = _create_habit(self.user, reminder_times=["09:00"])
+        sync_habit_schedule(habit)
+
+        schedule = ReminderSchedule.objects.get(habit=habit)
+        cfg = PRIORITY_NUDGE_CONFIG[HABIT_DEFAULT_PRIORITY]
+        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
+        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+
+    def test_next_trigger_in_user_timezone(self):
+        habit = _create_habit(self.user, reminder_times=["09:00"])
+        sync_habit_schedule(habit)
+
+        schedule = ReminderSchedule.objects.get(habit=habit)
+        # Trigger should be 9 AM Eastern converted to UTC.
+        tz = ZoneInfo("US/Eastern")
+        trigger_local = schedule.next_trigger_at.astimezone(tz)
+        self.assertEqual(trigger_local.hour, 9)
+        self.assertEqual(trigger_local.minute, 0)
+
+    def test_reactivates_on_reminder_times_restored(self):
+        habit = _create_habit(self.user, reminder_times=["09:00"])
+        sync_habit_schedule(habit)
+
+        # Deactivate.
+        habit.reminder_times = []
+        habit.save(update_fields=["reminder_times"])
+        sync_habit_schedule(habit)
+
+        # Re-add the same time.
+        habit.reminder_times = ["09:00"]
+        habit.save(update_fields=["reminder_times"])
+        sync_habit_schedule(habit)
+
+        # Should have a new active schedule (orphan was deleted, new one created).
+        schedules = ReminderSchedule.objects.filter(habit=habit, is_active=True)
+        self.assertEqual(schedules.count(), 1)
+
+    def test_no_duplicate_schedules(self):
+        habit = _create_habit(self.user, reminder_times=["09:00"])
+        sync_habit_schedule(habit)
+        sync_habit_schedule(habit)
+        self.assertEqual(ReminderSchedule.objects.filter(habit=habit).count(), 1)
+
+
+# ── Habit schedule API integration tests ─────────────────────────────────
+
+
+class HabitScheduleIntegrationTests(TestCase):
+    def setUp(self):
+        self.user = _create_user(timezone="US/Eastern")
+        self.client = APIClient()
+        _auth_client(self.client, "u@example.com", "Pass1234")
+
+    def test_post_habit_with_reminder_times_creates_schedules(self):
+        resp = self.client.post(
+            "/api/habits/",
+            {
+                "name": "Meditate",
+                "frequency": "daily",
+                "reminder_times": ["08:00", "20:00"],
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        habit_id = resp.json()["id"]
+        self.assertEqual(
+            ReminderSchedule.objects.filter(habit_id=habit_id, is_active=True).count(),
+            2,
+        )
+
+    def test_post_habit_without_reminder_times_no_schedules(self):
+        resp = self.client.post(
+            "/api/habits/",
+            {"name": "Read", "frequency": "daily"},
+            format="json",
+        )
+        habit_id = resp.json()["id"]
+        self.assertFalse(ReminderSchedule.objects.filter(habit_id=habit_id).exists())
+
+    def test_patch_habit_reminder_times_syncs_schedules(self):
+        resp = self.client.post(
+            "/api/habits/",
+            {"name": "Exercise", "frequency": "daily", "reminder_times": ["09:00"]},
+            format="json",
+        )
+        habit_id = resp.json()["id"]
+        self.assertEqual(
+            ReminderSchedule.objects.filter(habit_id=habit_id).count(), 1
+        )
+
+        self.client.patch(
+            f"/api/habits/{habit_id}/",
+            {"reminder_times": ["09:00", "18:00"]},
+            format="json",
+        )
+        self.assertEqual(
+            ReminderSchedule.objects.filter(habit_id=habit_id, is_active=True).count(),
+            2,
+        )
+
+    def test_delete_habit_cascades_schedules(self):
+        resp = self.client.post(
+            "/api/habits/",
+            {"name": "Walk", "frequency": "daily", "reminder_times": ["07:00"]},
+            format="json",
+        )
+        habit_id = resp.json()["id"]
+        schedule_ids = list(
+            ReminderSchedule.objects.filter(habit_id=habit_id).values_list("id", flat=True)
+        )
+        self.assertTrue(len(schedule_ids) > 0)
+
+        self.client.delete(f"/api/habits/{habit_id}/")
+        self.assertFalse(
+            ReminderSchedule.objects.filter(id__in=schedule_ids).exists()
+        )
+
+    def test_get_habit_includes_next_reminder_at(self):
+        resp = self.client.post(
+            "/api/habits/",
+            {"name": "Stretch", "frequency": "daily", "reminder_times": ["09:00"]},
+            format="json",
+        )
+        habit_id = resp.json()["id"]
+
+        resp = self.client.get(f"/api/habits/{habit_id}/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("next_reminder_at", resp.json())
+        self.assertIsNotNone(resp.json()["next_reminder_at"])
+
+    def test_get_habit_list_includes_next_reminder_at(self):
+        self.client.post(
+            "/api/habits/",
+            {"name": "Journal", "frequency": "daily", "reminder_times": ["21:00"]},
+            format="json",
+        )
+        resp = self.client.get("/api/habits/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("next_reminder_at", resp.json()["results"][0])
+        self.assertIsNotNone(resp.json()["results"][0]["next_reminder_at"])
+
+    def test_habit_without_reminders_next_reminder_at_null(self):
+        self.client.post(
+            "/api/habits/",
+            {"name": "No reminders", "frequency": "daily"},
+            format="json",
+        )
+        resp = self.client.get("/api/habits/")
+        self.assertIsNone(resp.json()["results"][0]["next_reminder_at"])

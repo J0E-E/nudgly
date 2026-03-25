@@ -335,6 +335,83 @@ class ReminderEvent(models.Model):
         )
 
 
+class InvitationStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    DECLINED = "declined", "Declined"
+
+
+class Friendship(models.Model):
+    """
+    Symmetric friendship. Normalized so user.pk < friend.pk to avoid duplicates.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="friendships")
+    friend = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="reverse_friendships"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "friend"], name="unique_friendship"
+            ),
+        ]
+        indexes = [models.Index(fields=["user"]), models.Index(fields=["friend"])]
+
+    def __str__(self):
+        return f"Friendship({self.user_id}, {self.friend_id})"
+
+
+class FriendInvitation(models.Model):
+    """
+    Friend invitation. Supports invite-by-username (to_user set) and
+    invite-by-email to non-users (to_email set, to_user null until they register).
+    """
+
+    from_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="sent_invitations"
+    )
+    to_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="received_invitations",
+    )
+    to_email = models.EmailField(max_length=254, blank=True, default="")
+    status = models.CharField(
+        max_length=10,
+        choices=InvitationStatus.choices,
+        default=InvitationStatus.PENDING,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_user", "to_user"],
+                condition=models.Q(to_user__isnull=False, status="pending"),
+                name="one_pending_invite_per_user_pair",
+            ),
+            models.UniqueConstraint(
+                fields=["from_user", "to_email"],
+                condition=models.Q(to_email__gt="", status="pending"),
+                name="one_pending_invite_per_email",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["to_user", "status"]),
+            models.Index(fields=["to_email"]),
+        ]
+
+    def __str__(self):
+        target = self.to_user_id or self.to_email
+        return f"FriendInvitation({self.from_user_id} -> {target}, {self.status})"
+
+
 class DevicePlatform(models.TextChoices):
     IOS = "ios", "iOS"
     ANDROID = "android", "Android"

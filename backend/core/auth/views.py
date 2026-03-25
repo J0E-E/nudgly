@@ -22,6 +22,7 @@ from core.auth.serializers import (
     PasswordResetRequestSerializer,
     RegisterSerializer,
 )
+from core.friends.services import link_pending_invitations
 
 User = get_user_model()
 
@@ -56,6 +57,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        link_pending_invitations(user)
         tokens = _tokens_for_user(user)
         return Response(
             {"user": _user_payload(user), **tokens},

@@ -13,4 +13,5 @@ urlpatterns = [
     path("devices/", include("core.devices.urls")),
     path("notifications/", include("core.in_app_notifications.urls")),
     path("habits/", include("core.habits.urls")),
+    path("friends/", include("core.friends.urls")),
 ]

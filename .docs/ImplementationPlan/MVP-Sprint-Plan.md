@@ -697,8 +697,14 @@
 - Invite: enter email or username; send invite. Show status "Awaiting signup" for invitations sent to non-users.
 - Accept/decline on received invite. Remove friend with confirmation.
 
-### Implementation Notes:
-*(To be completed when epic is done.)*
+### Implementation Notes: COMPLETED
+- **Friendship storage deviation:** The plan says "create both (A,B) and (B,A) friendship rows" but we store a single normalized row where `user_id < friend_id`. This avoids data duplication and is enforced by a unique constraint. `get_friends()` queries both sides via `Q(user=u) | Q(friend=u)`.
+- **Backend app:** New `core/friends/` module with `services.py` (business logic), `serializers.py` (payload helpers + DRF serializers), `views.py` (APIView endpoints), `urls.py`. Migration: `0013_friendinvitation_friendship`.
+- **Registration hook:** `link_pending_invitations(user)` is called in `RegisterView.post()` after user creation. Only links invitations with `status="pending"`.
+- **Invite-by-email:** Uses `get_email_sender()` from `core.email` to send sign-up link. `FRONTEND_ORIGIN` setting provides the base URL.
+- **Duplicate invite prevention:** Enforced at both DB level (partial unique constraints on pending status) and service layer (explicit checks before creation).
+- **Frontend:** FriendsScreen at `/friends` with tab UI (Friends / Received / Sent). Added to AppHeader nav and BottomNav. Uses TanStack Query hooks following existing patterns.
+- **40 backend tests** covering models, service layer, and all API endpoints including edge cases (self-invite, duplicate, wrong user, registration linking).
 
 ---
 

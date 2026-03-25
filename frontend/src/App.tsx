@@ -17,6 +17,7 @@ import { SettingsPlaceholderScreen } from './pages/SettingsPlaceholderScreen'
 import { ListsScreen } from './pages/ListsScreen'
 import { ListDetailScreen } from './pages/ListDetailScreen'
 import { HabitsScreen } from './pages/HabitsScreen'
+import { FriendsScreen } from './pages/FriendsScreen'
 import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
 import { BottomNav } from './components/BottomNav'
 import { ToastProvider } from './contexts/ToastContext'
@@ -87,6 +88,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <HabitsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/friends"
+                  element={
+                    <ProtectedRoute>
+                      <FriendsScreen />
                     </ProtectedRoute>
                   }
                 />

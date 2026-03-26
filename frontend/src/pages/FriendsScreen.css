@@ -1,48 +1,18 @@
-.friends-screen {
-  flex: 1;
-  max-width: 800px;
-  width: 100%;
-  margin: 24px auto;
-  background: var(--color-surface);
-  padding-bottom: 24px;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
+.friends-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 28px 16px;
 }
 
 .friends-screen-title {
   margin: 0;
-  padding: 28px 28px 16px;
   font-size: 1.625rem;
   font-weight: 700;
   color: var(--color-text);
 }
 
-.friends-invite-form {
-  display: flex;
-  gap: 12px;
-  padding: 0 28px 16px;
-  align-items: center;
-}
-
-.friends-invite-input {
-  flex: 1;
-  min-height: 44px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-input);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.875rem;
-  box-sizing: border-box;
-}
-
-.friends-invite-input:focus {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.friends-invite-btn {
+.friends-add-btn {
   min-height: 44px;
   padding: 8px 20px;
   border: none;
@@ -55,25 +25,13 @@
   white-space: nowrap;
 }
 
-.friends-invite-btn:hover {
+.friends-add-btn:hover {
   background: var(--color-secondary);
 }
 
-.friends-invite-btn:focus {
+.friends-add-btn:focus {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-}
-
-.friends-invite-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.friends-error {
-  padding: 10px 28px;
-  background: var(--color-alert-bg);
-  color: var(--color-on-alert);
-  font-size: 0.875rem;
 }
 
 .friends-tabs {

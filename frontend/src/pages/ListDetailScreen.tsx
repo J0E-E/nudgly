@@ -18,6 +18,7 @@ import { TaskList } from '../components/TaskList'
 import { TaskFormModal } from '../components/TaskFormModal'
 import { ListFormModal } from '../components/ListFormModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PageCard } from '../components/PageCard'
 import './ListDetailScreen.css'
 
 interface DeleteConfirmState {
@@ -131,43 +132,31 @@ export function ListDetailScreen() {
 
   if (listLoading) {
     return (
-      <main
-        id="list-detail-screen"
-        className="list-detail-screen"
-        aria-label="List detail"
-      >
+      <PageCard id="list-detail-screen" ariaLabel="List detail">
         <div className="list-detail-state" role="status">
           <p>Loading list...</p>
         </div>
-      </main>
+      </PageCard>
     )
   }
 
   if (listError || !list) {
     return (
-      <main
-        id="list-detail-screen"
-        className="list-detail-screen"
-        aria-label="List detail"
-      >
+      <PageCard id="list-detail-screen" ariaLabel="List detail">
         <div
           className="list-detail-state list-detail-state--error"
           role="alert"
         >
           <p>List not found.</p>
         </div>
-      </main>
+      </PageCard>
     )
   }
 
   const isMuted = list.muted_until && new Date(list.muted_until) > new Date()
 
   return (
-    <main
-      id="list-detail-screen"
-      className="list-detail-screen"
-      aria-label={`List: ${list.name}`}
-    >
+    <PageCard id="list-detail-screen" ariaLabel={`List: ${list.name}`}>
       <div className="list-detail-header">
         <div className="list-detail-header-top">
           <h1 id="list-detail-title" className="list-detail-title">
@@ -332,6 +321,6 @@ export function ListDetailScreen() {
         onConfirm={handleDeleteTaskConfirm}
         onCancel={() => setDeleteTaskConfirm({ open: false })}
       />
-    </main>
+    </PageCard>
   )
 }

@@ -37,6 +37,20 @@
         "panel": "shared",
         "clear": true
       }
+    },
+    {
+      "label": "Seed test data for @joey",
+      "type": "shell",
+      "command": "docker compose exec django_api python manage.py seed_test_data",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
     }
   ]
 }

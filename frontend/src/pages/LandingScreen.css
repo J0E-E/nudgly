@@ -1,0 +1,84 @@
+.landing-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin-top: -56px;
+  padding: 56px 1rem 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: center;
+  background-color: #1e3436;
+}
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.landing-logo {
+  height: 200px;
+  width: auto;
+}
+
+.landing-brand-text {
+  font-size: 9rem;
+  font-weight: 600;
+  color: #ffffff;
+  align-self: flex-end;
+  line-height: 1;
+  margin-bottom: 0.05em;
+}
+
+.landing-tagline {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-secondary, #666);
+  margin: 0 0 2.5rem;
+}
+
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 18rem;
+}
+
+.landing-btn {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+
+.landing-btn-primary {
+  color: var(--color-on-accent);
+  background-color: var(--color-accent);
+}
+
+.landing-btn-primary:hover {
+  background-color: var(--color-secondary);
+}
+
+.landing-btn-secondary {
+  color: #e4eded;
+  background-color: transparent;
+  border-color: #e4eded;
+}
+
+.landing-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.landing-btn:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

@@ -9,6 +9,7 @@ import { ListFilterBar } from '../components/ListFilterBar'
 import { ListCard } from '../components/ListCard'
 import { ListFormModal } from '../components/ListFormModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PageCard } from '../components/PageCard'
 import './ListsScreen.css'
 
 interface FormModalState {
@@ -65,7 +66,7 @@ export function ListsScreen() {
   }
 
   return (
-    <main id="lists-screen" className="lists-screen" aria-label="Lists">
+    <PageCard id="lists-screen" ariaLabel="Lists">
       <h1 id="lists-screen-title" className="lists-screen-title">
         Lists
       </h1>
@@ -145,6 +146,6 @@ export function ListsScreen() {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
-    </main>
+    </PageCard>
   )
 }

@@ -35,7 +35,9 @@ class TaskListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = Task.objects.filter(user=request.user)
+        qs = Task.objects.filter(user=request.user).select_related(
+            "created_by"
+        ).prefetch_related("linked_friends")
 
         # Optional status filter.
         status_filter = request.query_params.get("status")
@@ -52,6 +54,20 @@ class TaskListCreateView(APIView):
                     qs = qs.filter(list_id=int(list_id_param))
                 except (ValueError, TypeError):
                     pass
+
+        # Filter: tasks created for me by friends.
+        if request.query_params.get("created_for_me", "").lower() == "true":
+            qs = qs.filter(created_by__isnull=False).exclude(
+                created_by=request.user
+            )
+
+        # Filter by specific creator.
+        created_by_param = request.query_params.get("created_by")
+        if created_by_param is not None:
+            try:
+                qs = qs.filter(created_by_id=int(created_by_param))
+            except (ValueError, TypeError):
+                pass
 
         qs = qs.order_by(F("due_date").asc(nulls_last=True), "created_at")
 
@@ -81,7 +97,11 @@ class TaskDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _get_task(self, request, pk):
-        return get_object_or_404(Task, pk=pk, user=request.user)
+        return get_object_or_404(
+            Task.objects.select_related("created_by").prefetch_related("linked_friends"),
+            pk=pk,
+            user=request.user,
+        )
 
     def get(self, request, pk):
         task = self._get_task(request, pk)

@@ -3,13 +3,17 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0 12px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border-light);
+  padding: 12px 24px;
+  margin: 8px 16px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--color-border-light);
   list-style: none;
+  transition: box-shadow 200ms ease;
 }
 
-.task-list-item:last-child {
-  border-bottom: none;
+.task-list-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .task-list-item--completed {
@@ -62,14 +66,19 @@
 .task-list-item-content-text {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .task-list-item-title {
-  display: block;
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-list-item-title--completed {
@@ -80,8 +89,8 @@
 .task-list-item-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  margin-top: 6px;
   font-size: 0.75rem;
 }
 
@@ -121,6 +130,22 @@
   color: var(--color-accent);
   font-weight: 600;
   font-style: italic;
+}
+
+.task-list-item-created-by {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
+.task-list-item-linked-friends {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 /* Chevron icon */

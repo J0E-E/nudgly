@@ -41,7 +41,7 @@ const mockResponse: TaskListResponse = {
       title: 'Test task',
       description: '',
       due_date: null,
-      category: TaskCategory.ADULTING,
+      category: TaskCategory.WORK,
       tag: '',
       priority: 0,
       recurring: null,
@@ -124,7 +124,7 @@ describe('useTasks hooks', () => {
       const { result } = renderHook(() => useCreateTask(), { wrapper })
       await result.current.mutateAsync({
         title: 'New',
-        category: TaskCategory.ADULTING,
+        category: TaskCategory.WORK,
       })
 
       expect(taskApi.createTask).toHaveBeenCalledOnce()

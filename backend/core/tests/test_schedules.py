@@ -31,7 +31,7 @@ def _create_user(email="u@example.com", username="user1", password="Pass1234", *
 
 
 def _create_task(user, **kwargs):
-    defaults = {"title": "Test task", "category": "adulting"}
+    defaults = {"title": "Test task", "category": "work"}
     defaults.update(kwargs)
     return Task.objects.create(user=user, **defaults)
 
@@ -126,12 +126,12 @@ class SyncTaskScheduleTests(TestCase):
         task = _create_task(self.user, due_date=date.today() + timedelta(days=3), priority=1)
         sync_task_schedule(task)
 
-        task.priority = 5
+        task.priority = 3
         task.save(update_fields=["priority"])
         sync_task_schedule(task)
 
         schedule = ReminderSchedule.objects.get(task=task)
-        cfg = PRIORITY_NUDGE_CONFIG[5]
+        cfg = PRIORITY_NUDGE_CONFIG[3]
         self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
         self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
 
@@ -211,7 +211,7 @@ class TaskCreateScheduleTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Buy milk",
-                "category": "adulting",
+                "category": "work",
                 "due_date": (date.today() + timedelta(days=2)).isoformat(),
                 "priority": 2,
             },
@@ -226,7 +226,7 @@ class TaskCreateScheduleTests(TestCase):
     def test_post_task_without_due_date_no_schedule(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "Buy milk", "category": "adulting"},
+            {"title": "Buy milk", "category": "work"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
@@ -243,7 +243,7 @@ class TaskPatchScheduleTests(TestCase):
     def test_patch_add_due_date_creates_schedule(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "T", "category": "adulting"},
+            {"title": "T", "category": "work"},
             format="json",
         )
         task_id = resp.json()["id"]
@@ -263,7 +263,7 @@ class TaskPatchScheduleTests(TestCase):
             "/api/tasks/",
             {
                 "title": "T",
-                "category": "adulting",
+                "category": "work",
                 "due_date": (date.today() + timedelta(days=1)).isoformat(),
             },
             format="json",
@@ -287,7 +287,7 @@ class TaskPatchScheduleTests(TestCase):
             "/api/tasks/",
             {
                 "title": "T",
-                "category": "adulting",
+                "category": "work",
                 "due_date": (date.today() + timedelta(days=1)).isoformat(),
             },
             format="json",
@@ -314,7 +314,7 @@ class TaskPatchScheduleTests(TestCase):
             "/api/tasks/",
             {
                 "title": "T",
-                "category": "adulting",
+                "category": "work",
                 "due_date": (date.today() + timedelta(days=1)).isoformat(),
             },
             format="json",
@@ -493,12 +493,12 @@ class SyncListScheduleTests(TestCase):
         self.assertEqual(schedule.attempt_count, 0)
 
     def test_priority_mapping_from_list(self):
-        lst = _create_list(self.user, name="P4 List", priority=4)
+        lst = _create_list(self.user, name="P3 List", priority=3)
         _create_task(self.user, list=lst, status="pending")
         sync_list_schedule(lst)
 
         schedule = ReminderSchedule.objects.get(list=lst)
-        cfg = PRIORITY_NUDGE_CONFIG[4]
+        cfg = PRIORITY_NUDGE_CONFIG[3]
         self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
         self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
 
@@ -506,12 +506,12 @@ class SyncListScheduleTests(TestCase):
         _create_task(self.user, list=self.lst, status="pending")
         sync_list_schedule(self.lst)
 
-        self.lst.priority = 5
+        self.lst.priority = 3
         self.lst.save(update_fields=["priority"])
         sync_list_schedule(self.lst)
 
         schedule = ReminderSchedule.objects.get(list=self.lst)
-        cfg = PRIORITY_NUDGE_CONFIG[5]
+        cfg = PRIORITY_NUDGE_CONFIG[3]
         self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
         self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
 
@@ -537,7 +537,7 @@ class ListScheduleIntegrationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Task in list",
-                "category": "adulting",
+                "category": "work",
                 "list_id": lst.id,
             },
             format="json",
@@ -553,7 +553,7 @@ class ListScheduleIntegrationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Only task",
-                "category": "adulting",
+                "category": "work",
                 "list_id": lst.id,
             },
             format="json",
@@ -578,7 +578,7 @@ class ListScheduleIntegrationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Task to delete",
-                "category": "adulting",
+                "category": "work",
                 "list_id": lst.id,
             },
             format="json",
@@ -600,11 +600,11 @@ class ListScheduleIntegrationTests(TestCase):
 
         self.client.patch(
             f"/api/lists/{lst.id}/",
-            {"priority": 5},
+            {"priority": 3},
             format="json",
         )
         schedule = ReminderSchedule.objects.get(list=lst)
-        cfg = PRIORITY_NUDGE_CONFIG[5]
+        cfg = PRIORITY_NUDGE_CONFIG[3]
         self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
         self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
 

@@ -49,7 +49,7 @@
   padding: 8px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  background: var(--color-surface);
+  background: var(--color-input-bg);
   color: var(--color-text);
   font-size: 0.875rem;
   box-sizing: border-box;
@@ -122,4 +122,23 @@
 .task-form-submit:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.task-form-friend-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.task-form-friend-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+}
+
+.task-form-friend-checkboxes input[type='checkbox'] {
+  width: auto;
+  min-height: auto;
 }

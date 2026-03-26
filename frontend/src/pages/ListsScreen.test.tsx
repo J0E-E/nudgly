@@ -28,7 +28,7 @@ const mockLists: List[] = [
   {
     id: 1,
     name: 'Groceries',
-    category: 'adulting',
+    category: 'work',
     tag: 'shopping',
     priority: 2,
     sort_order: 0,
@@ -40,7 +40,7 @@ const mockLists: List[] = [
   {
     id: 2,
     name: 'Workout Plan',
-    category: 'glow_up',
+    category: 'personal',
     tag: '',
     priority: 0,
     sort_order: 1,
@@ -138,8 +138,9 @@ describe('ListsScreen', () => {
     await waitFor(() => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     })
+    fireEvent.click(screen.getByLabelText('Toggle filters'))
     fireEvent.change(document.getElementById('list-filter-category')!, {
-      target: { value: 'glow_up' },
+      target: { value: 'personal' },
     })
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument()
     expect(screen.getByText('Workout Plan')).toBeInTheDocument()

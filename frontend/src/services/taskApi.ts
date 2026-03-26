@@ -25,6 +25,8 @@ export async function listTasks(
     list_id?: number | 'none'
     limit?: number
     offset?: number
+    created_for_me?: boolean
+    created_by?: number
   }
 ): Promise<TaskListResponse> {
   const query = new URLSearchParams()
@@ -32,6 +34,8 @@ export async function listTasks(
   if (params?.list_id != null) query.set('list_id', String(params.list_id))
   if (params?.limit != null) query.set('limit', String(params.limit))
   if (params?.offset != null) query.set('offset', String(params.offset))
+  if (params?.created_for_me) query.set('created_for_me', 'true')
+  if (params?.created_by != null) query.set('created_by', String(params.created_by))
   const qs = query.toString()
   return authGet<TaskListResponse>(`${TASKS_BASE}/${qs ? `?${qs}` : ''}`, deps)
 }

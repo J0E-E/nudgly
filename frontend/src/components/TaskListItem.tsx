@@ -174,6 +174,24 @@ export function TaskListItem({
                 Muted
               </span>
             )}
+            {task.created_by && (
+              <span
+                id={`task-${task.id}-created-by`}
+                className="task-list-item-created-by"
+              >
+                By {task.created_by.display_name || task.created_by.username}
+              </span>
+            )}
+            {task.linked_friends.length > 0 && (
+              <span
+                id={`task-${task.id}-linked-friends`}
+                className="task-list-item-linked-friends"
+              >
+                {task.linked_friends
+                  .map((f) => f.display_name || f.username)
+                  .join(', ')}
+              </span>
+            )}
           </div>
         </div>
         <svg
@@ -211,6 +229,24 @@ export function TaskListItem({
             <p className="task-list-item-detail-row">
               <span className="task-list-item-detail-label">Tag</span>
               <span>{task.tag}</span>
+            </p>
+          )}
+          {task.created_by && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Created by</span>
+              <span>
+                {task.created_by.display_name || task.created_by.username}
+              </span>
+            </p>
+          )}
+          {task.linked_friends.length > 0 && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Linked friends</span>
+              <span>
+                {task.linked_friends
+                  .map((f) => f.display_name || f.username)
+                  .join(', ')}
+              </span>
             </p>
           )}
           <p className="task-list-item-detail-row">

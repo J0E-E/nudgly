@@ -7,11 +7,12 @@ import type { Friend, FriendInvitation } from '../types/friend'
 import {
   useFriendList,
   useInvitationList,
-  useSendInvite,
   useRespondToInvitation,
   useRemoveFriend,
 } from '../hooks/useFriends'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { AddFriendModal } from '../components/AddFriendModal'
+import { PageCard } from '../components/PageCard'
 import './FriendsScreen.css'
 
 type Tab = 'friends' | 'received' | 'sent'
@@ -23,8 +24,7 @@ interface RemoveConfirmState {
 
 export function FriendsScreen() {
   const [tab, setTab] = useState<Tab>('friends')
-  const [inviteInput, setInviteInput] = useState('')
-  const [inviteError, setInviteError] = useState('')
+  const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [removeConfirm, setRemoveConfirm] = useState<RemoveConfirmState>({
     open: false,
   })
@@ -36,28 +36,8 @@ export function FriendsScreen() {
   )
   const { data: sent, isLoading: sentLoading } = useInvitationList('sent')
 
-  const sendInvite = useSendInvite()
   const respond = useRespondToInvitation()
   const removeFriend = useRemoveFriend()
-
-  function handleSendInvite(e: React.FormEvent) {
-    e.preventDefault()
-    setInviteError('')
-    const value = inviteInput.trim()
-    if (!value) return
-
-    const payload = value.includes('@')
-      ? { to_email: value }
-      : { to_username: value }
-
-    sendInvite.mutate(payload, {
-      onSuccess: () => setInviteInput(''),
-      onError: (err) =>
-        setInviteError(
-          err instanceof Error ? err.message : 'Failed to send invite.'
-        ),
-    })
-  }
 
   function handleRespond(inv: FriendInvitation, action: 'accept' | 'decline') {
     respond.mutate({ id: inv.id, action })
@@ -77,40 +57,19 @@ export function FriendsScreen() {
   const pendingReceivedCount = received?.length ?? 0
 
   return (
-    <main id="friends-screen" className="friends-screen" aria-label="Friends">
-      <h1 id="friends-screen-title" className="friends-screen-title">
-        Friends
-      </h1>
-
-      <form className="friends-invite-form" onSubmit={handleSendInvite}>
-        <input
-          id="friends-invite-input"
-          type="text"
-          className="friends-invite-input"
-          placeholder="Enter email or username..."
-          value={inviteInput}
-          onChange={(e) => setInviteInput(e.target.value)}
-          aria-label="Invite by email or username"
-        />
+    <PageCard id="friends-screen" ariaLabel="Friends">
+      <div className="friends-header">
+        <h1 id="friends-screen-title" className="friends-screen-title">
+          Friends
+        </h1>
         <button
-          id="friends-invite-btn"
-          type="submit"
-          className="friends-invite-btn"
-          disabled={sendInvite.isPending || !inviteInput.trim()}
+          type="button"
+          className="friends-add-btn"
+          onClick={() => setAddFriendOpen(true)}
         >
-          {sendInvite.isPending ? 'Sending...' : 'Send invite'}
+          Add Friends
         </button>
-      </form>
-      {inviteError && (
-        <div className="friends-error" role="alert">
-          {inviteError}
-        </div>
-      )}
-      {sendInvite.isError && !inviteError && (
-        <div className="friends-error" role="alert">
-          Failed to send invite. Please try again.
-        </div>
-      )}
+      </div>
 
       <div className="friends-tabs" role="tablist">
         <button
@@ -265,6 +224,11 @@ export function FriendsScreen() {
         )}
       </div>
 
+      <AddFriendModal
+        open={addFriendOpen}
+        onClose={() => setAddFriendOpen(false)}
+      />
+
       <ConfirmDialog
         open={removeConfirm.open}
         title="Remove friend"
@@ -277,6 +241,6 @@ export function FriendsScreen() {
         onConfirm={handleRemoveConfirm}
         onCancel={() => setRemoveConfirm({ open: false })}
       />
-    </main>
+    </PageCard>
   )
 }

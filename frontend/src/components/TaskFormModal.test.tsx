@@ -23,19 +23,28 @@ vi.mock('../services/taskApi', () => ({
   deleteTask: vi.fn(),
 }))
 
+vi.mock('../services/friendApi', () => ({
+  listFriends: vi.fn(() => Promise.resolve([])),
+}))
+
 const editTask: Task = {
   id: 1,
   title: 'Existing task',
   description: 'desc',
   due_date: '2026-04-01',
-  category: TaskCategory.GLOW_UP,
+  due_time: null,
+  category: TaskCategory.PERSONAL,
   tag: 'tag1',
   priority: 2,
   recurring: null,
+  stack_count: 0,
   status: TaskStatus.PENDING,
   muted_until: null,
   created_at: '2026-03-20T10:00:00Z',
   completed_at: null,
+  list_id: null,
+  created_by: null,
+  linked_friends: [],
 }
 
 function renderWithQuery(ui: React.ReactElement) {
@@ -132,7 +141,7 @@ describe('TaskFormModal', () => {
       target: { value: 'New task' },
     })
     fireEvent.change(document.getElementById('task-form-category-input')!, {
-      target: { value: 'adulting' },
+      target: { value: 'work' },
     })
     fireEvent.click(document.getElementById('task-form-submit-btn')!)
 
@@ -172,7 +181,7 @@ describe('TaskFormModal', () => {
       target: { value: 'New task' },
     })
     fireEvent.change(document.getElementById('task-form-category-input')!, {
-      target: { value: 'adulting' },
+      target: { value: 'work' },
     })
     fireEvent.click(document.getElementById('task-form-submit-btn')!)
 
@@ -192,7 +201,7 @@ describe('TaskFormModal', () => {
       target: { value: 'New task' },
     })
     fireEvent.change(document.getElementById('task-form-category-input')!, {
-      target: { value: 'adulting' },
+      target: { value: 'work' },
     })
     fireEvent.click(document.getElementById('task-form-submit-btn')!)
 

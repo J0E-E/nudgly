@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import * as authApi from '../services/authApi'
+import { queryClient } from '../providers/QueryProvider'
 import type { AuthUser, LoginRegisterResponse } from '../types/auth'
 import { AuthContext } from './authContext.types'
 import type { AuthContextValue } from './authContext.types'
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null)
     setRefreshToken(null)
     saveRefresh(null)
+    queryClient.clear()
   }, [])
 
   const refreshTokens = useCallback(async (): Promise<string | null> => {

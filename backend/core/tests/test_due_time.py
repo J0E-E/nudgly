@@ -26,7 +26,7 @@ def _create_user(email="u@example.com", username="user1", password="Pass1234", *
 
 
 def _create_task(user, **kwargs):
-    defaults = {"title": "Test task", "category": "adulting"}
+    defaults = {"title": "Test task", "category": "work"}
     defaults.update(kwargs)
     return Task.objects.create(user=user, **defaults)
 
@@ -87,7 +87,7 @@ class DueTimeSerializerTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Timed task",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "due_time": "14:30:00",
             },
@@ -101,7 +101,7 @@ class DueTimeSerializerTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Bad task",
-                "category": "adulting",
+                "category": "work",
                 "due_time": "14:30:00",
             },
             format="json",
@@ -111,7 +111,7 @@ class DueTimeSerializerTests(TestCase):
     def test_task_payload_includes_due_time_null(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "No time", "category": "adulting"},
+            {"title": "No time", "category": "work"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
@@ -122,7 +122,7 @@ class DueTimeSerializerTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Patch me",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
             },
             format="json",
@@ -139,7 +139,7 @@ class DueTimeSerializerTests(TestCase):
     def test_patch_due_time_without_due_date_fails(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "No date", "category": "adulting"},
+            {"title": "No date", "category": "work"},
             format="json",
         )
         task_id = resp.json()["id"]
@@ -155,7 +155,7 @@ class DueTimeSerializerTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Clear time",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "due_time": "14:30:00",
             },

@@ -7,34 +7,36 @@
 :root {
   /* Primary palette – Mystic Aqua Serenity */
   --color-jet-black: #17252a;
-  --color-pine-blue: #2b7a78;
-  --color-tropical-teal: #3aafa9;
-  --color-azure-mist: #def2f1;
+  --color-pine-blue: #3d5a58;
+  --color-tropical-teal: #5a8a87;
+  --color-azure-mist: #e4eded;
   --color-white: #feffff;
   --color-warning: #e8d4a1;
   --color-alert: #cd5b5b;
 
   /* Semantic tokens – use these in components */
-  --color-primary: var(--color-jet-black);
-  --color-surface: var(--color-white);
-  --color-surface-alt: var(--color-azure-mist);
-  --color-surface-inset: #e8f4f3;
+  --color-primary: var(--color-white);
+  --color-surface: #1e3436;
+  --color-surface-alt: #243f42;
+  --color-surface-inset: #2a474a;
   --color-accent: var(--color-tropical-teal);
   --color-secondary: var(--color-pine-blue);
-  --color-text: var(--color-jet-black);
-  --color-text-muted: var(--color-pine-blue);
-  --color-border: var(--color-pine-blue);
-  --color-border-light: #c4e3e2;
+  --color-text: #e4eded;
+  --color-text-muted: #9ab0ae;
+  --color-border: #3d5a58;
+  --color-border-light: #2f4d4f;
+  --color-input-bg: #e8edec;
+  --color-input-text: #3a3a3a;
   --color-focus: var(--color-tropical-teal);
-  --color-alert-bg: #fef2f2;
+  --color-alert-bg: #3a2020;
   --color-on-alert: var(--color-alert);
-  --color-on-accent: var(--color-white);
+  --color-on-accent: #e4eded;
   --color-success: var(--color-tropical-teal);
-  --color-backdrop: rgba(23, 37, 42, 0.45);
+  --color-backdrop: rgba(10, 20, 22, 0.6);
 
   /* Shadows */
-  --shadow-card: 0 2px 8px rgba(27, 58, 75, 0.08);
-  --shadow-modal: 0 8px 32px rgba(27, 58, 75, 0.16);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.4);
 
   /* Radii */
   --radius-card: 16px;

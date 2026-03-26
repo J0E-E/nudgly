@@ -45,7 +45,7 @@ def _create_user(email="u@example.com", username="user1", password="Pass1234"):
 
 
 def _create_task(user, **kwargs):
-    defaults = {"title": "Test task", "category": "adulting"}
+    defaults = {"title": "Test task", "category": "work"}
     defaults.update(kwargs)
     return Task.objects.create(user=user, **defaults)
 
@@ -276,13 +276,13 @@ class ProcessDueRemindersTests(TestCase):
 
     def test_notification_title_varies_by_priority(self):
         """Notification title should come from the priority's title set."""
-        self.task.priority = 5
+        self.task.priority = 3
         self.task.save(update_fields=["priority"])
         _create_schedule(self.user, self.task)
         with self.assertLogs("core.notifications", level="INFO") as cm:
             process_due_reminders()
         log_output = "\n".join(cm.output)
-        valid_titles = NUDGE_TITLES[5]
+        valid_titles = NUDGE_TITLES[3]
         self.assertTrue(
             any(t in log_output for t in valid_titles),
             f"Expected one of {valid_titles} in log output",
@@ -451,7 +451,7 @@ class NudgeTemplateSelectionTests(TestCase):
         self.assertIn("Walk the dog", body)
 
     def test_each_priority_has_templates_for_all_tiers(self):
-        for priority in range(6):
+        for priority in range(4):
             for tier in (EARLY, MID, LATE):
                 templates = TASK_NUDGE_TEMPLATES[priority][tier]
                 self.assertTrue(
@@ -573,7 +573,7 @@ class JitterByPriorityTests(TestCase):
         self.user = _create_user()
 
     def test_high_priority_jitter_range(self):
-        task = _create_task(self.user, priority=5)
+        task = _create_task(self.user, priority=3)
         schedule = _create_schedule(
             self.user, task, retry_interval_minutes=20, max_attempts=20,
         )
@@ -591,7 +591,7 @@ class JitterByPriorityTests(TestCase):
             mock_randint.assert_called_with(-5, 5)
 
     def test_mid_priority_jitter_range(self):
-        task = _create_task(self.user, priority=3)
+        task = _create_task(self.user, priority=2)
         schedule = _create_schedule(
             self.user, task, retry_interval_minutes=45, max_attempts=12,
         )

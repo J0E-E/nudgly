@@ -17,13 +17,18 @@ describe('TaskFilterBar', () => {
     vi.clearAllMocks()
   })
 
+  function openFilterPopover() {
+    fireEvent.click(screen.getByLabelText('Toggle filters'))
+  }
+
   it('renders search input', () => {
     render(<TaskFilterBar {...defaultProps} />)
     expect(screen.getByPlaceholderText(/search tasks/i)).toBeInTheDocument()
   })
 
-  it('renders category select with all categories option', () => {
+  it('renders category select inside popover', () => {
     render(<TaskFilterBar {...defaultProps} />)
+    openFilterPopover()
     const select = document.getElementById(
       'task-filter-category'
     ) as HTMLSelectElement
@@ -31,8 +36,9 @@ describe('TaskFilterBar', () => {
     expect(select.options[0].text).toBe('All categories')
   })
 
-  it('renders priority select with all priorities option', () => {
+  it('renders priority select inside popover', () => {
     render(<TaskFilterBar {...defaultProps} />)
+    openFilterPopover()
     const select = document.getElementById(
       'task-filter-priority'
     ) as HTMLSelectElement
@@ -50,14 +56,16 @@ describe('TaskFilterBar', () => {
 
   it('calls onCategoryChange when selecting category', () => {
     render(<TaskFilterBar {...defaultProps} />)
+    openFilterPopover()
     fireEvent.change(document.getElementById('task-filter-category')!, {
-      target: { value: 'adulting' },
+      target: { value: 'work' },
     })
-    expect(defaultProps.onCategoryChange).toHaveBeenCalledWith('adulting')
+    expect(defaultProps.onCategoryChange).toHaveBeenCalledWith('work')
   })
 
   it('calls onPriorityChange when selecting priority', () => {
     render(<TaskFilterBar {...defaultProps} />)
+    openFilterPopover()
     fireEvent.change(document.getElementById('task-filter-priority')!, {
       target: { value: '3' },
     })
@@ -68,5 +76,15 @@ describe('TaskFilterBar', () => {
     render(<TaskFilterBar {...defaultProps} />)
     fireEvent.click(screen.getByText('Add task'))
     expect(defaultProps.onAddTask).toHaveBeenCalledOnce()
+  })
+
+  it('shows active filter indicator when filters are set', () => {
+    render(<TaskFilterBar {...defaultProps} categoryFilter="work" />)
+    expect(screen.getByLabelText('Filters active')).toBeInTheDocument()
+  })
+
+  it('does not show indicator when no filters active', () => {
+    render(<TaskFilterBar {...defaultProps} />)
+    expect(screen.queryByLabelText('Filters active')).not.toBeInTheDocument()
   })
 })

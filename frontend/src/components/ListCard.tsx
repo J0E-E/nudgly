@@ -1,7 +1,9 @@
 /**
- * List card: single row in the lists screen, links to list detail.
+ * List card: single-line row in the lists screen, links to list detail.
+ * Mirrors the TaskListItem layout: name + inline meta + chevron.
  */
 
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { List } from '../types/list'
 import type { TaskCategory } from '../types/task'
@@ -15,6 +17,20 @@ interface ListCardProps {
 }
 
 export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
+
   return (
     <li className="list-card">
       <Link
@@ -22,52 +38,81 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
         className="list-card-link"
         aria-label={`Open list ${list.name}`}
       >
-        <div className="list-card-main">
+        <div className="list-card-content">
           <span className="list-card-name">{list.name}</span>
-          <span className="list-card-count">
-            {list.task_count} {list.task_count === 1 ? 'task' : 'tasks'}
-          </span>
-        </div>
-        <div className="list-card-meta">
-          {list.category && (
-            <span className="list-card-badge list-card-category">
-              {TASK_CATEGORY_LABELS[list.category as TaskCategory] ??
-                list.category}
+          <div className="list-card-meta">
+            <span className="list-card-count">
+              {list.task_count} {list.task_count === 1 ? 'task' : 'tasks'}
             </span>
-          )}
-          {list.priority > 0 && (
-            <span className="list-card-badge list-card-priority">
-              {TASK_PRIORITY_LABELS[list.priority]}
-            </span>
-          )}
-          {list.tag && (
-            <span className="list-card-badge list-card-tag">{list.tag}</span>
-          )}
+            {list.category && (
+              <span className="list-card-badge list-card-category">
+                {TASK_CATEGORY_LABELS[list.category as TaskCategory] ??
+                  list.category}
+              </span>
+            )}
+            {list.priority > 0 && (
+              <span className="list-card-badge list-card-priority">
+                {TASK_PRIORITY_LABELS[list.priority]}
+              </span>
+            )}
+            {list.tag && (
+              <span className="list-card-badge list-card-tag">{list.tag}</span>
+            )}
+          </div>
         </div>
+        <svg
+          className="list-card-chevron"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M7 4l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </Link>
-      <div className="list-card-actions">
+      <div className="list-card-menu-wrap" ref={menuRef}>
         <button
           type="button"
-          className="list-card-action-btn"
-          aria-label={`Edit list ${list.name}`}
-          onClick={(e) => {
-            e.preventDefault()
-            onEdit(list)
-          }}
+          className="list-card-ellipsis"
+          aria-label={`Actions for list ${list.name}`}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
         >
-          Edit
+          &#x22EE;
         </button>
-        <button
-          type="button"
-          className="list-card-action-btn list-card-action-btn--danger"
-          aria-label={`Delete list ${list.name}`}
-          onClick={(e) => {
-            e.preventDefault()
-            onDelete(list)
-          }}
-        >
-          Delete
-        </button>
+        {menuOpen && (
+          <div className="list-card-dropdown" role="menu">
+            <button
+              type="button"
+              className="list-card-dropdown-item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false)
+                onEdit(list)
+              }}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="list-card-dropdown-item list-card-dropdown-item--danger"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false)
+                onDelete(list)
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </li>
   )

@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.email import get_email_sender
+from core.friends.notifications import notify_friend_event
 from core.models import Friendship, FriendInvitation
 
 User = get_user_model()
@@ -63,6 +64,7 @@ def send_invite(from_user, to_username=None, to_email=None):
         invitation = FriendInvitation.objects.create(
             from_user=from_user, to_user=to_user
         )
+        notify_friend_event(to_user, from_user, "friend_request_received")
         return invitation, None
 
     if to_email:
@@ -85,6 +87,7 @@ def send_invite(from_user, to_username=None, to_email=None):
             invitation = FriendInvitation.objects.create(
                 from_user=from_user, to_user=to_user, to_email=email
             )
+            notify_friend_event(to_user, from_user, "friend_request_received")
             return invitation, None
 
         # Non-user: store with to_email only, send sign-up email
@@ -111,6 +114,7 @@ def accept_invite(invitation, user):
     invitation.responded_at = timezone.now()
     invitation.save(update_fields=["status", "responded_at"])
     create_friendship(invitation.from_user, user)
+    notify_friend_event(invitation.from_user, user, "friend_request_accepted")
     return None
 
 
@@ -123,6 +127,7 @@ def decline_invite(invitation, user):
     invitation.status = "declined"
     invitation.responded_at = timezone.now()
     invitation.save(update_fields=["status", "responded_at"])
+    notify_friend_event(invitation.from_user, user, "friend_request_declined")
     return None
 
 

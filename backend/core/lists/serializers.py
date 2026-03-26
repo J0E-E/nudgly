@@ -36,7 +36,7 @@ class ListCreateSerializer(serializers.Serializer):
         required=False, allow_blank=True, max_length=255, default=""
     )
     priority = serializers.IntegerField(
-        required=False, min_value=0, max_value=5, default=TaskPriority.NO_ONE_CARES
+        required=False, min_value=0, max_value=3, default=TaskPriority.NONE
     )
     sort_order = serializers.IntegerField(required=False, default=0)
     muted_until = serializers.DateTimeField(
@@ -58,7 +58,7 @@ class ListPatchSerializer(serializers.Serializer):
         choices=TaskCategory.choices, required=False, allow_blank=True
     )
     tag = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    priority = serializers.IntegerField(required=False, min_value=0, max_value=5)
+    priority = serializers.IntegerField(required=False, min_value=0, max_value=3)
     sort_order = serializers.IntegerField(required=False)
     muted_until = serializers.DateTimeField(required=False, allow_null=True)
     archived_at = serializers.DateTimeField(required=False, allow_null=True)

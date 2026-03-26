@@ -8,20 +8,17 @@ from django.db import models
 
 
 class TaskCategory(models.TextChoices):
-    TREAT_MYSELF = "treat_myself", "Treat Myself"
-    GLOW_UP = "glow_up", "Glow-Up Agenda"
-    ADULTING = "adulting", "Adulting\u2122"
-    I_SAID_I_WOULD = "i_said_i_would", "I Said I Would"
-    THE_INEVITABLE = "the_inevitable", "The Inevitable"
+    PERSONAL = "personal", "Personal"
+    LIFE_ADMIN = "life_admin", "Life Admin"
+    WORK = "work", "Work"
+    SOCIAL = "social", "Social"
 
 
 class TaskPriority(models.IntegerChoices):
-    NO_ONE_CARES = 0, "No one cares"
-    NO_ONE_IS_WATCHING = 1, "No one is watching"
-    ILL_FEEL_GUILTY = 2, "I'll feel guilty"
-    OTHERS_ARE_WATCHING = 3, "Others are watching"
-    OTHERS_WILL_BE_LET_DOWN = 4, "Others will be let down"
-    ILL_LET_MYSELF_DOWN = 5, "I'll let myself down"
+    NONE = 0, "None"
+    LOW = 1, "Low"
+    MEDIUM = 2, "Medium"
+    HIGH = 3, "High"
 
 
 class TaskStatus(models.TextChoices):
@@ -122,7 +119,7 @@ class List(models.Model):
     )
     tag = models.CharField(max_length=255, blank=True, default="")
     priority = models.IntegerField(
-        choices=TaskPriority.choices, default=TaskPriority.NO_ONE_CARES
+        choices=TaskPriority.choices, default=TaskPriority.NONE
     )
     sort_order = models.IntegerField(default=0)
     muted_until = models.DateTimeField(null=True, blank=True)
@@ -151,7 +148,7 @@ class Task(models.Model):
     category = models.CharField(max_length=30, choices=TaskCategory.choices)
     tag = models.CharField(max_length=255, blank=True, default="")
     priority = models.IntegerField(
-        choices=TaskPriority.choices, default=TaskPriority.NO_ONE_CARES
+        choices=TaskPriority.choices, default=TaskPriority.NONE
     )
     recurring = models.CharField(
         max_length=10, choices=RecurringChoice.choices, null=True, blank=True
@@ -254,6 +251,13 @@ class ReminderSchedule(models.Model):
         blank=True,
         related_name="reminder_schedules",
     )
+    standalone_reminder = models.ForeignKey(
+        "StandaloneReminder",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reminder_schedules",
+    )
     recurrence_rule = models.TextField(blank=True, default="")
     next_trigger_at = models.DateTimeField()
     retry_interval_minutes = models.PositiveIntegerField()
@@ -275,19 +279,28 @@ class ReminderSchedule(models.Model):
                         task__isnull=False,
                         habit__isnull=True,
                         list__isnull=True,
+                        standalone_reminder__isnull=True,
                     )
                     | models.Q(
                         task__isnull=True,
                         habit__isnull=False,
                         list__isnull=True,
+                        standalone_reminder__isnull=True,
                     )
                     | models.Q(
                         task__isnull=True,
                         habit__isnull=True,
                         list__isnull=False,
+                        standalone_reminder__isnull=True,
+                    )
+                    | models.Q(
+                        task__isnull=True,
+                        habit__isnull=True,
+                        list__isnull=True,
+                        standalone_reminder__isnull=False,
                     )
                 ),
-                name="reminder_schedule_task_xor_habit_xor_list",
+                name="reminder_schedule_exactly_one_target",
             ),
         ]
 
@@ -296,8 +309,10 @@ class ReminderSchedule(models.Model):
             target = f"task={self.task_id}"
         elif self.habit_id:
             target = f"habit={self.habit_id}"
-        else:
+        elif self.list_id:
             target = f"list={self.list_id}"
+        else:
+            target = f"standalone_reminder={self.standalone_reminder_id}"
         return f"ReminderSchedule({target}, next={self.next_trigger_at})"
 
 
@@ -410,6 +425,57 @@ class FriendInvitation(models.Model):
     def __str__(self):
         target = self.to_user_id or self.to_email
         return f"FriendInvitation({self.from_user_id} -> {target}, {self.status})"
+
+
+class StandaloneReminder(models.Model):
+    """Standalone reminder — fire-and-dismiss notifications for schedules, meetings, etc."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="standalone_reminders")
+    name = models.CharField(max_length=200)
+    remind_at = models.DateTimeField(null=True, blank=True)
+    remind_time = models.TimeField(null=True, blank=True)
+    recurrence = models.CharField(
+        max_length=10, choices=RecurringChoice.choices, null=True, blank=True
+    )
+    day_of_week = models.PositiveSmallIntegerField(null=True, blank=True)
+    day_of_month = models.PositiveSmallIntegerField(null=True, blank=True)
+    month_of_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "is_active"])]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(recurrence__isnull=True, remind_at__isnull=False)
+                    | models.Q(recurrence__isnull=False, remind_time__isnull=False)
+                ),
+                name="standalone_reminder_time_required",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name[:50]
+
+
+class ReminderInstance(models.Model):
+    """Instance of a standalone reminder firing — snooze or clear."""
+
+    reminder = models.ForeignKey(
+        StandaloneReminder, on_delete=models.CASCADE, related_name="instances"
+    )
+    due_at = models.DateTimeField()
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    snoozed_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["reminder", "cleared_at"])]
+        ordering = ["-due_at"]
+
+    def __str__(self):
+        return f"ReminderInstance(reminder={self.reminder_id}, due_at={self.due_at})"
 
 
 class DevicePlatform(models.TextChoices):

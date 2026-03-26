@@ -113,7 +113,7 @@ class NudgeEngineChannelLayerTests(TransactionTestCase):
             password="Pass1234",
         )
         self.task = Task.objects.create(
-            user=self.user, title="Test task", category="adulting"
+            user=self.user, title="Test task", category="work"
         )
         self.schedule = ReminderSchedule.objects.create(
             user=self.user,

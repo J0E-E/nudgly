@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { OAuthButtons } from '../components/OAuthButtons'
+import logoSvg from '../assets/logo.svg'
 import './AuthScreens.css'
 
 export function RegisterScreen() {
@@ -43,6 +44,7 @@ export function RegisterScreen() {
       className="auth-screen"
       aria-label="Create account"
     >
+      <img src={logoSvg} alt="Nudgly" className="auth-logo" />
       <h1 id="register-screen-title">Create account</h1>
       <form id="register-form" onSubmit={handleSubmit} noValidate>
         {error && (

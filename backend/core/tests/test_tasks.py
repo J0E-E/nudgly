@@ -16,7 +16,7 @@ User = get_user_model()
 
 VALID_TASK = {
     "title": "Buy groceries",
-    "category": "adulting",
+    "category": "work",
 }
 
 
@@ -44,7 +44,7 @@ class TaskModelTests(TestCase):
         self.user = _create_user()
 
     def test_create_task_with_defaults(self):
-        task = Task.objects.create(user=self.user, title="Test", category="adulting")
+        task = Task.objects.create(user=self.user, title="Test", category="work")
         self.assertEqual(task.status, "pending")
         self.assertEqual(task.priority, 0)
         self.assertEqual(task.description, "")
@@ -53,11 +53,11 @@ class TaskModelTests(TestCase):
         self.assertIsNotNone(task.created_at)
 
     def test_str_truncates(self):
-        task = Task.objects.create(user=self.user, title="A" * 100, category="adulting")
+        task = Task.objects.create(user=self.user, title="A" * 100, category="work")
         self.assertEqual(str(task), "A" * 50)
 
     def test_cascade_delete_user(self):
-        Task.objects.create(user=self.user, title="T", category="adulting")
+        Task.objects.create(user=self.user, title="T", category="work")
         self.user.delete()
         self.assertEqual(Task.objects.count(), 0)
 
@@ -76,7 +76,7 @@ class TaskCreateViewTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         data = resp.json()
         self.assertEqual(data["title"], "Buy groceries")
-        self.assertEqual(data["category"], "adulting")
+        self.assertEqual(data["category"], "work")
         self.assertEqual(data["status"], "pending")
         self.assertEqual(data["priority"], 0)
         self.assertIsNotNone(data["id"])
@@ -86,7 +86,7 @@ class TaskCreateViewTests(TestCase):
             "title": "Full task",
             "description": "Some details",
             "due_date": "2026-04-01",
-            "category": "glow_up",
+            "category": "personal",
             "tag": "health",
             "priority": 3,
             "recurring": "daily",
@@ -106,7 +106,7 @@ class TaskCreateViewTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_missing_title_returns_400(self):
-        resp = self.client.post("/api/tasks/", {"category": "adulting"}, format="json")
+        resp = self.client.post("/api/tasks/", {"category": "work"}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_missing_category_returns_400(self):
@@ -124,7 +124,7 @@ class TaskCreateViewTests(TestCase):
     def test_create_invalid_priority_returns_400(self):
         resp = self.client.post(
             "/api/tasks/",
-            {**VALID_TASK, "priority": 6},
+            {**VALID_TASK, "priority": 4},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -132,7 +132,7 @@ class TaskCreateViewTests(TestCase):
     def test_create_title_too_long_returns_400(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "x" * 501, "category": "adulting"},
+            {"title": "x" * 501, "category": "work"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -157,9 +157,9 @@ class TaskListViewTests(TestCase):
         _auth_client(self.client, "u@example.com", "Pass1234")
 
     def test_list_returns_own_tasks_only(self):
-        Task.objects.create(user=self.user, title="Mine", category="adulting")
+        Task.objects.create(user=self.user, title="Mine", category="work")
         other = _create_user("other@example.com", "other", "Pass1234")
-        Task.objects.create(user=other, title="Theirs", category="adulting")
+        Task.objects.create(user=other, title="Theirs", category="work")
 
         resp = self.client.get("/api/tasks/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -172,17 +172,17 @@ class TaskListViewTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_ordering_due_date_nulls_last(self):
-        Task.objects.create(user=self.user, title="No date", category="adulting")
+        Task.objects.create(user=self.user, title="No date", category="work")
         Task.objects.create(
             user=self.user,
             title="Later",
-            category="adulting",
+            category="work",
             due_date=date(2026, 5, 1),
         )
         Task.objects.create(
             user=self.user,
             title="Sooner",
-            category="adulting",
+            category="work",
             due_date=date(2026, 4, 1),
         )
 
@@ -191,11 +191,11 @@ class TaskListViewTests(TestCase):
         self.assertEqual(titles, ["Sooner", "Later", "No date"])
 
     def test_list_filter_by_status(self):
-        Task.objects.create(user=self.user, title="A", category="adulting")
+        Task.objects.create(user=self.user, title="A", category="work")
         Task.objects.create(
             user=self.user,
             title="B",
-            category="adulting",
+            category="work",
             status="completed",
         )
 
@@ -206,7 +206,7 @@ class TaskListViewTests(TestCase):
 
     def test_list_pagination(self):
         for i in range(5):
-            Task.objects.create(user=self.user, title=f"Task {i}", category="adulting")
+            Task.objects.create(user=self.user, title=f"Task {i}", category="work")
 
         resp = self.client.get("/api/tasks/?limit=2&offset=0")
         data = resp.json()
@@ -240,7 +240,7 @@ class TaskDetailViewTests(TestCase):
         self.client = APIClient()
         _auth_client(self.client, "u@example.com", "Pass1234")
         self.task = Task.objects.create(
-            user=self.user, title="My task", category="adulting"
+            user=self.user, title="My task", category="work"
         )
 
     def test_get_task(self):
@@ -251,7 +251,7 @@ class TaskDetailViewTests(TestCase):
     def test_get_other_users_task_returns_404(self):
         other = _create_user("other@example.com", "other", "Pass1234")
         other_task = Task.objects.create(
-            user=other, title="Not mine", category="adulting"
+            user=other, title="Not mine", category="work"
         )
         resp = self.client.get(f"/api/tasks/{other_task.id}/")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
@@ -272,12 +272,12 @@ class TaskDetailViewTests(TestCase):
     def test_patch_multiple_fields(self):
         resp = self.client.patch(
             f"/api/tasks/{self.task.id}/",
-            {"title": "New", "priority": 4, "tag": "urgent"},
+            {"title": "New", "priority": 3, "tag": "urgent"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.json()
-        self.assertEqual(data["priority"], 4)
+        self.assertEqual(data["priority"], 3)
         self.assertEqual(data["tag"], "urgent")
 
     def test_patch_status_completed_sets_completed_at(self):
@@ -306,7 +306,7 @@ class TaskDetailViewTests(TestCase):
     def test_patch_other_users_task_returns_404(self):
         other = _create_user("other@example.com", "other", "Pass1234")
         other_task = Task.objects.create(
-            user=other, title="Not mine", category="adulting"
+            user=other, title="Not mine", category="work"
         )
         resp = self.client.patch(
             f"/api/tasks/{other_task.id}/",
@@ -323,7 +323,7 @@ class TaskDetailViewTests(TestCase):
     def test_delete_other_users_task_returns_404(self):
         other = _create_user("other@example.com", "other", "Pass1234")
         other_task = Task.objects.create(
-            user=other, title="Not mine", category="adulting"
+            user=other, title="Not mine", category="work"
         )
         resp = self.client.delete(f"/api/tasks/{other_task.id}/")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

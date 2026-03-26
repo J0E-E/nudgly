@@ -16,6 +16,13 @@ MUTE_PRESET_DURATIONS = {
 }
 
 
+def _user_summary(user):
+    """Return a compact user dict for API responses."""
+    if user is None:
+        return None
+    return {"id": user.id, "username": user.username, "display_name": user.display_name}
+
+
 def task_payload(task):
     """Convert a Task instance to a response dict."""
     return {
@@ -34,6 +41,8 @@ def task_payload(task):
         "created_at": task.created_at.isoformat(),
         "completed_at": task.completed_at.isoformat() if task.completed_at else None,
         "list_id": task.list_id,
+        "created_by": _user_summary(task.created_by),
+        "linked_friends": [_user_summary(f) for f in task.linked_friends.all()],
     }
 
 
@@ -51,7 +60,7 @@ class TaskCreateSerializer(serializers.Serializer):
         required=False, allow_blank=True, max_length=255, default=""
     )
     priority = serializers.IntegerField(
-        required=False, min_value=0, max_value=5, default=TaskPriority.NO_ONE_CARES
+        required=False, min_value=0, max_value=3, default=TaskPriority.NONE
     )
     recurring = serializers.ChoiceField(
         choices=RecurringChoice.choices,
@@ -64,6 +73,13 @@ class TaskCreateSerializer(serializers.Serializer):
         required=False, allow_null=True, default=None
     )
     list_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    created_for_user_id = serializers.IntegerField(
+        required=False, allow_null=True, default=None
+    )
+    linked_friend_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False, default=list,
+    )
 
     def validate(self, attrs):
         if attrs.get("due_time") and not attrs.get("due_date"):
@@ -74,26 +90,88 @@ class TaskCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"recurring": "recurring requires a due_date."}
             )
-        return attrs
 
-    def validate_list_id(self, value):
-        if value is not None:
+        from django.contrib.auth import get_user_model
+
+        from core.friends.services import are_friends
+
+        User = get_user_model()
+        user = self.context["user"]
+        created_for = attrs.get("created_for_user_id")
+        if created_for is not None:
+            if created_for == user.pk:
+                raise serializers.ValidationError(
+                    {"created_for_user_id": "Cannot create a task for yourself."}
+                )
+            try:
+                target_user = User.objects.get(pk=created_for)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"created_for_user_id": "User not found."}
+                )
+            if not are_friends(user, target_user):
+                raise serializers.ValidationError(
+                    {"created_for_user_id": "You can only create tasks for friends."}
+                )
+            attrs["_target_user"] = target_user
+
+        # Validate list_id against the task owner (target user if creating for friend).
+        task_owner = attrs.get("_target_user", user)
+        list_id = attrs.get("list_id")
+        if list_id is not None:
             from core.models import List
 
-            user = self.context["user"]
-            if not List.objects.filter(pk=value, user=user).exists():
-                raise serializers.ValidationError("List not found.")
-        return value
+            if not List.objects.filter(pk=list_id, user=task_owner).exists():
+                raise serializers.ValidationError(
+                    {"list_id": "List not found."}
+                )
+
+        linked_ids = attrs.get("linked_friend_ids", [])
+        if linked_ids:
+            for friend_id in linked_ids:
+                if friend_id == task_owner.pk:
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": "Cannot link the task owner as a friend."}
+                    )
+                try:
+                    friend = User.objects.get(pk=friend_id)
+                except User.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": f"User {friend_id} not found."}
+                    )
+                if not are_friends(task_owner, friend):
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": f"User {friend_id} is not a friend."}
+                    )
+
+        return attrs
 
     def create(self, validated_data):
         from core.models import Task
 
         user = self.context["user"]
+        target_user = validated_data.pop("_target_user", None)
+        linked_ids = validated_data.pop("linked_friend_ids", [])
+        validated_data.pop("created_for_user_id", None)
+
+        if target_user:
+            validated_data["user"] = target_user
+            validated_data["created_by"] = user
+            task_owner = target_user
+        else:
+            task_owner = user
+
         if validated_data.get(
             "status"
         ) == TaskStatus.COMPLETED and not validated_data.get("completed_at"):
             validated_data["completed_at"] = timezone.now()
-        task = Task.objects.create(user=user, **validated_data)
+
+        if "user" not in validated_data:
+            validated_data["user"] = user
+        task = Task.objects.create(**validated_data)
+
+        if linked_ids:
+            task.linked_friends.set(linked_ids)
 
         from core.schedules import sync_list_schedule, sync_task_schedule
 
@@ -114,7 +192,7 @@ class TaskPatchSerializer(serializers.Serializer):
     due_time = serializers.TimeField(required=False, allow_null=True)
     category = serializers.ChoiceField(choices=TaskCategory.choices, required=False)
     tag = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    priority = serializers.IntegerField(required=False, min_value=0, max_value=5)
+    priority = serializers.IntegerField(required=False, min_value=0, max_value=3)
     recurring = serializers.ChoiceField(
         choices=RecurringChoice.choices,
         required=False, allow_null=True, allow_blank=True,
@@ -125,6 +203,9 @@ class TaskPatchSerializer(serializers.Serializer):
         choices=list(MUTE_PRESET_DURATIONS.keys()), required=False
     )
     list_id = serializers.IntegerField(required=False, allow_null=True)
+    linked_friend_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False,
+    )
 
     def validate_list_id(self, value):
         if value is not None:
@@ -168,10 +249,37 @@ class TaskPatchSerializer(serializers.Serializer):
         # Clearing recurring resets stack_count.
         if "recurring" in attrs and not attrs["recurring"]:
             attrs["stack_count"] = 0
+
+        # Validate linked_friend_ids — all must be friends of the task owner.
+        linked_ids = attrs.get("linked_friend_ids")
+        if linked_ids is not None:
+            user = self.context["user"]
+            from core.friends.services import are_friends
+
+            from django.contrib.auth import get_user_model
+
+            User = get_user_model()
+            for friend_id in linked_ids:
+                if friend_id == user.pk:
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": "Cannot link yourself."}
+                    )
+                try:
+                    friend = User.objects.get(pk=friend_id)
+                except User.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": f"User {friend_id} not found."}
+                    )
+                if not are_friends(user, friend):
+                    raise serializers.ValidationError(
+                        {"linked_friend_ids": f"User {friend_id} is not a friend."}
+                    )
+
         return attrs
 
     def update(self, instance, validated_data):
         old_list_id = instance.list_id
+        linked_ids = validated_data.pop("linked_friend_ids", None)
 
         update_fields = []
         for field, value in validated_data.items():
@@ -193,10 +301,8 @@ class TaskPatchSerializer(serializers.Serializer):
                     update_fields.append("completed_at")
 
         # Recurring task completion: advance due_date, reset to pending.
-        if (
-            validated_data.get("status") == TaskStatus.COMPLETED
-            and instance.recurring
-        ):
+        is_completion = validated_data.get("status") == TaskStatus.COMPLETED
+        if is_completion and instance.recurring:
             from core.recurrence import advance_due_date
 
             instance.due_date = advance_due_date(
@@ -210,6 +316,9 @@ class TaskPatchSerializer(serializers.Serializer):
                     update_fields.append(f)
 
         instance.save(update_fields=update_fields)
+
+        if linked_ids is not None:
+            instance.linked_friends.set(linked_ids)
 
         schedule_fields = {"due_date", "due_time", "priority", "status"}
         if schedule_fields & set(validated_data.keys()):
@@ -230,5 +339,11 @@ class TaskPatchSerializer(serializers.Serializer):
                 old_list = List.objects.filter(pk=old_list_id).first()
                 if old_list:
                     sync_list_schedule(old_list)
+
+        # Notify linked friends on task completion.
+        if is_completion and instance.linked_friends.exists():
+            from core.tasks.notifications import notify_linked_friends
+
+            notify_linked_friends(instance, "completed")
 
         return instance

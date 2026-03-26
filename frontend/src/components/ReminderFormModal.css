@@ -1,0 +1,149 @@
+.reminder-form-dialog {
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-modal);
+}
+
+.reminder-form-dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+.reminder-form-title {
+  margin: 0 0 16px;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.reminder-form-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-alert-bg);
+  color: var(--color-on-alert);
+  font-size: 0.875rem;
+}
+
+.reminder-form-field {
+  margin-bottom: 16px;
+}
+
+.reminder-form-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.reminder-form-field input,
+.reminder-form-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.reminder-form-field input:focus,
+.reminder-form-field select:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.reminder-form-field input:disabled,
+.reminder-form-field select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.reminder-form-type-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.reminder-form-type-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.reminder-form-type-btn--active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+
+.reminder-form-type-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.reminder-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.reminder-form-cancel {
+  min-height: 44px;
+  padding: 8px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.reminder-form-cancel:hover {
+  background: var(--color-surface-alt);
+}
+
+.reminder-form-cancel:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.reminder-form-submit {
+  min-height: 44px;
+  padding: 8px 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reminder-form-submit:hover {
+  background: var(--color-secondary);
+}
+
+.reminder-form-submit:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.reminder-form-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

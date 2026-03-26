@@ -48,7 +48,7 @@
   padding: 8px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  background: var(--color-surface);
+  background: var(--color-input-bg);
   color: var(--color-text);
   font-size: 0.875rem;
   box-sizing: border-box;

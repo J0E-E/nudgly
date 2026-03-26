@@ -23,34 +23,48 @@ vi.mock('../services/taskApi', () => ({
   deleteTask: vi.fn(),
 }))
 
+vi.mock('../services/friendApi', () => ({
+  listFriends: vi.fn(() => Promise.resolve([])),
+}))
+
 const mockTasks: Task[] = [
   {
     id: 1,
     title: 'Buy groceries',
     description: 'Milk and bread',
     due_date: '2026-04-01',
-    category: TaskCategory.ADULTING,
+    due_time: null,
+    category: TaskCategory.WORK,
     tag: '',
     priority: 3,
     recurring: null,
+    stack_count: 0,
     status: TaskStatus.PENDING,
     muted_until: null,
     created_at: '2026-03-20T10:00:00Z',
     completed_at: null,
+    list_id: null,
+    created_by: null,
+    linked_friends: [],
   },
   {
     id: 2,
     title: 'Workout',
     description: '',
     due_date: null,
-    category: TaskCategory.GLOW_UP,
+    due_time: null,
+    category: TaskCategory.PERSONAL,
     tag: '',
     priority: 0,
     recurring: null,
+    stack_count: 0,
     status: TaskStatus.PENDING,
     muted_until: null,
     created_at: '2026-03-20T11:00:00Z',
     completed_at: null,
+    list_id: null,
+    created_by: null,
+    linked_friends: [],
   },
 ]
 
@@ -130,8 +144,9 @@ describe('TasksScreen', () => {
     await waitFor(() => {
       expect(screen.getByText('Buy groceries')).toBeInTheDocument()
     })
+    fireEvent.click(screen.getByLabelText('Toggle filters'))
     fireEvent.change(document.getElementById('task-filter-category')!, {
-      target: { value: 'glow_up' },
+      target: { value: 'personal' },
     })
     expect(screen.queryByText('Buy groceries')).not.toBeInTheDocument()
     expect(screen.getByText('Workout')).toBeInTheDocument()

@@ -1,21 +1,17 @@
-.tasks-screen {
-  flex: 1;
-  max-width: 800px;
-  width: 100%;
-  margin: 24px auto;
-  background: var(--color-surface);
-  padding-bottom: 24px;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
 .tasks-screen-title {
   margin: 0;
   padding: 28px 28px 16px;
   font-size: 1.625rem;
   font-weight: 700;
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tasks-screen-logo {
+  height: 28px;
+  width: auto;
 }
 
 .tasks-state {

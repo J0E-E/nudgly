@@ -23,7 +23,7 @@ def _create_user(email="u@example.com", username="user1", password="Pass1234"):
 
 
 def _create_task(user, **kwargs):
-    defaults = {"title": "Test task", "category": "adulting"}
+    defaults = {"title": "Test task", "category": "work"}
     defaults.update(kwargs)
     return Task.objects.create(user=user, **defaults)
 

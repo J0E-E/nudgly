@@ -9,6 +9,7 @@ import type {
   HabitCreatePayload,
   HabitUpdatePayload,
   HabitCompletePayload,
+  HabitListResponse,
 } from '../types/habit'
 
 export const habitKeys = {
@@ -73,7 +74,27 @@ export function useCompleteHabit() {
       id: number
       payload?: HabitCompletePayload
     }) => habitApi.completeHabit(getApiDeps(), id, payload),
-    onSuccess: () =>
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: habitKeys.list() })
+      const previous = queryClient.getQueryData<HabitListResponse>(habitKeys.list())
+      if (previous && !payload?.skipped) {
+        queryClient.setQueryData<HabitListResponse>(habitKeys.list(), {
+          ...previous,
+          results: previous.results.map((h) =>
+            h.id === id
+              ? { ...h, period_completions: h.period_completions + 1 }
+              : h
+          ),
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(habitKeys.list(), context.previous)
+      }
+    },
+    onSettled: () =>
       queryClient.invalidateQueries({ queryKey: habitKeys.lists() }),
   })
 }

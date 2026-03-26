@@ -708,7 +708,7 @@
 
 ---
 
-## Epic 12: Friends – Task Linking & Create Task for Friend
+## Epic 12: Friends – Task Linking & Create Task for Friend COMPLETE
 
 **Objective:** Link friends to a task; create a task owned by a friend (created_by_user_id); only friends can be linked or create for you.
 
@@ -723,44 +723,13 @@
 - Filter/view for “Created for me” tasks so users can easily find friend-assigned tasks.
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
-
----
-
-## Epic 13a: Push Notification Dependencies — External Setup
-
-**Objective:** Set up all external provider accounts and credentials required for push notifications so Epic 13b is not blocked by external dependencies.
-
-> **Start this epic early (in parallel with Epics 9–12).** These are external dependencies with lead times (Apple Developer review, Firebase project setup, etc.).
-
-### Setup Checklist
-- **Firebase:** Create Firebase project; enable Cloud Messaging (FCM v1 API). Generate service account key for backend. Note: FCM is used for both Android and iOS push delivery.
-- **Apple Developer:** Ensure Apple Developer Program membership is active. Create APNs key (`.p8`) or certificate; upload to Firebase for FCM-to-APNs relay. Configure App ID with Push Notifications capability.
-- **Google Play (optional for MVP):** If distributing Android builds, create Google Play Console app entry. Not strictly required for push — FCM works without Play Store listing during development.
-- **Environment:** Add `FIREBASE_SERVICE_ACCOUNT_KEY` (path or JSON) to `.env.example` and backend settings. Document required env vars in `.docs/be_docs.md`.
-
-### Implementation Notes:
-*(To be completed when epic is done.)*
-
----
-
-## Epic 13b: Push Notifications & Device Registration
-
-**Objective:** Register device token with FCM; nudge engine sends push to user devices; token cleanup on invalid/unregistered.
-
-**Depends on:** Epic 13a (credentials), Epic 8 (nudge engine worker).
-
-### Backend
-- DeviceTokens: user_id, device_id, platform (ios/android/web), token. `POST /device/register` (auth; body: platform, token, optional device_id). One token per (user_id, device_id); replace on re-register.
-- Worker: when sending nudge, resolve user’s device tokens and send via FCM. On FCM invalid/unregistered, remove token.
-- **Friend-linked task notifications:** When a task with linked friends is completed or becomes overdue, send a push notification to each linked friend’s devices. Notification type should be distinguishable from standard nudges (e.g. "Your friend completed [task]" or "[task] assigned to [owner] is overdue").
-- Rate limiting: per-user caps on nudges per hour/day per §12.
-
-### Frontend
-- Request notification permission; obtain FCM token (Capacitor plugin or web FCM SDK). Call `POST /device/register` with platform and token (and device_id if available). Handle foreground/background per platform.
-
-### Implementation Notes:
-*(To be completed when epic is done.)*
+- **API design:** Used `POST /api/tasks/` with `created_for_user_id` field (not a separate endpoint). Task is created with `user=target_friend` and `created_by=request.user`. Linked friends via `linked_friend_ids` list field on both create and patch.
+- **Filters:** `GET /tasks?created_for_me=true` filters to tasks where `created_by IS NOT NULL AND created_by != self`. `GET /tasks?created_by=<id>` filters by specific creator.
+- **Validation:** `list_id` is validated against the task owner (target user when creating for friend), not the request user. All linked friend IDs must be friends of the task owner.
+- **Notifications:** `core/tasks/notifications.py` contains `notify_linked_friends(task, event_type)` which sends push + WebSocket to each linked friend. Called on task completion (from serializer) and on overdue nudge (from `process_due_reminders` in `core/nudge.py`).
+- **No new migrations:** `created_by` (FK) and `linked_friends` (M2M) fields already existed on the Task model from prior schema planning.
+- **Query optimization:** `select_related(‘created_by’)` and `prefetch_related(‘linked_friends’)` added to list and detail views.
+- **Frontend:** Friend selection uses checkbox list (not multi-select dropdown) for linked friends, and a toggle + dropdown for “Create for friend”. Friend UI is conditionally rendered only when the user has friends (`useFriendList()`).
 
 ---
 
@@ -834,7 +803,7 @@
 | 10 | Habit Reminders | Depends on habits and Epic 8 |
 | 11 | Friends & Invitations | Social foundation |
 | 12 | Friends – Task Linking & Create for Friend | Depends on friends and tasks |
-| 13a | Push Notification Dependencies | ⏳ Start in parallel with Epics 9–12 |
-| 13b | Push Notifications & Device Registration | Depends on nudge engine + 13a credentials |
+| 13a | Push Notification Dependencies | ⏳ Moved to [Push-Notifications-Sprint-Plan.md](Push-Notifications-Sprint-Plan.md) |
+| 13b | Push Notifications & Device Registration | ⏳ Moved to [Push-Notifications-Sprint-Plan.md](Push-Notifications-Sprint-Plan.md) |
 | 15 | Settings & Account | Ties profile, theme, prefs |
 | 16 | E2E & Release Readiness | Final E2E tests, staging, deploy |

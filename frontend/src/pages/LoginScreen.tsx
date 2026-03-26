@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { OAuthButtons } from '../components/OAuthButtons'
+import logoSvg from '../assets/logo.svg'
 import './AuthScreens.css'
 
 /** User-facing message when backend redirects with oauth_error (e.g. sign-in cancelled/failed). */
@@ -56,6 +57,7 @@ export function LoginScreen() {
 
   return (
     <main id="login-screen" className="auth-screen" aria-label="Log in">
+      <img src={logoSvg} alt="Nudgly" className="auth-logo" />
       <h1 id="login-screen-title">Log in</h1>
       <form id="login-form" onSubmit={handleSubmit} noValidate>
         {(oauthErrorMessage || error) && (

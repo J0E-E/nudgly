@@ -34,10 +34,14 @@ vi.mock('../services/taskApi', () => ({
   deleteTask: vi.fn(),
 }))
 
+vi.mock('../services/friendApi', () => ({
+  listFriends: vi.fn(() => Promise.resolve([])),
+}))
+
 const mockList: List = {
   id: 1,
   name: 'Groceries',
-  category: 'adulting',
+  category: 'work',
   tag: 'shopping',
   priority: 2,
   sort_order: 0,
@@ -53,30 +57,38 @@ const mockTasks: Task[] = [
     title: 'Buy milk',
     description: '',
     due_date: null,
-    category: TaskCategory.ADULTING,
+    due_time: null,
+    category: TaskCategory.WORK,
     tag: '',
     priority: 0,
     recurring: null,
+    stack_count: 0,
     status: TaskStatus.PENDING,
     muted_until: null,
     created_at: '2026-03-20T10:00:00Z',
     completed_at: null,
     list_id: 1,
+    created_by: null,
+    linked_friends: [],
   },
   {
     id: 11,
     title: 'Buy bread',
     description: '',
     due_date: null,
-    category: TaskCategory.ADULTING,
+    due_time: null,
+    category: TaskCategory.WORK,
     tag: '',
     priority: 0,
     recurring: null,
+    stack_count: 0,
     status: TaskStatus.PENDING,
     muted_until: null,
     created_at: '2026-03-20T11:00:00Z',
     completed_at: null,
     list_id: 1,
+    created_by: null,
+    linked_friends: [],
   },
 ]
 
@@ -156,8 +168,8 @@ describe('ListDetailScreen', () => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     })
     const meta = document.querySelector('.list-detail-meta')!
-    expect(meta.textContent).toContain('Adulting')
-    expect(meta.textContent).toContain("I'll feel guilty")
+    expect(meta.textContent).toContain('Work')
+    expect(meta.textContent).toContain('Medium')
   })
 
   it('shows action buttons', async () => {

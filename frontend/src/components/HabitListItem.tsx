@@ -17,19 +17,18 @@ interface HabitListItemProps {
   onDelete: (habit: Habit) => void
 }
 
-function formatStreakLabel(habit: Habit): string {
-  if (habit.frequency === HabitFrequency.DAILY) {
-    if (habit.streak_count > 0) return `${habit.streak_count} day streak`
-    return 'No streak'
-  }
-  const periodLabel =
-    habit.frequency === HabitFrequency.WEEKLY ? 'this week' : 'this month'
-  const progress = `${habit.period_completions}/${habit.target_count} ${periodLabel}`
-  if (habit.streak_count > 0) {
-    const unit = habit.frequency === HabitFrequency.WEEKLY ? 'week' : 'month'
-    return `${progress} · ${habit.streak_count} ${unit} streak`
-  }
-  return progress
+function formatPeriodCount(habit: Habit): string {
+  const n = habit.period_completions
+  if (habit.frequency === HabitFrequency.DAILY) return `${n} today`
+  if (habit.frequency === HabitFrequency.WEEKLY) return `${n} this week`
+  return `${n} this month`
+}
+
+function formatStreakLabel(habit: Habit): string | null {
+  if (habit.streak_count <= 0) return null
+  if (habit.frequency === HabitFrequency.DAILY) return `${habit.streak_count} day streak`
+  const unit = habit.frequency === HabitFrequency.WEEKLY ? 'week' : 'month'
+  return `${habit.streak_count} ${unit} streak`
 }
 
 function formatDateTime(isoStr: string): string {
@@ -85,11 +84,23 @@ export function HabitListItem({
     >
       <button
         type="button"
-        className="habit-list-item-done-btn"
+        className="habit-completion-btn"
         onClick={() => onComplete(habit)}
         aria-label={`Mark "${habit.name}" as done`}
       >
-        +
+        <svg
+          className="habit-completion-btn-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
       </button>
       <button
         type="button"
@@ -106,9 +117,14 @@ export function HabitListItem({
             {habit.name}
           </span>
           <div className="habit-list-item-meta">
-            <span className="habit-list-item-streak">
-              {formatStreakLabel(habit)}
+            <span className="habit-list-item-period-count">
+              {formatPeriodCount(habit)}
             </span>
+            {formatStreakLabel(habit) && (
+              <span className="habit-list-item-streak">
+                {formatStreakLabel(habit)}
+              </span>
+            )}
             <span className="habit-list-item-frequency">
               {HABIT_FREQUENCY_LABELS[habit.frequency]}
             </span>

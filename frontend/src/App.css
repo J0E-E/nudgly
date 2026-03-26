@@ -3,19 +3,14 @@
  */
 
 #root {
-  min-height: 100vh;
-  box-sizing: border-box;
+  height: 100%;
   background-color: var(--color-surface-alt);
 }
 
 #app-root {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  #app-root {
-    padding-bottom: 56px;
-  }
-}

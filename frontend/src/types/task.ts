@@ -1,9 +1,8 @@
 export const TaskCategory = {
-  TREAT_MYSELF: 'treat_myself',
-  GLOW_UP: 'glow_up',
-  ADULTING: 'adulting',
-  I_SAID_I_WOULD: 'i_said_i_would',
-  THE_INEVITABLE: 'the_inevitable',
+  PERSONAL: 'personal',
+  LIFE_ADMIN: 'life_admin',
+  WORK: 'work',
+  SOCIAL: 'social',
 } as const
 
 export type TaskCategory = (typeof TaskCategory)[keyof typeof TaskCategory]
@@ -17,11 +16,10 @@ export const TaskStatus = {
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
 
 export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
-  [TaskCategory.TREAT_MYSELF]: 'Treat myself',
-  [TaskCategory.GLOW_UP]: 'Glow up',
-  [TaskCategory.ADULTING]: 'Adulting',
-  [TaskCategory.I_SAID_I_WOULD]: 'I said I would',
-  [TaskCategory.THE_INEVITABLE]: 'The inevitable',
+  [TaskCategory.PERSONAL]: 'Personal',
+  [TaskCategory.LIFE_ADMIN]: 'Life Admin',
+  [TaskCategory.WORK]: 'Work',
+  [TaskCategory.SOCIAL]: 'Social',
 }
 
 export const RecurringOptions = {
@@ -41,12 +39,16 @@ export const RECURRING_LABELS: Record<string, string> = {
 }
 
 export const TASK_PRIORITY_LABELS: Record<number, string> = {
-  0: 'No one cares',
-  1: 'No one is watching',
-  2: "I'll feel guilty",
-  3: 'Others are watching',
-  4: 'Others will be let down',
-  5: "I'll let myself down",
+  0: 'None',
+  1: 'Low',
+  2: 'Medium',
+  3: 'High',
+}
+
+export interface UserSummary {
+  id: number
+  username: string
+  display_name: string
 }
 
 export interface Task {
@@ -65,6 +67,8 @@ export interface Task {
   created_at: string
   completed_at: string | null
   list_id: number | null
+  created_by: UserSummary | null
+  linked_friends: UserSummary[]
 }
 
 export interface TaskListResponse {
@@ -86,6 +90,8 @@ export interface TaskCreatePayload {
   status?: TaskStatus
   muted_until?: string | null
   list_id?: number | null
+  created_for_user_id?: number | null
+  linked_friend_ids?: number[]
 }
 
 export type MutePreset = '1h' | '1d' | '1wk'
@@ -119,4 +125,5 @@ export interface TaskUpdatePayload {
   muted_until?: string | null
   mute_preset?: MutePreset
   list_id?: number | null
+  linked_friend_ids?: number[]
 }

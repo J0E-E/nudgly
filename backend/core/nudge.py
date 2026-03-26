@@ -19,18 +19,21 @@ from django.utils import timezone
 from core.in_app_notifications.views import notification_payload
 from core.models import ReminderEvent, ReminderSchedule
 from core.notifications import get_notification_sender
-from core.nudge_templates import select_habit_nudge, select_list_nudge, select_task_nudge
+from core.nudge_templates import (
+    select_habit_nudge,
+    select_list_nudge,
+    select_standalone_reminder_nudge,
+    select_task_nudge,
+)
 
 logger = logging.getLogger(__name__)
 
 # Priority-to-interval mapping per app-idea §9.1.
 PRIORITY_NUDGE_CONFIG = {
     0: {"retry_interval_minutes": 120, "max_attempts": 5},
-    1: {"retry_interval_minutes": 90, "max_attempts": 8},
-    2: {"retry_interval_minutes": 60, "max_attempts": 10},
-    3: {"retry_interval_minutes": 45, "max_attempts": 12},
-    4: {"retry_interval_minutes": 30, "max_attempts": 15},
-    5: {"retry_interval_minutes": 20, "max_attempts": 20},
+    1: {"retry_interval_minutes": 75, "max_attempts": 9},
+    2: {"retry_interval_minutes": 45, "max_attempts": 12},
+    3: {"retry_interval_minutes": 25, "max_attempts": 18},
 }
 
 # Per-user rate limiting: max nudge notifications per hour.
@@ -40,10 +43,8 @@ MAX_NUDGES_PER_HOUR = 5
 JITTER_RANGES = {
     0: (-5, 5),
     1: (-5, 5),
-    2: (-5, 5),
-    3: (-3, 3),
-    4: (-2, 2),
-    5: (-2, 2),
+    2: (-3, 3),
+    3: (-2, 2),
 }
 
 
@@ -121,7 +122,7 @@ def process_due_reminders():
         ReminderSchedule.objects.filter(
             next_trigger_at__lte=now,
             is_active=True,
-        ).select_related("task", "task__list", "user", "list", "habit")
+        ).select_related("task", "task__list", "user", "list", "habit", "standalone_reminder")
     )
 
     # Pre-fetch rate limit counts for all affected users.
@@ -197,6 +198,22 @@ def process_due_reminders():
                     "list_id": str(schedule.list_id),
                     "attempt": str(attempt),
                 }
+            elif schedule.standalone_reminder:
+                title, body = select_standalone_reminder_nudge(
+                    reminder_name=schedule.standalone_reminder.name,
+                )
+                data = {
+                    "schedule_id": str(schedule.id),
+                    "standalone_reminder_id": str(schedule.standalone_reminder_id),
+                    "attempt": str(attempt),
+                }
+                # Create a ReminderInstance for this firing.
+                from core.models import ReminderInstance
+
+                ReminderInstance.objects.create(
+                    reminder=schedule.standalone_reminder,
+                    due_at=schedule.next_trigger_at,
+                )
             else:
                 title, body = "Nudge!", f"Reminder (attempt {attempt})"
                 data = {"schedule_id": str(schedule.id), "attempt": str(attempt)}
@@ -222,6 +239,12 @@ def process_due_reminders():
 
             rate_counts[schedule.user_id] = rate_counts.get(schedule.user_id, 0) + 1
 
+            # Notify linked friends when a task nudge fires (overdue).
+            if schedule.task and schedule.task.linked_friends.exists():
+                from core.tasks.notifications import notify_linked_friends
+
+                notify_linked_friends(schedule.task, "overdue")
+
         # Advance or deactivate.
         if schedule.habit and schedule.recurrence_rule:
             # Habit schedules: advance to tomorrow at the same time, reset attempts.
@@ -232,6 +255,26 @@ def process_due_reminders():
             )
             schedule.attempt_count = 0
             schedule.save(update_fields=["next_trigger_at", "attempt_count"])
+        elif schedule.standalone_reminder:
+            sr = schedule.standalone_reminder
+            if sr.recurrence:
+                from core.schedules import compute_next_standalone_trigger
+
+                schedule.next_trigger_at = compute_next_standalone_trigger(
+                    sr.recurrence,
+                    sr.remind_time,
+                    sr.day_of_week,
+                    sr.day_of_month,
+                    sr.month_of_year,
+                    schedule.user.timezone or "UTC",
+                )
+                schedule.attempt_count = 0
+                schedule.save(update_fields=["next_trigger_at", "attempt_count"])
+            else:
+                # One-time: deactivate.
+                schedule.is_active = False
+                schedule.attempt_count = attempt
+                schedule.save(update_fields=["is_active", "attempt_count"])
         else:
             priority = _get_priority(schedule)
 

@@ -1,15 +1,3 @@
-.lists-screen {
-  flex: 1;
-  max-width: 800px;
-  width: 100%;
-  margin: 24px auto;
-  background: var(--color-surface);
-  padding-bottom: 24px;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
 .lists-screen-title {
   margin: 0;
   padding: 28px 28px 16px;

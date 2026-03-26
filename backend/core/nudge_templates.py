@@ -1,7 +1,7 @@
 """
 Nudge message templates and selection logic.
 
-Templates are organised by priority (0-5) and escalation tier (early/mid/late).
+Templates are organised by priority (0-3) and escalation tier (early/mid/late).
 The worker selects a random template after determining the tier from the
 attempt-to-max-attempts ratio.
 """
@@ -29,44 +29,29 @@ def get_escalation_tier(attempt: int, max_attempts: int) -> str:
 # {task_title} is interpolated via str.format().
 
 TASK_NUDGE_TEMPLATES: dict[int, dict[str, list[str]]] = {
-    # Priority 0 — NO_ONE_CARES
+    # Priority 0 — NONE
     0: {
         EARLY: [
             "{task_title} is on your list. Technically.",
-            "This task exists. That's about all anyone can say: {task_title}",
             "No pressure, but {task_title} is still there.",
+            "Heads up: {task_title} is hanging around.",
+            "Nobody's watching, but {task_title} is still on the list.",
         ],
         MID: [
             "{task_title} is starting to collect dust.",
             "Still there. Still waiting. No rush: {task_title}",
-            "{task_title} would like to be acknowledged. Eventually.",
+            "{task_title} is quietly judging you. Just a little.",
+            "{task_title} isn't going anywhere. Might as well, right?",
         ],
         LATE: [
             "Last call for {task_title}. Or not. Honestly, it's fine.",
             "{task_title} has been very patient with you.",
             "If {task_title} had feelings, they'd be mildly hurt by now.",
-        ],
-    },
-    # Priority 1 — NO_ONE_IS_WATCHING
-    1: {
-        EARLY: [
-            "Heads up: {task_title} is hanging around.",
-            "{task_title} just wanted to say hi. And remind you it exists.",
-            "Nobody's watching, but {task_title} is still on the list.",
-        ],
-        MID: [
-            "{task_title} is quietly judging you. Just a little.",
-            "Your conscience might notice if you skip {task_title}.",
-            "{task_title} isn't going anywhere. Might as well, right?",
-        ],
-        LATE: [
-            "Look, nobody's keeping score, but {task_title} is still here.",
-            "{task_title}. You know about it. It knows about you. Time to meet.",
             "Your future self whispered something about {task_title}. Just saying.",
         ],
     },
-    # Priority 2 — I'LL FEEL GUILTY
-    2: {
+    # Priority 1 — LOW
+    1: {
         EARLY: [
             "{task_title} — your future self will thank you.",
             "Quick reminder about {task_title}. You'll feel better after.",
@@ -83,8 +68,8 @@ TASK_NUDGE_TEMPLATES: dict[int, dict[str, list[str]]] = {
             "Your future self will thank you. Or at least stop side-eyeing you. Do {task_title}.",
         ],
     },
-    # Priority 3 — OTHERS ARE WATCHING
-    3: {
+    # Priority 2 — MEDIUM
+    2: {
         EARLY: [
             "{task_title} — someone might notice if you don't.",
             "People may or may not be watching. {task_title} is due.",
@@ -101,40 +86,25 @@ TASK_NUDGE_TEMPLATES: dict[int, dict[str, list[str]]] = {
             "This one's been staring at you for a while — ready to knock it out? {task_title}",
         ],
     },
-    # Priority 4 — OTHERS WILL BE LET DOWN
-    4: {
+    # Priority 3 — HIGH
+    3: {
         EARLY: [
             "{task_title} — someone's counting on you.",
             "People are depending on you for {task_title}. You've got this.",
-            "Don't ghost them: {task_title} is waiting.",
-        ],
-        MID: [
-            "{task_title} — people are counting on you. Don't leave them hanging.",
-            "Someone's waiting on {task_title}. They believe in you.",
-            "{task_title} — letting people down isn't your style. Get on it.",
-        ],
-        LATE: [
-            "{task_title} — they're counting on you and time is running out.",
-            "Real talk: people will be let down if {task_title} doesn't happen.",
-            "{task_title} — you promised. They're waiting. Make it happen.",
-        ],
-    },
-    # Priority 5 — I'LL LET MYSELF DOWN
-    5: {
-        EARLY: [
-            "{task_title} — you said you'd do this for you.",
             "This one hits different: {task_title}. The stakes are personal.",
             "{task_title} — this is between you and you.",
         ],
         MID: [
+            "{task_title} — people are counting on you. Don't leave them hanging.",
             "{task_title} — you know this matters to you. Don't put it off.",
             "You set this bar for yourself: {task_title}. Time to clear it.",
             "{task_title} — your future self is watching. Make them proud.",
         ],
         LATE: [
-            "You literally said you'd let yourself down. Don't do that: {task_title}",
-            "{task_title} — this is the one you can't blame on anyone else.",
+            "{task_title} — they're counting on you and time is running out.",
+            "Real talk: people will be let down if {task_title} doesn't happen.",
             "{task_title} — you owe it to yourself. No more excuses. Go.",
+            "{task_title} — this is the one you can't blame on anyone else.",
         ],
     },
 }
@@ -143,12 +113,10 @@ TASK_NUDGE_TEMPLATES: dict[int, dict[str, list[str]]] = {
 # ── Title templates ──────────────────────────────────────────────────────
 
 NUDGE_TITLES: dict[int, list[str]] = {
-    0: ["Hey", "Psst", "Oh right..."],
-    1: ["Heads up", "FYI", "Just saying"],
-    2: ["Reminder", "Don't forget", "Quick nudge"],
-    3: ["Heads up!", "Eyes on you", "Nudge!"],
-    4: ["Don't forget!", "They're counting on you", "Important"],
-    5: ["This matters", "For you", "Don't let yourself down"],
+    0: ["Hey", "Psst", "Oh right...", "FYI"],
+    1: ["Reminder", "Don't forget", "Quick nudge"],
+    2: ["Heads up!", "Eyes on you", "Nudge!"],
+    3: ["This matters", "Don't forget!", "Important"],
 }
 
 
@@ -285,6 +253,33 @@ def select_list_nudge(
             count=pending_count,
         )
     title = random.choice(LIST_TITLES)
+    return title, body
+
+
+# ── Standalone reminder templates ────────────────────────────────────────
+# {reminder_name} interpolated via str.format().
+
+STANDALONE_REMINDER_TEMPLATES: list[str] = [
+    "Reminder: {reminder_name}",
+    "Don't forget: {reminder_name}",
+    "Heads up — {reminder_name}",
+    "Time for: {reminder_name}",
+    "Hey, it's time: {reminder_name}",
+]
+
+STANDALONE_REMINDER_TITLES: list[str] = [
+    "Reminder",
+    "Heads up",
+    "Don't forget",
+]
+
+
+def select_standalone_reminder_nudge(reminder_name: str) -> tuple[str, str]:
+    """Return (title, body) for a standalone reminder notification."""
+    title = random.choice(STANDALONE_REMINDER_TITLES)
+    body = random.choice(STANDALONE_REMINDER_TEMPLATES).format(
+        reminder_name=reminder_name
+    )
     return title, body
 
 

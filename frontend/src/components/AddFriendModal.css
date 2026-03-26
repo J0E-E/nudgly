@@ -1,0 +1,124 @@
+.add-friend-dialog {
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-modal);
+}
+
+.add-friend-dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+.add-friend-title {
+  margin: 0 0 16px;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.add-friend-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-alert-bg);
+  color: var(--color-on-alert);
+  font-size: 0.875rem;
+}
+
+.add-friend-success {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.875rem;
+}
+
+.add-friend-field {
+  margin-bottom: 16px;
+}
+
+.add-friend-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.add-friend-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.add-friend-field input:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.add-friend-field input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.add-friend-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.add-friend-cancel {
+  min-height: 44px;
+  padding: 8px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.add-friend-cancel:hover {
+  background: var(--color-surface-alt);
+}
+
+.add-friend-cancel:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.add-friend-submit {
+  min-height: 44px;
+  padding: 8px 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.add-friend-submit:hover {
+  background: var(--color-secondary);
+}
+
+.add-friend-submit:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.add-friend-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

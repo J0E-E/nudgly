@@ -18,6 +18,8 @@ import { ListsScreen } from './pages/ListsScreen'
 import { ListDetailScreen } from './pages/ListDetailScreen'
 import { HabitsScreen } from './pages/HabitsScreen'
 import { FriendsScreen } from './pages/FriendsScreen'
+import { RemindersScreen } from './pages/RemindersScreen'
+import { LandingScreen } from './pages/LandingScreen'
 import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
 import { BottomNav } from './components/BottomNav'
 import { ToastProvider } from './contexts/ToastContext'
@@ -42,7 +44,7 @@ function App() {
             <OfflineBanner />
             <ErrorBoundary>
               <Routes>
-                <Route path="/" element={<Navigate to="/tasks" replace />} />
+                <Route path="/" element={<LandingScreen />} />
                 <Route
                   path="/tasks"
                   element={
@@ -88,6 +90,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <HabitsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reminders"
+                  element={
+                    <ProtectedRoute>
+                      <RemindersScreen />
                     </ProtectedRoute>
                   }
                 />

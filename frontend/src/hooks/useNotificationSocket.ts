@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config/api'
 import { useAuth } from '../contexts/useAuth'
-import type { Notification } from '../types/notification'
+import type { SocketMessage } from '../types/notification'
 
 const MAX_BACKOFF_MS = 30_000
 const INITIAL_BACKOFF_MS = 1_000
@@ -22,7 +22,7 @@ function wsUrl(token: string): string {
 }
 
 export interface UseNotificationSocketOptions {
-  onMessage?: (notification: Notification) => void
+  onMessage?: (message: SocketMessage) => void
 }
 
 export function useNotificationSocket(
@@ -78,7 +78,7 @@ export function useNotificationSocket(
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data) as Notification
+          const data = JSON.parse(event.data) as SocketMessage
           onMessageRef.current?.(data)
         } catch {
           // Ignore malformed messages.

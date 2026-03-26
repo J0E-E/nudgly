@@ -16,6 +16,7 @@ import { TaskList } from '../components/TaskList'
 import { TaskFormModal } from '../components/TaskFormModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SnoozeTaskDialog } from '../components/SnoozeTaskDialog'
+import { PageCard } from '../components/PageCard'
 import './TasksScreen.css'
 
 interface FormModalState {
@@ -39,11 +40,13 @@ export function TasksScreen() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
   const [listFilter, setListFilter] = useState('')
+  const [createdForMe, setCreatedForMe] = useState(false)
 
   const listIdParam = listFilter === 'none' ? ('none' as const) : undefined
   const { data, isLoading, isError, error } = useTaskList(
     undefined,
-    listIdParam
+    listIdParam,
+    createdForMe || undefined
   )
   const toggleComplete = useToggleTaskComplete()
   const updateMutation = useUpdateTask()
@@ -131,7 +134,7 @@ export function TasksScreen() {
   }
 
   return (
-    <main id="tasks-screen" className="tasks-screen" aria-label="Tasks">
+    <PageCard id="tasks-screen" ariaLabel="Tasks">
       <h1 id="tasks-screen-title" className="tasks-screen-title">
         Tasks
       </h1>
@@ -145,6 +148,8 @@ export function TasksScreen() {
         onAddTask={() => setFormModal({ open: true, mode: 'create' })}
         listFilter={listFilter}
         onListFilterChange={setListFilter}
+        createdForMe={createdForMe}
+        onCreatedForMeChange={setCreatedForMe}
       />
       {deleteMutation.isError && (
         <div className="tasks-mutation-error" role="alert">
@@ -217,6 +222,6 @@ export function TasksScreen() {
         onUnmute={handleUnmute}
         onCancel={handleSnoozeCancel}
       />
-    </main>
+    </PageCard>
   )
 }

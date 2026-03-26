@@ -4,19 +4,34 @@ import { TaskList } from './TaskList'
 import { TaskCategory, TaskStatus } from '../types/task'
 import type { Task } from '../types/task'
 
+vi.mock('../contexts/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    getApiDeps: vi.fn(() => ({
+      getAccessToken: () => 'token',
+      refreshTokens: vi.fn(),
+      onUnauthorized: vi.fn(),
+    })),
+  })),
+}))
+
 const mockTask: Task = {
   id: 1,
   title: 'Test task',
   description: '',
   due_date: null,
-  category: TaskCategory.ADULTING,
+  due_time: null,
+  category: TaskCategory.WORK,
   tag: '',
   priority: 0,
   recurring: null,
+  stack_count: 0,
   status: TaskStatus.PENDING,
   muted_until: null,
   created_at: '2026-03-20T10:00:00Z',
   completed_at: null,
+  list_id: null,
+  created_by: null,
+  linked_friends: [],
 }
 
 describe('TaskList', () => {
@@ -24,6 +39,7 @@ describe('TaskList', () => {
     onToggleComplete: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
+    onSnooze: vi.fn(),
   }
 
   it('renders empty state when no tasks', () => {

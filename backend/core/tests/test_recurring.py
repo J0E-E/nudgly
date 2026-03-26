@@ -27,7 +27,7 @@ def _create_user(email="u@example.com", username="user1", password="Pass1234", *
 
 
 def _create_task(user, **kwargs):
-    defaults = {"title": "Test task", "category": "adulting"}
+    defaults = {"title": "Test task", "category": "work"}
     defaults.update(kwargs)
     return Task.objects.create(user=user, **defaults)
 
@@ -121,7 +121,7 @@ class RecurringCompletionTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Daily task",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "recurring": "daily",
             },
@@ -158,7 +158,7 @@ class RecurringCompletionTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Timed recurring",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "due_time": "14:30:00",
                 "recurring": "daily",
@@ -178,7 +178,7 @@ class RecurringCompletionTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Scheduled recurring",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "recurring": "weekly",
             },
@@ -202,7 +202,7 @@ class RecurringCompletionTests(TestCase):
             "/api/tasks/",
             {
                 "title": "One-off",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
             },
             format="json",
@@ -228,7 +228,7 @@ class RecurringValidationTests(TestCase):
     def test_recurring_requires_due_date(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "Bad", "category": "adulting", "recurring": "daily"},
+            {"title": "Bad", "category": "work", "recurring": "daily"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -238,7 +238,7 @@ class RecurringValidationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Bad",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "recurring": "biweekly",
             },
@@ -251,7 +251,7 @@ class RecurringValidationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Clear me",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "recurring": "daily",
             },
@@ -273,7 +273,7 @@ class RecurringValidationTests(TestCase):
     def test_payload_includes_stack_count(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "Has stack", "category": "adulting"},
+            {"title": "Has stack", "category": "work"},
             format="json",
         )
         self.assertEqual(resp.json()["stack_count"], 0)
@@ -283,7 +283,7 @@ class RecurringValidationTests(TestCase):
             "/api/tasks/",
             {
                 "title": "Will lose date",
-                "category": "adulting",
+                "category": "work",
                 "due_date": "2026-04-15",
                 "due_time": "10:00:00",
                 "recurring": "daily",

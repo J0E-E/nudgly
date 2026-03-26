@@ -4,19 +4,34 @@ import { TaskListItem } from './TaskListItem'
 import { TaskCategory, TaskStatus } from '../types/task'
 import type { Task } from '../types/task'
 
+vi.mock('../contexts/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    getApiDeps: vi.fn(() => ({
+      getAccessToken: () => 'token',
+      refreshTokens: vi.fn(),
+      onUnauthorized: vi.fn(),
+    })),
+  })),
+}))
+
 const baseTask: Task = {
   id: 1,
   title: 'Buy groceries',
   description: 'Milk, eggs, bread',
   due_date: '2026-04-01',
-  category: TaskCategory.ADULTING,
+  due_time: null,
+  category: TaskCategory.WORK,
   tag: '',
   priority: 3,
   recurring: null,
+  stack_count: 0,
   status: TaskStatus.PENDING,
   muted_until: null,
   created_at: '2026-03-20T10:00:00Z',
   completed_at: null,
+  list_id: null,
+  created_by: null,
+  linked_friends: [],
 }
 
 function renderItem(taskOverrides: Partial<Task> = {}) {
@@ -60,17 +75,17 @@ describe('TaskListItem', () => {
 
   it('renders category label', () => {
     renderItem()
-    expect(screen.getByText('Adulting')).toBeInTheDocument()
+    expect(screen.getByText('Work')).toBeInTheDocument()
   })
 
   it('renders priority label when priority > 0', () => {
     renderItem()
-    expect(screen.getByText('Others are watching')).toBeInTheDocument()
+    expect(screen.getByText('High')).toBeInTheDocument()
   })
 
   it('does not render priority label when priority is 0', () => {
     renderItem({ priority: 0 })
-    expect(screen.queryByText('No one cares')).not.toBeInTheDocument()
+    expect(screen.queryByText('None')).not.toBeInTheDocument()
   })
 
   it('checkbox is unchecked for pending task', () => {

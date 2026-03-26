@@ -1,20 +1,20 @@
 .task-filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   padding: 16px 20px;
   margin: 0 16px;
 }
 
 .task-filter-search {
   flex: 1;
-  min-width: 180px;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 40px;
   padding: 8px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  background: var(--color-surface-alt);
-  color: var(--color-text);
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
   font-size: 0.875rem;
 }
 
@@ -23,14 +23,75 @@
   outline-offset: 2px;
 }
 
-.task-filter-select {
-  min-height: 44px;
-  padding: 8px 16px;
+/* Popover anchor */
+.task-filter-popover-anchor {
+  position: relative;
+}
+
+/* Filter toggle button */
+.task-filter-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  background: var(--color-surface-alt);
+  background-color: var(--color-surface-alt);
   color: var(--color-text);
-  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.task-filter-toggle:hover {
+  background-color: var(--color-surface-inset);
+}
+
+.task-filter-toggle:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Active-filter indicator dot */
+.task-filter-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+/* Popover panel */
+.task-filter-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-alt);
+  box-shadow: var(--shadow-card);
+}
+
+.task-filter-select {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+  font-size: 0.8125rem;
 }
 
 .task-filter-select:focus {
@@ -38,9 +99,36 @@
   outline-offset: 2px;
 }
 
+.task-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.task-filter-clear {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: center;
+  transition: color 150ms;
+}
+
+.task-filter-clear:hover {
+  color: var(--color-text);
+}
+
+/* Add task button */
 .task-add-btn {
-  min-height: 44px;
-  padding: 8px 24px;
+  min-height: 40px;
+  padding: 8px 20px;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
@@ -48,6 +136,7 @@
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .task-add-btn:hover {
@@ -57,4 +146,11 @@
 .task-add-btn:focus {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* Mobile: popover stretches wider */
+@media (max-width: 480px) {
+  .task-filter-popover {
+    min-width: 180px;
+  }
 }

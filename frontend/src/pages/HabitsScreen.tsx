@@ -12,6 +12,7 @@ import {
 import { HabitList } from '../components/HabitList'
 import { HabitFormModal } from '../components/HabitFormModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PageCard } from '../components/PageCard'
 import './HabitsScreen.css'
 
 interface FormModalState {
@@ -73,7 +74,7 @@ export function HabitsScreen() {
   }
 
   return (
-    <main id="habits-screen" className="habits-screen" aria-label="Habits">
+    <PageCard id="habits-screen" ariaLabel="Habits">
       <h1 id="habits-screen-title" className="habits-screen-title">
         Habits
       </h1>
@@ -150,6 +151,6 @@ export function HabitsScreen() {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
-    </main>
+    </PageCard>
   )
 }

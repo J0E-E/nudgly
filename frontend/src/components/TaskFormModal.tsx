@@ -12,6 +12,7 @@ import {
   RECURRING_LABELS,
 } from '../types/task'
 import { useCreateTask, useUpdateTask } from '../hooks/useTasks'
+import { useFriendList } from '../hooks/useFriends'
 import './TaskFormModal.css'
 
 interface TaskFormModalProps {
@@ -34,6 +35,8 @@ interface FormValues {
   priority: string
   tag: string
   recurring: string
+  linkedFriendIds: number[]
+  createdForUserId: number | null
 }
 
 const EMPTY_FORM: FormValues = {
@@ -45,6 +48,8 @@ const EMPTY_FORM: FormValues = {
   priority: '0',
   tag: '',
   recurring: '',
+  linkedFriendIds: [],
+  createdForUserId: null,
 }
 
 interface ListDefaults {
@@ -68,6 +73,8 @@ function getInitialValues(
       priority: String(task.priority),
       tag: task.tag,
       recurring: task.recurring ?? '',
+      linkedFriendIds: task.linked_friends.map((f) => f.id),
+      createdForUserId: null,
     }
   }
   if (listDefaults) {
@@ -98,6 +105,7 @@ export function TaskFormModal({
 
   const createMutation = useCreateTask()
   const updateMutation = useUpdateTask()
+  const { data: friends = [] } = useFriendList()
 
   const initialValues = useMemo(
     () =>
@@ -176,12 +184,21 @@ export function TaskFormModal({
         const createPayload: TaskCreatePayload = {
           ...common,
           ...(listId != null ? { list_id: listId } : {}),
+          ...(form.linkedFriendIds.length > 0
+            ? { linked_friend_ids: form.linkedFriendIds }
+            : {}),
+          ...(form.createdForUserId
+            ? { created_for_user_id: form.createdForUserId }
+            : {}),
         }
         await createMutation.mutateAsync(createPayload)
       } else if (task) {
         await updateMutation.mutateAsync({
           id: task.id,
-          payload: common as TaskUpdatePayload,
+          payload: {
+            ...common,
+            linked_friend_ids: form.linkedFriendIds,
+          } as TaskUpdatePayload,
         })
       }
       handleClose()
@@ -232,6 +249,31 @@ export function TaskFormModal({
             disabled={submitting}
           />
         </div>
+        {mode === 'create' && friends.length > 0 && (
+          <div className="task-form-field">
+            <label htmlFor="task-form-assign-friend-input">
+              Assign to friend (optional)
+            </label>
+            <select
+              id="task-form-assign-friend-input"
+              value={form.createdForUserId ?? ''}
+              onChange={(e) =>
+                updateField(
+                  'createdForUserId',
+                  e.target.value ? Number(e.target.value) : null
+                )
+              }
+              disabled={submitting}
+            >
+              <option value="">None</option>
+              {friends.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.display_name || f.username}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="task-form-field">
           <label htmlFor="task-form-due-date-input">Due date</label>
           <input
@@ -320,6 +362,36 @@ export function TaskFormModal({
             disabled={submitting}
           />
         </div>
+        {friends.length > 0 && (
+          <div className="task-form-field">
+            <label>Link friends (optional)</label>
+            <div className="task-form-friend-checkboxes">
+              {friends.map((f) => (
+                <label key={f.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.linkedFriendIds.includes(f.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        updateField('linkedFriendIds', [
+                          ...form.linkedFriendIds,
+                          f.id,
+                        ])
+                      } else {
+                        updateField(
+                          'linkedFriendIds',
+                          form.linkedFriendIds.filter((id) => id !== f.id)
+                        )
+                      }
+                    }}
+                    disabled={submitting}
+                  />{' '}
+                  {f.display_name || f.username}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="task-form-actions">
           <button
             id="task-form-cancel-btn"

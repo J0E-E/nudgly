@@ -67,7 +67,7 @@ describe('taskApi', () => {
 
   describe('createTask', () => {
     it('calls authPost with correct URL and payload', async () => {
-      const payload = { title: 'Test', category: TaskCategory.ADULTING }
+      const payload = { title: 'Test', category: TaskCategory.WORK }
       const mockTask = { id: 1, ...payload, status: 'pending' }
       vi.mocked(apiClient.authPost).mockResolvedValue(mockTask)
 

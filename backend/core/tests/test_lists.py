@@ -59,7 +59,7 @@ class ListModelTests(TestCase):
     def test_delete_list_nullifies_task_list_id(self):
         lst = List.objects.create(user=self.user, name="L")
         task = Task.objects.create(
-            user=self.user, title="T", category="adulting", list=lst
+            user=self.user, title="T", category="work", list=lst
         )
         lst.delete()
         task.refresh_from_db()
@@ -87,7 +87,7 @@ class ListCreateViewTests(TestCase):
     def test_create_all_fields(self):
         payload = {
             "name": "Full list",
-            "category": "glow_up",
+            "category": "personal",
             "tag": "health",
             "priority": 3,
             "sort_order": 5,
@@ -96,7 +96,7 @@ class ListCreateViewTests(TestCase):
         resp = self.client.post("/api/lists/", payload, format="json")
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         data = resp.json()
-        self.assertEqual(data["category"], "glow_up")
+        self.assertEqual(data["category"], "personal")
         self.assertEqual(data["priority"], 3)
         self.assertEqual(data["sort_order"], 5)
 
@@ -114,7 +114,7 @@ class ListCreateViewTests(TestCase):
 
     def test_create_invalid_priority_returns_400(self):
         resp = self.client.post(
-            "/api/lists/", {**VALID_LIST, "priority": 6}, format="json"
+            "/api/lists/", {**VALID_LIST, "priority": 4}, format="json"
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -191,8 +191,8 @@ class ListListViewTests(TestCase):
 
     def test_list_response_includes_task_count(self):
         lst = List.objects.create(user=self.user, name="L")
-        Task.objects.create(user=self.user, title="T1", category="adulting", list=lst)
-        Task.objects.create(user=self.user, title="T2", category="adulting", list=lst)
+        Task.objects.create(user=self.user, title="T1", category="work", list=lst)
+        Task.objects.create(user=self.user, title="T2", category="work", list=lst)
 
         resp = self.client.get("/api/lists/")
         self.assertEqual(resp.json()["results"][0]["task_count"], 2)
@@ -233,13 +233,13 @@ class ListDetailViewTests(TestCase):
     def test_patch_multiple_fields(self):
         resp = self.client.patch(
             f"/api/lists/{self.lst.id}/",
-            {"name": "New", "priority": 4, "category": "glow_up"},
+            {"name": "New", "priority": 3, "category": "personal"},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.json()
-        self.assertEqual(data["priority"], 4)
-        self.assertEqual(data["category"], "glow_up")
+        self.assertEqual(data["priority"], 3)
+        self.assertEqual(data["category"], "personal")
 
     def test_patch_archived_at(self):
         resp = self.client.patch(
@@ -277,7 +277,7 @@ class ListDetailViewTests(TestCase):
 
     def test_delete_nullifies_tasks(self):
         task = Task.objects.create(
-            user=self.user, title="T", category="adulting", list=self.lst
+            user=self.user, title="T", category="work", list=self.lst
         )
         self.client.delete(f"/api/lists/{self.lst.id}/")
         task.refresh_from_db()
@@ -303,7 +303,7 @@ class TaskListIntegrationTests(TestCase):
     def test_create_task_with_list_id(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "In list", "category": "adulting", "list_id": self.lst.id},
+            {"title": "In list", "category": "work", "list_id": self.lst.id},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
@@ -312,7 +312,7 @@ class TaskListIntegrationTests(TestCase):
     def test_create_task_with_invalid_list_id_returns_400(self):
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "Bad", "category": "adulting", "list_id": 99999},
+            {"title": "Bad", "category": "work", "list_id": 99999},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -322,16 +322,16 @@ class TaskListIntegrationTests(TestCase):
         other_list = List.objects.create(user=other, name="Not mine")
         resp = self.client.post(
             "/api/tasks/",
-            {"title": "Bad", "category": "adulting", "list_id": other_list.id},
+            {"title": "Bad", "category": "work", "list_id": other_list.id},
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_filter_tasks_by_list_id(self):
         Task.objects.create(
-            user=self.user, title="In list", category="adulting", list=self.lst
+            user=self.user, title="In list", category="work", list=self.lst
         )
-        Task.objects.create(user=self.user, title="No list", category="adulting")
+        Task.objects.create(user=self.user, title="No list", category="work")
 
         resp = self.client.get(f"/api/tasks/?list_id={self.lst.id}")
         data = resp.json()
@@ -340,9 +340,9 @@ class TaskListIntegrationTests(TestCase):
 
     def test_filter_tasks_unassigned(self):
         Task.objects.create(
-            user=self.user, title="In list", category="adulting", list=self.lst
+            user=self.user, title="In list", category="work", list=self.lst
         )
-        Task.objects.create(user=self.user, title="No list", category="adulting")
+        Task.objects.create(user=self.user, title="No list", category="work")
 
         resp = self.client.get("/api/tasks/?list_id=none")
         data = resp.json()
@@ -350,7 +350,7 @@ class TaskListIntegrationTests(TestCase):
         self.assertEqual(data["results"][0]["title"], "No list")
 
     def test_move_task_to_list(self):
-        task = Task.objects.create(user=self.user, title="T", category="adulting")
+        task = Task.objects.create(user=self.user, title="T", category="work")
         resp = self.client.patch(
             f"/api/tasks/{task.id}/",
             {"list_id": self.lst.id},
@@ -361,7 +361,7 @@ class TaskListIntegrationTests(TestCase):
 
     def test_move_task_to_null(self):
         task = Task.objects.create(
-            user=self.user, title="T", category="adulting", list=self.lst
+            user=self.user, title="T", category="work", list=self.lst
         )
         resp = self.client.patch(
             f"/api/tasks/{task.id}/",
@@ -374,7 +374,7 @@ class TaskListIntegrationTests(TestCase):
     def test_move_task_to_other_users_list_returns_400(self):
         other = _create_user("other@example.com", "other", "Pass1234")
         other_list = List.objects.create(user=other, name="Not mine")
-        task = Task.objects.create(user=self.user, title="T", category="adulting")
+        task = Task.objects.create(user=self.user, title="T", category="work")
         resp = self.client.patch(
             f"/api/tasks/{task.id}/",
             {"list_id": other_list.id},
@@ -384,12 +384,12 @@ class TaskListIntegrationTests(TestCase):
 
     def test_task_payload_includes_list_id(self):
         task = Task.objects.create(
-            user=self.user, title="T", category="adulting", list=self.lst
+            user=self.user, title="T", category="work", list=self.lst
         )
         resp = self.client.get(f"/api/tasks/{task.id}/")
         self.assertEqual(resp.json()["list_id"], self.lst.id)
 
     def test_task_payload_list_id_null_when_no_list(self):
-        task = Task.objects.create(user=self.user, title="T", category="adulting")
+        task = Task.objects.create(user=self.user, title="T", category="work")
         resp = self.client.get(f"/api/tasks/{task.id}/")
         self.assertIsNone(resp.json()["list_id"])

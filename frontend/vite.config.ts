@@ -5,11 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Allow access from Docker network
+    // Allow access from Docker network and ngrok tunnel
     host: true,
+    allowedHosts: ['joey-dev.ngrok.app'],
     // HMR through nginx proxy
     hmr: {
-      clientPort: 9000,
+      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT || '9000'),
     },
     // Enable polling so file changes on Windows propagate into Docker containers
     watch: {

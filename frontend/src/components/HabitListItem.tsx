@@ -117,15 +117,15 @@ export function HabitListItem({
             {habit.name}
           </span>
           <div className="habit-list-item-meta">
-            <span className="habit-list-item-period-count">
+            <span className="habit-list-item-badge habit-list-item-badge--count">
               {formatPeriodCount(habit)}
             </span>
             {formatStreakLabel(habit) && (
-              <span className="habit-list-item-streak">
+              <span className="habit-list-item-badge habit-list-item-badge--streak">
                 {formatStreakLabel(habit)}
               </span>
             )}
-            <span className="habit-list-item-frequency">
+            <span className="habit-list-item-badge habit-list-item-badge--freq">
               {HABIT_FREQUENCY_LABELS[habit.frequency]}
             </span>
           </div>
@@ -155,6 +155,24 @@ export function HabitListItem({
         aria-hidden={!expanded}
       >
         <div className="habit-list-item-details-inner">
+          <p className="habit-list-item-detail-row">
+            <span className="habit-list-item-detail-label">Name</span>
+            <span className="habit-list-item-detail-full-name">{habit.name}</span>
+          </p>
+          <p className="habit-list-item-detail-row">
+            <span className="habit-list-item-detail-label">Progress</span>
+            <span>{formatPeriodCount(habit)}</span>
+          </p>
+          {formatStreakLabel(habit) && (
+            <p className="habit-list-item-detail-row">
+              <span className="habit-list-item-detail-label">Streak</span>
+              <span>{formatStreakLabel(habit)}</span>
+            </p>
+          )}
+          <p className="habit-list-item-detail-row">
+            <span className="habit-list-item-detail-label">Frequency</span>
+            <span>{HABIT_FREQUENCY_LABELS[habit.frequency]}</span>
+          </p>
           <p className="habit-list-item-detail-row">
             <span className="habit-list-item-detail-label">Target</span>
             <span>

@@ -43,12 +43,14 @@ describe('HabitListItem', () => {
 
   it('renders habit name', () => {
     renderItem()
-    expect(screen.getByText('Meditate')).toBeInTheDocument()
+    const matches = screen.getAllByText('Meditate')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders streak label', () => {
     renderItem()
-    expect(screen.getByText('5 day streak')).toBeInTheDocument()
+    const matches = screen.getAllByText('5 day streak')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders reminder times in expanded view', () => {

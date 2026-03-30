@@ -10,7 +10,12 @@ const config: CapacitorConfig = {
   appName: 'Nudgly',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
+  },
+  plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
   },
 };
 

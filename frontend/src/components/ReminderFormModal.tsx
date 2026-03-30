@@ -159,9 +159,9 @@ export function ReminderFormModal({
           return
         }
 
-        const payload: Record<string, unknown> = {
+        const payload: Partial<StandaloneReminderCreatePayload> & { name: string } = {
           name: form.name.trim(),
-          recurrence: form.recurrence,
+          recurrence: form.recurrence as StandaloneReminderCreatePayload['recurrence'],
           remind_time: form.remindTime,
           remind_at: null,
         }

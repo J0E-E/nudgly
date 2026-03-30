@@ -17,6 +17,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, []),
     CORS_ALLOW_ALL_ORIGINS=(bool, False),
+    CSRF_TRUSTED_ORIGINS=(list, []),
     EMAIL_SENDER=(str, "stdout"),
     NOTIFICATION_SENDER=(str, "stdout"),
     FRONTEND_ORIGIN=(str, "http://localhost:5173"),
@@ -114,6 +115,8 @@ if not CORS_ALLOW_ALL_ORIGINS:
     CORS_ALLOWED_ORIGINS = env(
         "CORS_ALLOWED_ORIGINS"
     )  # empty list = no cross-origin allowed
+
+CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 # Database (PostgreSQL; use SQLite in-memory for tests so no Postgres required)
 if "test" in sys.argv:

@@ -128,68 +128,26 @@ export function TaskListItem({
             {task.title}
           </span>
           <div className="task-list-item-meta">
-            {task.due_date && (
-              <span
-                id={`task-${task.id}-due`}
-                className={`task-list-item-due${overdue ? ' task-list-item-due--overdue' : ''}`}
-              >
-                {formatDueDate(task.due_date, task.due_time)}
-              </span>
-            )}
             <span
               id={`task-${task.id}-category`}
-              className="task-list-item-category"
+              className={`task-list-item-badge task-list-item-badge--cat-${task.category}`}
             >
               {TASK_CATEGORY_LABELS[task.category]}
             </span>
             {task.priority > 0 && (
               <span
                 id={`task-${task.id}-priority`}
-                className="task-list-item-priority"
+                className={`task-list-item-badge task-list-item-badge--pri-${task.priority}`}
               >
                 {TASK_PRIORITY_LABELS[task.priority]}
               </span>
             )}
-            {task.recurring && (
+            {task.due_date && (
               <span
-                id={`task-${task.id}-recurring`}
-                className="task-list-item-recurring"
+                id={`task-${task.id}-due`}
+                className={`task-list-item-badge task-list-item-badge--due${overdue ? ' task-list-item-badge--overdue' : ''}`}
               >
-                {RECURRING_LABELS[task.recurring] ?? task.recurring}
-              </span>
-            )}
-            {task.stack_count > 0 && (
-              <span
-                id={`task-${task.id}-stack`}
-                className="task-list-item-stack"
-              >
-                x{task.stack_count + 1}
-              </span>
-            )}
-            {muted && (
-              <span
-                id={`task-${task.id}-muted`}
-                className="task-list-item-muted"
-              >
-                Muted
-              </span>
-            )}
-            {task.created_by && (
-              <span
-                id={`task-${task.id}-created-by`}
-                className="task-list-item-created-by"
-              >
-                By {task.created_by.display_name || task.created_by.username}
-              </span>
-            )}
-            {task.linked_friends.length > 0 && (
-              <span
-                id={`task-${task.id}-linked-friends`}
-                className="task-list-item-linked-friends"
-              >
-                {task.linked_friends
-                  .map((f) => f.display_name || f.username)
-                  .join(', ')}
+                {formatDueDate(task.due_date, task.due_time)}
               </span>
             )}
           </div>
@@ -219,6 +177,40 @@ export function TaskListItem({
         aria-hidden={!expanded}
       >
         <div className="task-list-item-details-inner">
+          <p className="task-list-item-detail-row">
+            <span className="task-list-item-detail-label">Title</span>
+            <span className="task-list-item-detail-full-title">{task.title}</span>
+          </p>
+          {task.due_date && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Due</span>
+              <span className={overdue ? 'task-list-item-detail-overdue' : ''}>
+                {formatDueDate(task.due_date, task.due_time)}
+              </span>
+            </p>
+          )}
+          <p className="task-list-item-detail-row">
+            <span className="task-list-item-detail-label">Category</span>
+            <span>{TASK_CATEGORY_LABELS[task.category]}</span>
+          </p>
+          {task.priority > 0 && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Priority</span>
+              <span>{TASK_PRIORITY_LABELS[task.priority]}</span>
+            </p>
+          )}
+          {task.recurring && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Recurring</span>
+              <span>{RECURRING_LABELS[task.recurring] ?? task.recurring}</span>
+            </p>
+          )}
+          {task.stack_count > 0 && (
+            <p className="task-list-item-detail-row">
+              <span className="task-list-item-detail-label">Stacked</span>
+              <span>x{task.stack_count + 1}</span>
+            </p>
+          )}
           {task.description && (
             <p className="task-list-item-detail-row">
               <span className="task-list-item-detail-label">Description</span>
@@ -241,7 +233,7 @@ export function TaskListItem({
           )}
           {task.linked_friends.length > 0 && (
             <p className="task-list-item-detail-row">
-              <span className="task-list-item-detail-label">Linked friends</span>
+              <span className="task-list-item-detail-label">Linked</span>
               <span>
                 {task.linked_friends
                   .map((f) => f.display_name || f.username)
@@ -262,7 +254,7 @@ export function TaskListItem({
                 : ''}
             </span>
           </p>
-          {task.muted_until && (
+          {muted && task.muted_until && (
             <p className="task-list-item-detail-row">
               <span className="task-list-item-detail-label">Muted until</span>
               <span>{formatDateTime(task.muted_until)}</span>

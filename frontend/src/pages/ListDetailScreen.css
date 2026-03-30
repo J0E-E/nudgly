@@ -119,3 +119,22 @@
   color: var(--color-on-alert);
   font-size: 0.875rem;
 }
+
+/* Compact layout for small phones */
+@media (max-width: 480px) {
+  .list-detail-header {
+    padding: 16px 16px 0;
+  }
+
+  .list-detail-title {
+    font-size: 1.375rem;
+  }
+
+  .list-detail-actions {
+    padding: 0 16px 10px;
+  }
+
+  .list-detail-state {
+    padding: 32px 16px;
+  }
+}

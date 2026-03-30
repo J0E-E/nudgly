@@ -120,8 +120,8 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
-      expect(screen.getByText('Workout')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
+      expect(screen.getAllByText('Workout')[0]).toBeInTheDocument()
     })
   })
 
@@ -129,34 +129,34 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
     fireEvent.change(screen.getByPlaceholderText(/search tasks/i), {
       target: { value: 'workout' },
     })
-    expect(screen.queryByText('Buy groceries')).not.toBeInTheDocument()
-    expect(screen.getByText('Workout')).toBeInTheDocument()
+    expect(screen.queryAllByText('Buy groceries')).toHaveLength(0)
+    expect(screen.getAllByText('Workout')[0]).toBeInTheDocument()
   })
 
   it('filters tasks by category', async () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
     fireEvent.click(screen.getByLabelText('Toggle filters'))
     fireEvent.change(document.getElementById('task-filter-category')!, {
       target: { value: 'personal' },
     })
-    expect(screen.queryByText('Buy groceries')).not.toBeInTheDocument()
-    expect(screen.getByText('Workout')).toBeInTheDocument()
+    expect(screen.queryAllByText('Buy groceries')).toHaveLength(0)
+    expect(screen.getAllByText('Workout')[0]).toBeInTheDocument()
   })
 
   it('shows empty state when no tasks match filters', async () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
     fireEvent.change(screen.getByPlaceholderText(/search tasks/i), {
       target: { value: 'nonexistent' },
@@ -178,7 +178,7 @@ describe('TasksScreen', () => {
     })
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-1-checkbox')!)
@@ -193,7 +193,7 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-add-btn')!)
@@ -206,7 +206,7 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-1-edit-btn')!)
@@ -219,7 +219,7 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.listTasks).mockResolvedValue(mockResponse)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-1-delete-btn')!)
@@ -233,7 +233,7 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.deleteTask).mockResolvedValue(undefined)
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-1-delete-btn')!)
@@ -249,7 +249,7 @@ describe('TasksScreen', () => {
     vi.mocked(taskApi.updateTask).mockRejectedValue(new Error('Network error'))
     renderWithQuery(<TasksScreen />)
     await waitFor(() => {
-      expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy groceries')[0]).toBeInTheDocument()
     })
 
     fireEvent.click(document.getElementById('task-1-checkbox')!)

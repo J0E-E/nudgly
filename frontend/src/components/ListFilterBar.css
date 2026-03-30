@@ -140,6 +140,12 @@
 
 /* Mobile: popover stretches wider */
 @media (max-width: 480px) {
+  .list-filter-bar {
+    padding: 10px 12px;
+    margin: 0 8px;
+    gap: 8px;
+  }
+
   .list-filter-popover {
     min-width: 180px;
   }

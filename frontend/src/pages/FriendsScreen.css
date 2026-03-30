@@ -187,3 +187,31 @@
 .friends-invitation-status--declined {
   color: var(--color-on-alert);
 }
+
+/* Compact layout for small phones */
+@media (max-width: 480px) {
+  .friends-header {
+    padding: 16px 16px 10px;
+  }
+
+  .friends-screen-title {
+    font-size: 1.375rem;
+  }
+
+  .friends-tabs {
+    padding: 0 16px;
+  }
+
+  .friends-tab {
+    padding: 8px 14px;
+    font-size: 0.8125rem;
+  }
+
+  .friends-tab-content {
+    padding: 0 16px;
+  }
+
+  .friends-state {
+    padding: 32px 0;
+  }
+}

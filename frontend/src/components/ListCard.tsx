@@ -60,22 +60,6 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
             )}
           </div>
         </div>
-        <svg
-          className="list-card-chevron"
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M7 4l6 6-6 6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </Link>
       <div className="list-card-menu-wrap" ref={menuRef}>
         <button

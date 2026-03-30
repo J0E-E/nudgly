@@ -2,12 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Docker Compose: full reset (remove volumes, rebuild)",
+      "label": "Full Rebuild: Android + Docker Compose",
       "type": "shell",
-      "command": "docker compose down -v; docker compose up -d --build",
+      "command": "cd frontend; if ($?) { npm run build }; if ($?) { npx cap sync android }; if ($?) { cd .. }; if ($?) { docker compose down -v }; if ($?) { docker compose up -d --build }",
       "options": {
-        "cwd": "${workspaceFolder}",
-        "env": {}
+        "cwd": "${workspaceFolder}"
       },
       "group": {
         "kind": "build",

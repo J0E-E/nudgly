@@ -27,6 +27,11 @@ export function usePushNotifications() {
     if (!isAuthenticated || registeredRef.current) return
     if (!Capacitor.isNativePlatform()) return
 
+    // Skip on Android until Firebase is configured (google-services.json).
+    // Without it, PushNotifications.register() triggers a native crash:
+    // "Default FirebaseApp is not initialized in this process"
+    if (Capacitor.getPlatform() === 'android') return
+
     const platform = Capacitor.getPlatform() as 'ios' | 'android'
 
     // Add listeners BEFORE calling register() to avoid a race where
@@ -45,13 +50,18 @@ export function usePushNotifications() {
     })
 
     async function register() {
-      const permission = await PushNotifications.requestPermissions()
-      if (permission.receive !== 'granted') {
-        setPermissionDenied(true)
-        return
-      }
+      try {
+        const permission = await PushNotifications.requestPermissions()
+        if (permission.receive !== 'granted') {
+          setPermissionDenied(true)
+          return
+        }
 
-      await PushNotifications.register()
+        await PushNotifications.register()
+      } catch (err) {
+        // Firebase not configured (no google-services.json) — skip silently.
+        console.warn('Push notification registration skipped:', err)
+      }
     }
 
     register()

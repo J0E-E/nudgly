@@ -76,3 +76,20 @@
   padding: 0;
   margin: 0;
 }
+
+/* Compact layout for small phones */
+@media (max-width: 480px) {
+  .reminders-screen-title {
+    padding: 16px 16px 10px;
+    font-size: 1.375rem;
+  }
+
+  .reminders-toolbar {
+    padding: 0 16px 10px;
+    gap: 8px;
+  }
+
+  .reminders-state {
+    padding: 32px 16px;
+  }
+}

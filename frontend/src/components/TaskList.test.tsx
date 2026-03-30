@@ -54,8 +54,8 @@ describe('TaskList', () => {
         {...handlers}
       />
     )
-    expect(screen.getByText('Test task')).toBeInTheDocument()
-    expect(screen.getByText('Second task')).toBeInTheDocument()
+    expect(screen.getAllByText('Test task').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Second task').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders a list element', () => {

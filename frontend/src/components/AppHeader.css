@@ -158,3 +158,18 @@
     display: none;
   }
 }
+
+/* Compact layout for small phones */
+@media (max-width: 480px) {
+  #app-header {
+    padding: 0.5rem 0.75rem;
+  }
+
+  #app-header-logo {
+    height: 24px;
+  }
+
+  #app-header-title {
+    font-size: 1.125rem;
+  }
+}

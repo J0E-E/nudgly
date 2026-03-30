@@ -65,22 +65,26 @@ describe('TaskListItem', () => {
 
   it('renders task title', () => {
     renderItem()
-    expect(screen.getByText('Buy groceries')).toBeInTheDocument()
+    const titles = screen.getAllByText('Buy groceries')
+    expect(titles.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders due date', () => {
     renderItem()
-    expect(screen.getByText('Apr 1')).toBeInTheDocument()
+    const matches = screen.getAllByText('Apr 1')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders category label', () => {
     renderItem()
-    expect(screen.getByText('Work')).toBeInTheDocument()
+    const matches = screen.getAllByText('Work')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders priority label when priority > 0', () => {
     renderItem()
-    expect(screen.getByText('High')).toBeInTheDocument()
+    const matches = screen.getAllByText('High')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   it('does not render priority label when priority is 0', () => {
@@ -246,23 +250,26 @@ describe('TaskListItem', () => {
     expect(details).toHaveAttribute('aria-hidden', 'false')
   })
 
-  // --- Muted badge ---
+  // --- Muted info in expanded view ---
 
-  it('shows muted badge when muted_until is in the future', () => {
+  it('shows muted until row when muted_until is in the future', () => {
     const futureDate = new Date(Date.now() + 86400000).toISOString()
     renderItem({ muted_until: futureDate })
-    expect(screen.getByText('Muted')).toBeInTheDocument()
+    expand()
+    expect(screen.getByText('Muted until')).toBeInTheDocument()
   })
 
-  it('hides muted badge when muted_until is null', () => {
+  it('hides muted until row when muted_until is null', () => {
     renderItem({ muted_until: null })
-    expect(screen.queryByText('Muted')).not.toBeInTheDocument()
+    expand()
+    expect(screen.queryByText('Muted until')).not.toBeInTheDocument()
   })
 
-  it('hides muted badge when muted_until is in the past', () => {
+  it('hides muted until row when muted_until is in the past', () => {
     const pastDate = new Date(Date.now() - 86400000).toISOString()
     renderItem({ muted_until: pastDate })
-    expect(screen.queryByText('Muted')).not.toBeInTheDocument()
+    expand()
+    expect(screen.queryByText('Muted until')).not.toBeInTheDocument()
   })
 
   // --- Snooze button ---

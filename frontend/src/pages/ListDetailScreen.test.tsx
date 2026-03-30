@@ -155,8 +155,8 @@ describe('ListDetailScreen', () => {
     renderWithProviders()
     await waitFor(() => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
-      expect(screen.getByText('Buy milk')).toBeInTheDocument()
-      expect(screen.getByText('Buy bread')).toBeInTheDocument()
+      expect(screen.getAllByText('Buy milk')[0]).toBeInTheDocument()
+      expect(screen.getAllByText('Buy bread')[0]).toBeInTheDocument()
     })
   })
 

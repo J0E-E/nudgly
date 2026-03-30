@@ -49,6 +49,11 @@ const mockResponse: TaskListResponse = {
       muted_until: null,
       created_at: '2026-03-20T10:00:00Z',
       completed_at: null,
+      due_time: null,
+      stack_count: 0,
+      list_id: null,
+      created_by: null,
+      linked_friends: [],
     },
   ],
 }

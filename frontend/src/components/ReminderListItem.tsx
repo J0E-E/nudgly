@@ -135,12 +135,16 @@ export function ReminderListItem({
             {reminder.name}
           </span>
           <div className="reminder-list-item-meta">
-            <span className="reminder-list-item-due">{dueTimeStr}</span>
+            <span className="reminder-list-item-badge reminder-list-item-badge--due">
+              {dueTimeStr}
+            </span>
             {isSnoozed && (
-              <span className="reminder-list-item-snoozed-badge">Snoozed</span>
+              <span className="reminder-list-item-badge reminder-list-item-badge--snoozed">
+                Snoozed
+              </span>
             )}
             {reminder.recurrence && (
-              <span className="reminder-list-item-recurrence">
+              <span className="reminder-list-item-badge reminder-list-item-badge--recur">
                 {RECURRENCE_LABELS[reminder.recurrence]}
               </span>
             )}
@@ -171,6 +175,14 @@ export function ReminderListItem({
         aria-hidden={!expanded}
       >
         <div className="reminder-list-item-details-inner">
+          <p className="reminder-list-item-detail-row">
+            <span className="reminder-list-item-detail-label">Name</span>
+            <span className="reminder-list-item-detail-full-name">{reminder.name}</span>
+          </p>
+          <p className="reminder-list-item-detail-row">
+            <span className="reminder-list-item-detail-label">Due in</span>
+            <span>{dueTimeStr}</span>
+          </p>
           <p className="reminder-list-item-detail-row">
             <span className="reminder-list-item-detail-label">Schedule</span>
             <span>{formatRecurrenceDetail(reminder)}</span>

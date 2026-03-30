@@ -273,6 +273,7 @@ export function ListDetailScreen() {
           onToggleComplete={handleToggleComplete}
           onEdit={handleEditTask}
           onDelete={handleDeleteTaskRequest}
+          onSnooze={() => {}}
         />
       )}
 

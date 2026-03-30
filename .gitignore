@@ -28,12 +28,21 @@ yarn-debug.log*
 pnpm-debug.log*
 frontend/dist/
 
-# Capacitor native build outputs (if generated in repo)
+# Capacitor native build artifacts
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/capacitor-cordova-android-plugins/build/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/*.iml
+frontend/android/app/*.iml
+frontend/android/app/src/main/assets/public/
 # ios/
-# android/
 
 # Docker
 .docker/
+docker-compose.override.yml
 
 # IDE and OS
 .idea/

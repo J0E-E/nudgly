@@ -17,3 +17,15 @@
   box-shadow: var(--shadow-card);
   overflow-y: auto;
 }
+
+/* Compact layout for small phones */
+@media (max-width: 480px) {
+  .page-card {
+    margin: 0 auto;
+  }
+
+  .page-card__card {
+    padding-bottom: 16px;
+    border-radius: 0;
+  }
+}

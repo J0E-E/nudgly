@@ -15,4 +15,5 @@ urlpatterns = [
     path("habits/", include("core.habits.urls")),
     path("friends/", include("core.friends.urls")),
     path("standalone-reminders/", include("core.standalone_reminders.urls")),
+    path("my-day/", include("core.my_day.urls")),
 ]

@@ -67,6 +67,8 @@ export interface Task {
   created_at: string
   completed_at: string | null
   list_id: number | null
+  focus_date: string | null
+  focus_sort_order: number
   created_by: UserSummary | null
   linked_friends: UserSummary[]
 }
@@ -125,5 +127,7 @@ export interface TaskUpdatePayload {
   muted_until?: string | null
   mute_preset?: MutePreset
   list_id?: number | null
+  focus_date?: string | null
+  focus_sort_order?: number
   linked_friend_ids?: number[]
 }

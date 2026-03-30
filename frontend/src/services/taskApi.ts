@@ -72,6 +72,20 @@ export async function deleteTask(
 }
 
 /**
+ * POST /api/tasks/reorder-focus/ — bulk-update focus_sort_order.
+ */
+export async function reorderFocusTasks(
+  deps: ApiClientDeps,
+  orderedIds: number[]
+): Promise<{ status: string }> {
+  return authPost<{ status: string }>(
+    `${TASKS_BASE}/reorder-focus/`,
+    { ordered_ids: orderedIds },
+    deps
+  )
+}
+
+/**
  * GET /api/tasks/{id}/schedule/ — active reminder schedule for a task.
  * Returns null if no active schedule (404).
  */

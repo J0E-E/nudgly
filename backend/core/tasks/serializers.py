@@ -40,6 +40,8 @@ def task_payload(task):
         "muted_until": task.muted_until.isoformat() if task.muted_until else None,
         "created_at": task.created_at.isoformat(),
         "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+        "focus_date": task.focus_date.isoformat() if task.focus_date else None,
+        "focus_sort_order": task.focus_sort_order,
         "list_id": task.list_id,
         "created_by": _user_summary(task.created_by),
         "linked_friends": [_user_summary(f) for f in task.linked_friends.all()],
@@ -203,6 +205,8 @@ class TaskPatchSerializer(serializers.Serializer):
         choices=list(MUTE_PRESET_DURATIONS.keys()), required=False
     )
     list_id = serializers.IntegerField(required=False, allow_null=True)
+    focus_date = serializers.DateField(required=False, allow_null=True)
+    focus_sort_order = serializers.IntegerField(required=False)
     linked_friend_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False,
     )
@@ -347,3 +351,11 @@ class TaskPatchSerializer(serializers.Serializer):
             notify_linked_friends(instance, "completed")
 
         return instance
+
+
+class ReorderFocusSerializer(serializers.Serializer):
+    """Validate reorder-focus request: list of task IDs in desired order."""
+
+    ordered_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False
+    )

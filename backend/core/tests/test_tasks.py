@@ -416,3 +416,158 @@ class TaskDetailViewTests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Focus fields ──────────────────────────────────────────────────
+
+    def test_patch_focus_date(self):
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"focus_date": "2026-03-30"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["focus_date"], "2026-03-30")
+
+    def test_patch_focus_sort_order(self):
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"focus_sort_order": 5},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["focus_sort_order"], 5)
+
+    def test_patch_clear_focus_date(self):
+        self.task.focus_date = date.today()
+        self.task.save()
+        resp = self.client.patch(
+            f"/api/tasks/{self.task.id}/",
+            {"focus_date": None},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsNone(resp.json()["focus_date"])
+
+
+# ── Model: focus field defaults ─────────────────────────────────────────
+
+
+class TaskFocusFieldDefaultsTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+
+    def test_focus_date_defaults_to_none(self):
+        task = Task.objects.create(user=self.user, title="T", category="work")
+        self.assertIsNone(task.focus_date)
+
+    def test_focus_sort_order_defaults_to_zero(self):
+        task = Task.objects.create(user=self.user, title="T", category="work")
+        self.assertEqual(task.focus_sort_order, 0)
+
+
+# ── Payload: focus fields ───────────────────────────────────────────────
+
+
+class TaskPayloadFocusFieldsTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.client = APIClient()
+        _auth_client(self.client, "u@example.com", "Pass1234")
+
+    def test_payload_includes_focus_fields(self):
+        task = Task.objects.create(
+            user=self.user, title="T", category="work",
+            focus_date=date(2026, 3, 30), focus_sort_order=2,
+        )
+        resp = self.client.get(f"/api/tasks/{task.id}/")
+        data = resp.json()
+        self.assertEqual(data["focus_date"], "2026-03-30")
+        self.assertEqual(data["focus_sort_order"], 2)
+
+    def test_payload_focus_date_null_when_unset(self):
+        task = Task.objects.create(user=self.user, title="T", category="work")
+        resp = self.client.get(f"/api/tasks/{task.id}/")
+        self.assertIsNone(resp.json()["focus_date"])
+        self.assertEqual(resp.json()["focus_sort_order"], 0)
+
+
+# ── POST /api/tasks/reorder-focus/ ──────────────────────────────────────
+
+
+class TaskReorderFocusViewTests(TestCase):
+    def setUp(self):
+        self.user = _create_user()
+        self.client = APIClient()
+        _auth_client(self.client, "u@example.com", "Pass1234")
+        self.t1 = Task.objects.create(
+            user=self.user, title="T1", category="work",
+            focus_date=date.today(),
+        )
+        self.t2 = Task.objects.create(
+            user=self.user, title="T2", category="work",
+            focus_date=date.today(),
+        )
+        self.t3 = Task.objects.create(
+            user=self.user, title="T3", category="work",
+            focus_date=date.today(),
+        )
+
+    def test_reorder_success(self):
+        resp = self.client.post(
+            "/api/tasks/reorder-focus/",
+            {"ordered_ids": [self.t3.id, self.t1.id, self.t2.id]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["status"], "ok")
+        self.t1.refresh_from_db()
+        self.t2.refresh_from_db()
+        self.t3.refresh_from_db()
+        self.assertEqual(self.t3.focus_sort_order, 0)
+        self.assertEqual(self.t1.focus_sort_order, 1)
+        self.assertEqual(self.t2.focus_sort_order, 2)
+
+    def test_reorder_unauthenticated(self):
+        client = APIClient()
+        resp = client.post(
+            "/api/tasks/reorder-focus/",
+            {"ordered_ids": [self.t1.id]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_reorder_other_users_task(self):
+        other = _create_user("other@example.com", "other", "Pass1234")
+        other_task = Task.objects.create(
+            user=other, title="Other", category="work",
+        )
+        resp = self.client.post(
+            "/api/tasks/reorder-focus/",
+            {"ordered_ids": [self.t1.id, other_task.id]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reorder_nonexistent_ids(self):
+        resp = self.client.post(
+            "/api/tasks/reorder-focus/",
+            {"ordered_ids": [99999]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reorder_empty_list(self):
+        resp = self.client.post(
+            "/api/tasks/reorder-focus/",
+            {"ordered_ids": []},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reorder_missing_field(self):
+        resp = self.client.post(
+            "/api/tasks/reorder-focus/",
+            {},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

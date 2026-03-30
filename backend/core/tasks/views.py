@@ -2,7 +2,7 @@
 Task CRUD views: list/create and detail/update/delete.
 """
 
-from django.db.models import F
+from django.db.models import Case, F, Value, When
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from core.models import Task, TaskStatus
 from core.tasks.serializers import (
+    ReorderFocusSerializer,
     TaskCreateSerializer,
     TaskPatchSerializer,
     task_payload,
@@ -148,3 +149,27 @@ class TaskScheduleView(APIView):
                 "created_at": schedule.created_at.isoformat(),
             }
         )
+
+
+class TaskReorderFocusView(APIView):
+    """POST /api/tasks/reorder-focus/ — bulk-update focus_sort_order."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ReorderFocusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ordered_ids = serializer.validated_data["ordered_ids"]
+        tasks = Task.objects.filter(user=request.user, pk__in=ordered_ids)
+
+        if tasks.count() != len(ordered_ids):
+            return Response(
+                {"detail": "One or more task IDs are invalid or not owned by you."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        whens = [When(pk=pk, then=Value(i)) for i, pk in enumerate(ordered_ids)]
+        tasks.update(focus_sort_order=Case(*whens))
+
+        return Response({"status": "ok"})

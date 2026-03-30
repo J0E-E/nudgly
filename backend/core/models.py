@@ -163,6 +163,8 @@ class Task(models.Model):
     muted_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    focus_date = models.DateField(null=True, blank=True)
+    focus_sort_order = models.IntegerField(default=0)
     created_by = models.ForeignKey(
         User,
         null=True,
@@ -178,6 +180,7 @@ class Task(models.Model):
         indexes = [
             models.Index(fields=["user", "status"]),
             models.Index(fields=["user", "due_date"]),
+            models.Index(fields=["user", "focus_date"]),
         ]
 
     def __str__(self):

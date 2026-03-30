@@ -113,6 +113,47 @@ export function useToggleTaskComplete() {
   })
 }
 
+export function useReorderFocusTasks() {
+  const { getApiDeps } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderedIds: number[]) =>
+      taskApi.reorderFocusTasks(getApiDeps(), orderedIds),
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: taskKeys.lists() })
+      const previousData = queryClient.getQueriesData<TaskListResponse>({
+        queryKey: taskKeys.lists(),
+      })
+      const orderMap = new Map(orderedIds.map((id, i) => [id, i]))
+      queryClient.setQueriesData<TaskListResponse>(
+        { queryKey: taskKeys.lists() },
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            results: old.results.map((t) => {
+              const newOrder = orderMap.get(t.id)
+              return newOrder !== undefined
+                ? { ...t, focus_sort_order: newOrder }
+                : t
+            }),
+          }
+        }
+      )
+      return { previousData }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() }),
+  })
+}
+
 export function useDeleteTask() {
   const { getApiDeps } = useAuth()
   const queryClient = useQueryClient()

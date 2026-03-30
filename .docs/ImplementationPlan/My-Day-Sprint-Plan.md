@@ -107,7 +107,7 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 
 ---
 
-## Epic MD-3: My Day Screen -- Core Layout & Focus Section
+## Epic MD-3: My Day Screen -- Core Layout & Focus Section ✅ COMPLETED
 
 **Objective:** Render the My Day screen with header, Today's Focus section, and micro progress bar.
 
@@ -141,7 +141,12 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 - `frontend/src/App.tsx` -- add route
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **`useToggleTaskComplete` modified globally:** `onSettled` in `useTasks.ts` now invalidates both `taskKeys.lists()` and `myDayKeys.all`. This means every task toggle (from any screen) triggers a My Day refetch. One-directional import (`useTasks` → `useMyDay`), no circular dependency.
+- **Progress bar hidden when `focus_total === 0`:** Rather than showing an empty bar, the entire progress section is conditionally rendered only when focus tasks exist. At 100% completion the text reads "All done!" instead of "0 to go".
+- **Checkbox touch targets:** Each checkbox is wrapped in a 44×44px container (`my-day__focus-checkbox-wrap`) matching the `task-list-item-checkbox-wrap` accessibility pattern used elsewhere.
+- **`getGreeting` / `getTimeOfDay` accept an optional `Date` parameter** for deterministic testing without mocking `Date`. The component calls them with no argument (uses current time).
+- **No `TaskListItem` reuse:** Focus items are rendered inline as simple `<li>` elements (checkbox + title + optional time) rather than reusing `TaskListItem`, which carries expand/collapse, badges, and action buttons that are not wanted here. If MD-5 adds more interactivity (drag handles, remove button), a dedicated `FocusTaskItem` component may be worth extracting.
+- **20 tests added:** `timeOfDay.test.ts` (7 tests, boundary hours) and `MyDayScreen.test.tsx` (13 tests, loading/error/greeting/badges/task list/due time/toggle/empty state/progress states/link).
 
 ---
 

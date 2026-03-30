@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/useAuth'
 import * as taskApi from '../services/taskApi'
+import { myDayKeys } from './useMyDay'
 import type {
   TaskCreatePayload,
   TaskUpdatePayload,
@@ -108,8 +109,10 @@ export function useToggleTaskComplete() {
         }
       }
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: taskKeys.lists() }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: myDayKeys.all })
+    },
   })
 }
 

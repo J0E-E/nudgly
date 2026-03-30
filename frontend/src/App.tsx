@@ -19,6 +19,7 @@ import { ListDetailScreen } from './pages/ListDetailScreen'
 import { HabitsScreen } from './pages/HabitsScreen'
 import { FriendsScreen } from './pages/FriendsScreen'
 import { RemindersScreen } from './pages/RemindersScreen'
+import { MyDayScreen } from './pages/MyDayScreen'
 import { LandingScreen } from './pages/LandingScreen'
 import { PushNotificationRegistrar } from './components/PushNotificationRegistrar'
 import { BottomNav } from './components/BottomNav'
@@ -45,6 +46,14 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<LandingScreen />} />
+                <Route
+                  path="/my-day"
+                  element={
+                    <ProtectedRoute>
+                      <MyDayScreen />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/tasks"
                   element={

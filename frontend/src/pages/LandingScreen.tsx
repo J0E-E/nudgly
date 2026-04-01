@@ -7,7 +7,7 @@ export function LandingScreen() {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) return null
-  if (isAuthenticated) return <Navigate to="/tasks" replace />
+  if (isAuthenticated) return <Navigate to="/my-day" replace />
 
   return (
     <main className="landing-screen" aria-label="Welcome">

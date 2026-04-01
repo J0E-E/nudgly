@@ -1,0 +1,117 @@
+/* MyDayFocusItem — BEM block: my-day-focus-item */
+
+.my-day-focus-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.my-day-focus-item--completed {
+  opacity: 0.6;
+}
+
+.my-day-focus-item--drag-over {
+  border-top: 2px solid var(--color-accent);
+}
+
+.my-day-focus-item__drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.my-day-focus-item__drag-handle:active {
+  cursor: grabbing;
+}
+
+.my-day-focus-item__drag-handle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.my-day-focus-item__checkbox-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.my-day-focus-item__checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.my-day-focus-item__checkbox:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.my-day-focus-item__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-day-focus-item__title--completed {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.my-day-focus-item__time {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.my-day-focus-item__remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.my-day-focus-item__remove-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.my-day-focus-item__remove-btn:hover {
+  color: var(--color-alert);
+}
+
+.my-day-focus-item__remove-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Responsive — small phones */
+
+@media (max-width: 480px) {
+  .my-day-focus-item {
+    padding: 8px 16px;
+  }
+}

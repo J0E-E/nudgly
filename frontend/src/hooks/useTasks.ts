@@ -57,8 +57,10 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: TaskUpdatePayload }) =>
       taskApi.updateTask(getApiDeps(), id, payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: taskKeys.lists() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: myDayKeys.all })
+    },
   })
 }
 
@@ -152,8 +154,10 @@ export function useReorderFocusTasks() {
         }
       }
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: taskKeys.lists() }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: myDayKeys.all })
+    },
   })
 }
 

@@ -150,7 +150,7 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 
 ---
 
-## Epic MD-4: My Day Screen -- Habits & Reminders Sections
+## Epic MD-4: My Day Screen -- Habits & Reminders Sections ✅ COMPLETED
 
 **Objective:** Add Habits (Quick Wins) and Upcoming Reminders sections with collapsible wrappers and context-aware ordering.
 
@@ -191,11 +191,19 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 - `frontend/src/utils/nudgeCopy.ts` -- new
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **`useCompleteHabit` modified globally:** `onSettled` in `useHabits.ts` now invalidates both `habitKeys.lists()` and `myDayKeys.all`. Import direction is `useHabits` → `useMyDay` (no circular dependency). No optimistic update for the myDay cache -- refetch on settlement is sufficient.
+- **`CollapsibleSection` localStorage keys:** Prefixed `nudgly_section_` (e.g., `nudgly_section_habits`). Stores `'1'` when collapsed, removes key when expanded. Wrapped in try/catch matching the AuthContext pattern.
+- **`CollapsibleSection` uses its own BEM block** (`collapsible-section`) rather than `my-day__*`, since it's a reusable component not scoped to MyDayScreen.
+- **`formatStreakLabel` duplicated** from `HabitListItem.tsx` into `MyDayHabitItem.tsx` rather than extracted to a shared util. The two versions are identical. If a third consumer appears, extract to `utils/habitFormat.ts`.
+- **`formatRelativeTime` is inline in `MyDayReminderItem.tsx`** rather than shared with `ReminderListItem.tsx`, because the My Day version is future-only and simplified. Uses `Math.floor` for hours to avoid rounding artifacts (e.g., 1.5h showing as "In 2 hours").
+- **Evening completed summary:** When `timeOfDay === 'evening'` and all focus tasks are complete, the task list is replaced with a summary line ("You completed all N focus tasks today.") instead of showing individual checked-off items. If some tasks remain incomplete in the evening, the full list is shown as normal.
+- **"Show all" / "See all" links** only appear when items are truncated (habits > 4, reminders > 3). When the full set fits within the limit, no navigation link is shown.
+- **Nudge banner placement:** Rendered between the progress bar and the Habits/Reminders sections. Uses `role="status"` for screen reader announcements. Returns `null` (hidden) when no rule matches the current metrics/time-of-day combination.
+- **26 tests added:** `nudgeCopy.test.ts` (8), `CollapsibleSection.test.tsx` (5), `MyDayHabitItem.test.tsx` (6), `MyDayReminderItem.test.tsx` (7 including `formatRelativeTime` unit tests), plus 14 new tests in `MyDayScreen.test.tsx` (habits, reminders, ordering, nudge, evening summary).
 
 ---
 
-## Epic MD-5: Focus Task Management (Drag Reorder & Focus Picker)
+## Epic MD-5: Focus Task Management (Drag Reorder & Focus Picker) ✅ COMPLETED
 
 **Objective:** Reorder focus tasks via drag-and-drop; add/remove tasks from focus via a picker dialog.
 
@@ -228,11 +236,19 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 - `frontend/src/pages/MyDayScreen.tsx` -- wire picker + reorder
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **`MyDayFocusItem` extracted as dedicated component:** MD-3 noted that if MD-5 adds drag handles and remove buttons, a dedicated component would be worth extracting. Done here with BEM block `my-day-focus-item`, following the `MyDayHabitItem`/`MyDayReminderItem` pattern. The inline focus task `<li>` markup and associated `my-day__focus-item*` CSS classes in `MyDayScreen.css` were removed.
+- **`useDragReorder` splits drag-source vs drop-target props:** The hook returns `getDragSourceProps(index)` (applied to the drag handle `<span>`) and `getDropTargetProps(index)` (applied to the `<li>` row). This separation is required because HTML5 DnD `dragover` events fire on the **hovered element**, not the dragged one — attaching both to the small drag handle would make drop detection unreliable.
+- **Refs prevent stale closures in drag handlers:** `dragIndexRef`, `overIndexRef`, and `localItemsRef` are maintained alongside React state. Event handlers read from refs (always current), while state drives re-renders for the drop indicator. Without this, fast drag-and-drop sequences can read stale closure values.
+- **`DragSourceProps` / `DropTargetProps` types defined in `useDragReorder.ts`**, not in the component. Components import from the hook. This avoids a hook → component circular dependency.
+- **Focus picker `isPending` guard:** All "Add" buttons in `FocusPickerDialog` are disabled while a focus mutation is in-flight (`updateTask.isPending`), preventing rapid clicks from exceeding the 5-task limit before the query refetch updates `currentFocusIds`.
+- **Cache invalidation broadened:** `useUpdateTask` and `useReorderFocusTasks` now invalidate `myDayKeys.all` in addition to `taskKeys.lists()`. This ensures the My Day screen reflects focus changes immediately. Same pattern as `useToggleTaskComplete` (MD-3) and `useCompleteHabit` (MD-4).
+- **"Add to Focus" changed from `<Link>` to `<button>`:** Previously navigated to `/tasks`. Now opens the `FocusPickerDialog` inline. CSS class renamed from `my-day__add-focus-link` to `my-day__add-focus-btn` with identical visual styling but `background: none; border: none` for semantic button behavior.
+- **`useDragReorder` called before early returns:** The hook is called with `data?.focus_tasks ?? []` before the `isLoading`/`isError` guards to comply with the Rules of Hooks. The empty array fallback is harmless when data is not yet loaded.
+- **35 tests added:** `MyDayFocusItem.test.tsx` (11), `useDragReorder.test.ts` (8), `FocusPickerDialog.test.tsx` (12), plus 4 new tests in `MyDayScreen.test.tsx` (picker dialog open, drag handles, remove buttons, remove mutation).
 
 ---
 
-## Epic MD-6: Navigation Update & Plan My Day CTA
+## Epic MD-6: Navigation Update & Plan My Day CTA ✅ COMPLETED
 
 **Objective:** Make My Day the home screen, update navigation, and add the Plan My Day call-to-action.
 
@@ -263,7 +279,15 @@ The app currently defaults to `/tasks` after login -- a full task list that does
 - `frontend/src/pages/MyDayScreen.tsx` -- CTA section + polish
 
 ### Implementation Notes:
-*(To be completed when epic is done.)*
+- **`LandingScreen` redirect changed from `/tasks` to `/my-day`.** Authenticated users now land on My Day. The `AppHeader` brand link (`<Link to="/">`) still points to `/`, which triggers the `LandingScreen` redirect — no direct `/my-day` link needed on the brand.
+- **My Day added as first nav item** in both `AppHeader.tsx` (desktop) and `BottomNav.tsx` (mobile) with a sun icon (SVG inline, matching existing icon pattern). Active state uses the same `startsWith` logic as other nav items.
+- **`getPlanMyDayCta` is a pure function** defined outside the component. Returns `null` when focus tasks are in progress (hides CTA), otherwise returns context-aware `{ message, buttonLabel }`. Three states: all complete ("Great day! All done." / "Pick more tasks"), tasks due today (count-aware message / "Plan my day"), no tasks due ("Pick your top priorities" / "Plan my day").
+- **"Add to Focus" button and CTA are mutually exclusive.** When the CTA is visible, the standalone "Add to Focus" button is hidden (`{!cta && ...}`) to avoid redundant actions — the CTA button already opens the same `FocusPickerDialog`.
+- **Celebration merged into CTA block:** Rather than rendering a standalone celebration div alongside the CTA (which produced redundant "all done" messaging), the checkmark pulse SVG is rendered *inside* the CTA `<div>` when `remaining === 0 && focus_total > 0`. This keeps the animated celebration visible while avoiding duplicate UI elements.
+- **Progress bar animation:** CSS `transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1)` on `.my-day__progress-fill`. At 100%, a `box-shadow` glow is added via `--complete` modifier.
+- **Section fade-in:** `section-fade-in` keyframe (opacity + translateY) applied to focus list, habit list, reminder list, CTA, and progress bar. All animations respect `prefers-reduced-motion: reduce`.
+- **`useUpdateTask` and `useReorderFocusTasks` cache invalidation broadened** (in `useTasks.ts`): `onSuccess`/`onSettled` now also invalidate `myDayKeys.all`. `useCompleteHabit` (in `useHabits.ts`) similarly invalidates `myDayKeys.all`. Import direction is always `useTasks`/`useHabits` → `useMyDay` (no circular dependency).
+- **12 new tests across 3 files:** `AppHeader.test.tsx` (4), `BottomNav.test.tsx` (5), `LandingScreen.test.tsx` (3). Plus 7 new tests in `MyDayScreen.test.tsx` for CTA visibility, CTA-opens-picker, celebration icon placement, and "Add to Focus" hiding logic. Total: 48 tests across all MD-6 files.
 
 ---
 

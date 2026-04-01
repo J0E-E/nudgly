@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/useAuth'
 import * as habitApi from '../services/habitApi'
+import { myDayKeys } from './useMyDay'
 import type {
   HabitCreatePayload,
   HabitUpdatePayload,
@@ -94,7 +95,9 @@ export function useCompleteHabit() {
         queryClient.setQueryData(habitKeys.list(), context.previous)
       }
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: habitKeys.lists() }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: habitKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: myDayKeys.all })
+    },
   })
 }

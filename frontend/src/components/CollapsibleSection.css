@@ -1,0 +1,86 @@
+/* CollapsibleSection — BEM block: collapsible-section */
+
+.collapsible-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 28px 4px;
+}
+
+.collapsible-section__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.collapsible-section__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+}
+
+.collapsible-section__toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+
+.collapsible-section__toggle:hover {
+  background: var(--color-surface-alt);
+}
+
+.collapsible-section__toggle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.collapsible-section__chevron {
+  transition: transform var(--transition-expand);
+  transform: rotate(90deg);
+}
+
+.collapsible-section--collapsed .collapsible-section__chevron {
+  transform: rotate(0deg);
+}
+
+/* Grid animation for expand/collapse */
+
+.collapsible-section__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--transition-expand);
+}
+
+.collapsible-section--collapsed .collapsible-section__body {
+  grid-template-rows: 0fr;
+}
+
+.collapsible-section__body-inner {
+  overflow: hidden;
+}
+
+/* Responsive — small phones */
+
+@media (max-width: 480px) {
+  .collapsible-section__header {
+    padding: 12px 16px 4px;
+  }
+}

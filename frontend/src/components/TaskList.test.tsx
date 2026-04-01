@@ -32,6 +32,8 @@ const mockTask: Task = {
   list_id: null,
   created_by: null,
   linked_friends: [],
+  focus_date: null,
+  focus_sort_order: 0,
 }
 
 describe('TaskList', () => {

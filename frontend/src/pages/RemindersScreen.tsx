@@ -90,7 +90,7 @@ export function RemindersScreen() {
       <h1 id="reminders-screen-title" className="reminders-screen-title">
         Reminders
       </h1>
-      <div className="reminders-toolbar">
+      <div id="reminders-toolbar" className="reminders-toolbar">
         <input
           id="reminders-search"
           type="text"
@@ -110,17 +110,17 @@ export function RemindersScreen() {
         </button>
       </div>
       {deleteMutation.isError && (
-        <div className="reminders-mutation-error" role="alert">
+        <div id="reminders-delete-error" className="reminders-mutation-error" role="alert">
           <p>Failed to delete reminder. Please try again.</p>
         </div>
       )}
       {snoozeMutation.isError && (
-        <div className="reminders-mutation-error" role="alert">
+        <div id="reminders-snooze-error" className="reminders-mutation-error" role="alert">
           <p>Failed to snooze reminder. Please try again.</p>
         </div>
       )}
       {clearMutation.isError && (
-        <div className="reminders-mutation-error" role="alert">
+        <div id="reminders-clear-error" className="reminders-mutation-error" role="alert">
           <p>Failed to clear reminder. Please try again.</p>
         </div>
       )}

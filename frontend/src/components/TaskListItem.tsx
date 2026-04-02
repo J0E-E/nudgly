@@ -103,7 +103,7 @@ export function TaskListItem({
       id={`task-${task.id}`}
       className={`task-list-item${completed ? ' task-list-item--completed' : ''}${expanded ? ' task-list-item--expanded' : ''}`}
     >
-      <div className="task-list-item-checkbox-wrap">
+      <div id={`task-${task.id}-checkbox-wrap`} className="task-list-item-checkbox-wrap">
         <input
           id={`task-${task.id}-checkbox`}
           type="checkbox"
@@ -114,20 +114,21 @@ export function TaskListItem({
         />
       </div>
       <button
+        id={`task-${task.id}-content`}
         type="button"
         className="task-list-item-content"
         aria-expanded={expanded}
         aria-controls={`task-${task.id}-details`}
         onClick={() => setExpanded((prev) => !prev)}
       >
-        <div className="task-list-item-content-text">
+        <div id={`task-${task.id}-content-text`} className="task-list-item-content-text">
           <span
             id={`task-${task.id}-title`}
             className={`task-list-item-title${completed ? ' task-list-item-title--completed' : ''}`}
           >
             {task.title}
           </span>
-          <div className="task-list-item-meta">
+          <div id={`task-${task.id}-meta`} className="task-list-item-meta">
             <span
               id={`task-${task.id}-category`}
               className={`task-list-item-badge task-list-item-badge--cat-${task.category}`}
@@ -153,6 +154,7 @@ export function TaskListItem({
           </div>
         </div>
         <svg
+          id={`task-${task.id}-chevron`}
           className="task-list-item-chevron"
           width="20"
           height="20"
@@ -176,7 +178,7 @@ export function TaskListItem({
         aria-labelledby={`task-${task.id}-title`}
         aria-hidden={!expanded}
       >
-        <div className="task-list-item-details-inner">
+        <div id={`task-${task.id}-details-inner`} className="task-list-item-details-inner">
           <p className="task-list-item-detail-row">
             <span className="task-list-item-detail-label">Title</span>
             <span className="task-list-item-detail-full-title">{task.title}</span>
@@ -266,7 +268,7 @@ export function TaskListItem({
               <span>{formatRelativeTime(schedule.next_trigger_at)}</span>
             </p>
           )}
-          <div className="task-list-item-actions">
+          <div id={`task-${task.id}-actions`} className="task-list-item-actions">
             <button
               id={`task-${task.id}-edit-btn`}
               type="button"

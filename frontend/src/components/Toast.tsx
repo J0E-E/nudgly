@@ -16,14 +16,15 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
   }
 
   return (
-    <div className="toast-container" role="status" aria-live="polite">
+    <div id="toast-container" className="toast-container" role="status" aria-live="polite">
       {toasts.map(toast => (
-        <div key={toast.id} className="toast" onClick={() => handleClick(toast)}>
-          <div className="toast-content">
-            <strong className="toast-title">{toast.title}</strong>
-            <span className="toast-body">{toast.body}</span>
+        <div key={toast.id} id={`toast-${toast.id}`} className="toast" onClick={() => handleClick(toast)}>
+          <div id={`toast-${toast.id}-content`} className="toast-content">
+            <strong id={`toast-${toast.id}-title`} className="toast-title">{toast.title}</strong>
+            <span id={`toast-${toast.id}-body`} className="toast-body">{toast.body}</span>
           </div>
           <button
+            id={`toast-${toast.id}-dismiss-btn`}
             className="toast-dismiss"
             onClick={e => { e.stopPropagation(); onDismiss(toast.id) }}
             aria-label="Dismiss notification"

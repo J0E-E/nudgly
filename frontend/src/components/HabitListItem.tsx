@@ -83,12 +83,14 @@ export function HabitListItem({
       className={`habit-list-item${expanded ? ' habit-list-item--expanded' : ''}`}
     >
       <button
+        id={`habit-${habit.id}-complete-btn`}
         type="button"
         className="habit-completion-btn"
         onClick={() => onComplete(habit)}
         aria-label={`Mark "${habit.name}" as done`}
       >
         <svg
+          id={`habit-${habit.id}-complete-icon`}
           className="habit-completion-btn-icon"
           viewBox="0 0 24 24"
           fill="none"
@@ -103,34 +105,36 @@ export function HabitListItem({
         </svg>
       </button>
       <button
+        id={`habit-${habit.id}-content`}
         type="button"
         className="habit-list-item-content"
         aria-expanded={expanded}
         aria-controls={`habit-${habit.id}-details`}
         onClick={() => setExpanded((prev) => !prev)}
       >
-        <div className="habit-list-item-content-text">
+        <div id={`habit-${habit.id}-content-text`} className="habit-list-item-content-text">
           <span
             id={`habit-${habit.id}-name`}
             className="habit-list-item-name"
           >
             {habit.name}
           </span>
-          <div className="habit-list-item-meta">
-            <span className="habit-list-item-badge habit-list-item-badge--count">
+          <div id={`habit-${habit.id}-meta`} className="habit-list-item-meta">
+            <span id={`habit-${habit.id}-count`} className="habit-list-item-badge habit-list-item-badge--count">
               {formatPeriodCount(habit)}
             </span>
             {formatStreakLabel(habit) && (
-              <span className="habit-list-item-badge habit-list-item-badge--streak">
+              <span id={`habit-${habit.id}-streak`} className="habit-list-item-badge habit-list-item-badge--streak">
                 {formatStreakLabel(habit)}
               </span>
             )}
-            <span className="habit-list-item-badge habit-list-item-badge--freq">
+            <span id={`habit-${habit.id}-freq`} className="habit-list-item-badge habit-list-item-badge--freq">
               {HABIT_FREQUENCY_LABELS[habit.frequency]}
             </span>
           </div>
         </div>
         <svg
+          id={`habit-${habit.id}-chevron`}
           className="habit-list-item-chevron"
           width="20"
           height="20"
@@ -154,7 +158,7 @@ export function HabitListItem({
         aria-labelledby={`habit-${habit.id}-name`}
         aria-hidden={!expanded}
       >
-        <div className="habit-list-item-details-inner">
+        <div id={`habit-${habit.id}-details-inner`} className="habit-list-item-details-inner">
           <p className="habit-list-item-detail-row">
             <span className="habit-list-item-detail-label">Name</span>
             <span className="habit-list-item-detail-full-name">{habit.name}</span>
@@ -210,7 +214,7 @@ export function HabitListItem({
             <span className="habit-list-item-detail-label">Created</span>
             <span>{formatDateTime(habit.created_at)}</span>
           </p>
-          <div className="habit-list-item-actions">
+          <div id={`habit-${habit.id}-actions`} className="habit-list-item-actions">
             <button
               id={`habit-${habit.id}-edit-btn`}
               type="button"

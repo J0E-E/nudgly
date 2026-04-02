@@ -19,25 +19,27 @@ export function MyDayHabitItem({ habit, onComplete }: MyDayHabitItemProps) {
   const streakLabel = formatStreakLabel(habit)
 
   return (
-    <li className="my-day-habit-item">
-      <div className="my-day-habit-item__info">
-        <span className="my-day-habit-item__name">{habit.name}</span>
-        <div className="my-day-habit-item__meta">
+    <li id={`my-day-habit-${habit.id}`} className="my-day-habit-item">
+      <div id={`my-day-habit-${habit.id}-info`} className="my-day-habit-item__info">
+        <span id={`my-day-habit-${habit.id}-name`} className="my-day-habit-item__name">{habit.name}</span>
+        <div id={`my-day-habit-${habit.id}-meta`} className="my-day-habit-item__meta">
           {streakLabel && (
-            <span className="my-day-habit-item__streak">{streakLabel}</span>
+            <span id={`my-day-habit-${habit.id}-streak`} className="my-day-habit-item__streak">{streakLabel}</span>
           )}
-          <span className="my-day-habit-item__progress">
+          <span id={`my-day-habit-${habit.id}-progress`} className="my-day-habit-item__progress">
             {habit.period_completions}/{habit.target_count}
           </span>
         </div>
       </div>
       <button
+        id={`my-day-habit-${habit.id}-complete-btn`}
         type="button"
         className="my-day-habit-item__complete-btn"
         onClick={() => onComplete(habit)}
         aria-label={`Complete "${habit.name}"`}
       >
         <svg
+          id={`my-day-habit-${habit.id}-complete-icon`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

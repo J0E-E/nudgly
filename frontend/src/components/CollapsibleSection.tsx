@@ -47,12 +47,14 @@ export function CollapsibleSection({
 
   return (
     <section
+      id={`collapsible-${sectionKey}`}
       className={`collapsible-section${collapsed ? ' collapsible-section--collapsed' : ''}`}
     >
-      <div className="collapsible-section__header">
+      <div id={`collapsible-${sectionKey}-header`} className="collapsible-section__header">
         <h2 id={`collapsible-${sectionKey}-title`} className="collapsible-section__title">{title}</h2>
-        <span className="collapsible-section__count">{count}</span>
+        <span id={`collapsible-${sectionKey}-count`} className="collapsible-section__count">{count}</span>
         <button
+          id={`collapsible-${sectionKey}-toggle`}
           type="button"
           className="collapsible-section__toggle"
           aria-expanded={!collapsed}
@@ -61,6 +63,7 @@ export function CollapsibleSection({
           aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
         >
           <svg
+            id={`collapsible-${sectionKey}-chevron`}
             className="collapsible-section__chevron"
             width="20"
             height="20"
@@ -84,7 +87,7 @@ export function CollapsibleSection({
         role="region"
         aria-labelledby={`collapsible-${sectionKey}-title`}
       >
-        <div className="collapsible-section__body-inner">{children}</div>
+        <div id={`collapsible-${sectionKey}-body-inner`} className="collapsible-section__body-inner">{children}</div>
       </div>
     </section>
   )

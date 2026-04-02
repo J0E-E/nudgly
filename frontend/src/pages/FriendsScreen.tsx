@@ -58,11 +58,12 @@ export function FriendsScreen() {
 
   return (
     <PageCard id="friends-screen" ariaLabel="Friends">
-      <div className="friends-header">
+      <div id="friends-screen-header" className="friends-header">
         <h1 id="friends-screen-title" className="friends-screen-title">
           Friends
         </h1>
         <button
+          id="friends-add-btn"
           type="button"
           className="friends-add-btn"
           onClick={() => setAddFriendOpen(true)}
@@ -71,8 +72,9 @@ export function FriendsScreen() {
         </button>
       </div>
 
-      <div className="friends-tabs" role="tablist">
+      <div id="friends-tabs" className="friends-tabs" role="tablist">
         <button
+          id="friends-tab-friends"
           role="tab"
           aria-selected={tab === 'friends'}
           className={`friends-tab${tab === 'friends' ? ' friends-tab--active' : ''}`}
@@ -81,6 +83,7 @@ export function FriendsScreen() {
           Friends{friends ? ` (${friends.length})` : ''}
         </button>
         <button
+          id="friends-tab-received"
           role="tab"
           aria-selected={tab === 'received'}
           className={`friends-tab${tab === 'received' ? ' friends-tab--active' : ''}`}
@@ -89,6 +92,7 @@ export function FriendsScreen() {
           Received{pendingReceivedCount > 0 ? ` (${pendingReceivedCount})` : ''}
         </button>
         <button
+          id="friends-tab-sent"
           role="tab"
           aria-selected={tab === 'sent'}
           className={`friends-tab${tab === 'sent' ? ' friends-tab--active' : ''}`}
@@ -98,30 +102,31 @@ export function FriendsScreen() {
         </button>
       </div>
 
-      <div className="friends-tab-content" role="tabpanel">
+      <div id="friends-tab-content" className="friends-tab-content" role="tabpanel">
         {tab === 'friends' && (
           <>
             {friendsLoading && (
-              <p className="friends-state">Loading friends...</p>
+              <p id="friends-loading" className="friends-state">Loading friends...</p>
             )}
             {friends && friends.length === 0 && (
-              <p className="friends-state">
+              <p id="friends-empty" className="friends-state">
                 No friends yet. Send an invite to get started!
               </p>
             )}
             {friends && friends.length > 0 && (
-              <ul className="friends-list">
+              <ul id="friends-list" className="friends-list">
                 {friends.map((f) => (
-                  <li key={f.id} className="friends-list-item">
-                    <div className="friends-list-item-info">
-                      <span className="friends-list-item-name">
+                  <li key={f.id} id={`friend-${f.id}`} className="friends-list-item">
+                    <div id={`friend-${f.id}-info`} className="friends-list-item-info">
+                      <span id={`friend-${f.id}-name`} className="friends-list-item-name">
                         {f.display_name || f.username}
                       </span>
-                      <span className="friends-list-item-username">
+                      <span id={`friend-${f.id}-username`} className="friends-list-item-username">
                         @{f.username}
                       </span>
                     </div>
                     <button
+                      id={`friend-${f.id}-remove-btn`}
                       type="button"
                       className="friends-remove-btn"
                       onClick={() => handleRemoveRequest(f)}
@@ -138,25 +143,26 @@ export function FriendsScreen() {
         {tab === 'received' && (
           <>
             {receivedLoading && (
-              <p className="friends-state">Loading invitations...</p>
+              <p id="friends-received-loading" className="friends-state">Loading invitations...</p>
             )}
             {received && received.length === 0 && (
-              <p className="friends-state">No pending invitations.</p>
+              <p id="friends-received-empty" className="friends-state">No pending invitations.</p>
             )}
             {received && received.length > 0 && (
-              <ul className="friends-list">
+              <ul id="friends-received-list" className="friends-list">
                 {received.map((inv) => (
-                  <li key={inv.id} className="friends-list-item">
-                    <div className="friends-list-item-info">
-                      <span className="friends-list-item-name">
+                  <li key={inv.id} id={`invitation-${inv.id}`} className="friends-list-item">
+                    <div id={`invitation-${inv.id}-info`} className="friends-list-item-info">
+                      <span id={`invitation-${inv.id}-from-name`} className="friends-list-item-name">
                         {inv.from_user.display_name || inv.from_user.username}
                       </span>
-                      <span className="friends-list-item-username">
+                      <span id={`invitation-${inv.id}-from-username`} className="friends-list-item-username">
                         @{inv.from_user.username}
                       </span>
                     </div>
-                    <div className="friends-invitation-actions">
+                    <div id={`invitation-${inv.id}-actions`} className="friends-invitation-actions">
                       <button
+                        id={`invitation-${inv.id}-accept-btn`}
                         type="button"
                         className="friends-accept-btn"
                         onClick={() => handleRespond(inv, 'accept')}
@@ -165,6 +171,7 @@ export function FriendsScreen() {
                         Accept
                       </button>
                       <button
+                        id={`invitation-${inv.id}-decline-btn`}
                         type="button"
                         className="friends-decline-btn"
                         onClick={() => handleRespond(inv, 'decline')}
@@ -183,32 +190,33 @@ export function FriendsScreen() {
         {tab === 'sent' && (
           <>
             {sentLoading && (
-              <p className="friends-state">Loading invitations...</p>
+              <p id="friends-sent-loading" className="friends-state">Loading invitations...</p>
             )}
             {sent && sent.length === 0 && (
-              <p className="friends-state">No sent invitations.</p>
+              <p id="friends-sent-empty" className="friends-state">No sent invitations.</p>
             )}
             {sent && sent.length > 0 && (
-              <ul className="friends-list">
+              <ul id="friends-sent-list" className="friends-list">
                 {sent.map((inv) => (
-                  <li key={inv.id} className="friends-list-item">
-                    <div className="friends-list-item-info">
+                  <li key={inv.id} id={`sent-invitation-${inv.id}`} className="friends-list-item">
+                    <div id={`sent-invitation-${inv.id}-info`} className="friends-list-item-info">
                       {inv.to_user ? (
                         <>
-                          <span className="friends-list-item-name">
+                          <span id={`sent-invitation-${inv.id}-name`} className="friends-list-item-name">
                             {inv.to_user.display_name || inv.to_user.username}
                           </span>
-                          <span className="friends-list-item-username">
+                          <span id={`sent-invitation-${inv.id}-username`} className="friends-list-item-username">
                             @{inv.to_user.username}
                           </span>
                         </>
                       ) : (
-                        <span className="friends-list-item-name">
+                        <span id={`sent-invitation-${inv.id}-name`} className="friends-list-item-name">
                           {inv.to_email}
                         </span>
                       )}
                     </div>
                     <span
+                      id={`sent-invitation-${inv.id}-status`}
                       className={`friends-invitation-status friends-invitation-status--${inv.status}`}
                     >
                       {inv.status === 'pending' && !inv.to_user

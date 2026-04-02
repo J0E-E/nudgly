@@ -133,7 +133,7 @@ export function ListDetailScreen() {
   if (listLoading) {
     return (
       <PageCard id="list-detail-screen" ariaLabel="List detail">
-        <div className="list-detail-state" role="status">
+        <div id="list-detail-loading" className="list-detail-state" role="status">
           <p>Loading list...</p>
         </div>
       </PageCard>
@@ -144,6 +144,7 @@ export function ListDetailScreen() {
     return (
       <PageCard id="list-detail-screen" ariaLabel="List detail">
         <div
+          id="list-detail-error"
           className="list-detail-state list-detail-state--error"
           role="alert"
         >
@@ -157,8 +158,8 @@ export function ListDetailScreen() {
 
   return (
     <PageCard id="list-detail-screen" ariaLabel={`List: ${list.name}`}>
-      <div className="list-detail-header">
-        <div className="list-detail-header-top">
+      <div id="list-detail-header" className="list-detail-header">
+        <div id="list-detail-header-top" className="list-detail-header-top">
           <h1 id="list-detail-title" className="list-detail-title">
             {list.name}
           </h1>
@@ -171,28 +172,28 @@ export function ListDetailScreen() {
             Back to lists
           </button>
         </div>
-        <div className="list-detail-meta">
+        <div id="list-detail-meta" className="list-detail-meta">
           {list.category && (
-            <span className="list-detail-badge">
+            <span id="list-detail-category-badge" className="list-detail-badge">
               {TASK_CATEGORY_LABELS[list.category as TaskCategory] ??
                 list.category}
             </span>
           )}
           {list.priority > 0 && (
-            <span className="list-detail-badge list-detail-badge--priority">
+            <span id="list-detail-priority-badge" className="list-detail-badge list-detail-badge--priority">
               {TASK_PRIORITY_LABELS[list.priority]}
             </span>
           )}
-          {list.tag && <span className="list-detail-badge">{list.tag}</span>}
+          {list.tag && <span id="list-detail-tag-badge" className="list-detail-badge">{list.tag}</span>}
           {isMuted && (
-            <span className="list-detail-badge list-detail-badge--muted">
+            <span id="list-detail-muted-badge" className="list-detail-badge list-detail-badge--muted">
               Muted
             </span>
           )}
         </div>
       </div>
 
-      <div className="list-detail-actions">
+      <div id="list-detail-actions" className="list-detail-actions">
         <button
           id="list-detail-edit-btn"
           type="button"
@@ -238,7 +239,7 @@ export function ListDetailScreen() {
       />
 
       {(toggleComplete.isError || deleteTaskMutation.isError) && (
-        <div className="list-detail-mutation-error" role="alert">
+        <div id="list-detail-mutation-error" className="list-detail-mutation-error" role="alert">
           <p>
             {toggleComplete.isError
               ? 'Failed to update task. Please try again.'
@@ -248,13 +249,14 @@ export function ListDetailScreen() {
       )}
 
       {tasksLoading && (
-        <div className="list-detail-state" role="status">
+        <div id="list-detail-tasks-loading" className="list-detail-state" role="status">
           <p>Loading tasks...</p>
         </div>
       )}
 
       {tasksError && (
         <div
+          id="list-detail-tasks-error"
           className="list-detail-state list-detail-state--error"
           role="alert"
         >

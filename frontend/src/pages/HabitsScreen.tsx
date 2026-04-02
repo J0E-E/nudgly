@@ -78,7 +78,7 @@ export function HabitsScreen() {
       <h1 id="habits-screen-title" className="habits-screen-title">
         Habits
       </h1>
-      <div className="habits-toolbar">
+      <div id="habits-toolbar" className="habits-toolbar">
         <input
           id="habits-search"
           type="text"
@@ -98,12 +98,12 @@ export function HabitsScreen() {
         </button>
       </div>
       {deleteMutation.isError && (
-        <div className="habits-mutation-error" role="alert">
+        <div id="habits-delete-error" className="habits-mutation-error" role="alert">
           <p>Failed to delete habit. Please try again.</p>
         </div>
       )}
       {completeMutation.isError && (
-        <div className="habits-mutation-error" role="alert">
+        <div id="habits-complete-error" className="habits-mutation-error" role="alert">
           <p>Failed to log completion. Please try again.</p>
         </div>
       )}

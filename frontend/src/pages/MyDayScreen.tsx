@@ -55,7 +55,7 @@ export function MyDayScreen() {
   if (isLoading) {
     return (
       <PageCard id="my-day-screen" ariaLabel="My Day">
-        <div className="my-day__state">Loading…</div>
+        <div id="my-day-loading" className="my-day__state">Loading…</div>
       </PageCard>
     )
   }
@@ -63,7 +63,7 @@ export function MyDayScreen() {
   if (isError) {
     return (
       <PageCard id="my-day-screen" ariaLabel="My Day">
-        <div className="my-day__state my-day__state--error">
+        <div id="my-day-error" className="my-day__state my-day__state--error">
           {(error as Error)?.message || 'Failed to load My Day'}
         </div>
       </PageCard>
@@ -112,7 +112,7 @@ export function MyDayScreen() {
         count={metrics.habits_remaining}
       >
         {visibleHabits.length > 0 ? (
-          <ul className="my-day__habit-list">
+          <ul id="my-day-habit-list" className="my-day__habit-list">
             {visibleHabits.map((habit) => (
               <MyDayHabitItem
                 key={habit.id}
@@ -122,10 +122,10 @@ export function MyDayScreen() {
             ))}
           </ul>
         ) : (
-          <p className="my-day__empty">No habits remaining.</p>
+          <p id="my-day-habits-empty" className="my-day__empty">No habits remaining.</p>
         )}
         {data!.habits.length > 4 && (
-          <Link to="/habits" className="my-day__show-all-link">
+          <Link id="my-day-habits-show-all" to="/habits" className="my-day__show-all-link">
             Show all
           </Link>
         )}
@@ -141,16 +141,16 @@ export function MyDayScreen() {
         count={metrics.upcoming_reminder_count}
       >
         {visibleReminders.length > 0 ? (
-          <ul className="my-day__reminder-list">
+          <ul id="my-day-reminder-list" className="my-day__reminder-list">
             {visibleReminders.map((reminder) => (
               <MyDayReminderItem key={reminder.id} reminder={reminder} />
             ))}
           </ul>
         ) : (
-          <p className="my-day__empty">No upcoming reminders.</p>
+          <p id="my-day-reminders-empty" className="my-day__empty">No upcoming reminders.</p>
         )}
         {data!.upcoming_reminders.length > 3 && (
-          <Link to="/reminders" className="my-day__show-all-link">
+          <Link id="my-day-reminders-show-all" to="/reminders" className="my-day__show-all-link">
             See all
           </Link>
         )}
@@ -160,34 +160,34 @@ export function MyDayScreen() {
 
   return (
     <PageCard id="my-day-screen" ariaLabel="My Day">
-      <header className="my-day__header">
-        <h1 className="my-day__greeting">{getGreeting()}</h1>
-        <span className="my-day__date">{dateStr}</span>
-        <div className="my-day__badges">
-          <span className="my-day__badge">
+      <header id="my-day-header" className="my-day__header">
+        <h1 id="my-day-greeting" className="my-day__greeting">{getGreeting()}</h1>
+        <span id="my-day-date" className="my-day__date">{dateStr}</span>
+        <div id="my-day-badges" className="my-day__badges">
+          <span id="my-day-badge-focus" className="my-day__badge">
             Focus: {metrics.focus_completed}/{metrics.focus_total}
           </span>
-          <span className="my-day__badge">
+          <span id="my-day-badge-habits" className="my-day__badge">
             Habits: {metrics.habits_remaining}
           </span>
-          <span className="my-day__badge">
+          <span id="my-day-badge-reminders" className="my-day__badge">
             Reminders: {metrics.upcoming_reminder_count}
           </span>
         </div>
       </header>
 
-      <section aria-labelledby="my-day-focus-title">
+      <section id="my-day-focus-section" aria-labelledby="my-day-focus-title">
         <h2 id="my-day-focus-title" className="my-day__section-title">
           Today's Focus
         </h2>
 
         {eveningAllDone ? (
-          <p className="my-day__focus-summary">
+          <p id="my-day-focus-summary" className="my-day__focus-summary">
             You completed all {metrics.focus_total} focus{' '}
             {metrics.focus_total === 1 ? 'task' : 'tasks'} today.
           </p>
         ) : orderedFocusTasks.length > 0 ? (
-          <ul className="my-day__focus-list">
+          <ul id="my-day-focus-list" className="my-day__focus-list">
             {orderedFocusTasks.map((task, index) => (
               <MyDayFocusItem
                 key={task.id}
@@ -202,13 +202,14 @@ export function MyDayScreen() {
             ))}
           </ul>
         ) : (
-          <p className="my-day__empty">
+          <p id="my-day-focus-empty" className="my-day__empty">
             No focus tasks yet. What's most important today?
           </p>
         )}
 
         {!cta && (
           <button
+            id="my-day-add-focus-btn"
             type="button"
             className="my-day__add-focus-btn"
             onClick={() => setPickerOpen(true)}
@@ -225,14 +226,15 @@ export function MyDayScreen() {
       </section>
 
       {metrics.focus_total > 0 && (
-        <div className="my-day__progress">
-          <p className="my-day__progress-text">
+        <div id="my-day-progress" className="my-day__progress">
+          <p id="my-day-progress-text" className="my-day__progress-text">
             {remaining === 0
               ? 'All done!'
               : `${metrics.focus_completed} down, ${remaining} to go`}
           </p>
-          <div className="my-day__progress-bar">
+          <div id="my-day-progress-bar" className="my-day__progress-bar">
             <div
+              id="my-day-progress-fill"
               className={`my-day__progress-fill${pct >= 100 ? ' my-day__progress-fill--complete' : ''}`}
               style={{ width: `${pct}%` }}
             />
@@ -241,14 +243,15 @@ export function MyDayScreen() {
       )}
 
       {cta && (
-        <div className="my-day__cta" aria-live="polite">
+        <div id="my-day-cta" className="my-day__cta" aria-live="polite">
           {remaining === 0 && metrics.focus_total > 0 && (
-            <svg className="my-day__celebration-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12" />
+            <svg id="my-day-celebration-icon" className="my-day__celebration-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline id="my-day-celebration-checkmark" points="20 6 9 17 4 12" />
             </svg>
           )}
-          <p className="my-day__cta-text">{cta.message}</p>
+          <p id="my-day-cta-text" className="my-day__cta-text">{cta.message}</p>
           <button
+            id="my-day-cta-btn"
             type="button"
             className="my-day__cta-btn"
             onClick={() => setPickerOpen(true)}
@@ -259,8 +262,8 @@ export function MyDayScreen() {
       )}
 
       {nudgeMessage && (
-        <div className="my-day__nudge" role="status">
-          <p className="my-day__nudge-text">{nudgeMessage}</p>
+        <div id="my-day-nudge" className="my-day__nudge" role="status">
+          <p id="my-day-nudge-text" className="my-day__nudge-text">{nudgeMessage}</p>
         </div>
       )}
 

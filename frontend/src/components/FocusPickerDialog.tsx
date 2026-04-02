@@ -63,25 +63,28 @@ export function FocusPickerDialog({
 
   return (
     <dialog
+      id="focus-picker-dialog"
       ref={dialogRef}
       className="focus-picker-dialog"
       aria-labelledby="focus-picker-title"
       onClose={onClose}
     >
-      <header className="focus-picker-dialog__header">
+      <header id="focus-picker-dialog-header" className="focus-picker-dialog__header">
         <h2 id="focus-picker-title" className="focus-picker-dialog__title">
           Add to Focus
         </h2>
-        <span className="focus-picker-dialog__count">
+        <span id="focus-picker-dialog-count" className="focus-picker-dialog__count">
           {focusCount}/{FOCUS_LIMIT}
         </span>
         <button
+          id="focus-picker-dialog-close-btn"
           type="button"
           className="focus-picker-dialog__close-btn"
           onClick={onClose}
           aria-label="Close"
         >
           <svg
+            id="focus-picker-dialog-close-icon"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -90,19 +93,20 @@ export function FocusPickerDialog({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
+            <line id="focus-picker-dialog-close-line-1" x1="18" y1="6" x2="6" y2="18" />
+            <line id="focus-picker-dialog-close-line-2" x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </header>
 
       {atLimit && (
-        <p className="focus-picker-dialog__limit-message">
+        <p id="focus-picker-dialog-limit-msg" className="focus-picker-dialog__limit-message">
           Focus works best with 3–5 tasks. Remove one to add another.
         </p>
       )}
 
       <input
+        id="focus-picker-dialog-search"
         type="search"
         className="focus-picker-dialog__search"
         placeholder="Search tasks..."
@@ -111,19 +115,20 @@ export function FocusPickerDialog({
       />
 
       {isLoading ? (
-        <p className="focus-picker-dialog__empty">Loading tasks…</p>
+        <p id="focus-picker-dialog-loading" className="focus-picker-dialog__empty">Loading tasks…</p>
       ) : filteredTasks.length === 0 ? (
-        <p className="focus-picker-dialog__empty">No matching tasks</p>
+        <p id="focus-picker-dialog-empty" className="focus-picker-dialog__empty">No matching tasks</p>
       ) : (
-        <ul className="focus-picker-dialog__list">
+        <ul id="focus-picker-dialog-list" className="focus-picker-dialog__list">
           {filteredTasks.map((task) => {
             const isFocused = focusIdSet.has(task.id)
             return (
-              <li key={task.id} className="focus-picker-dialog__item">
-                <span className="focus-picker-dialog__item-title">
+              <li key={task.id} id={`focus-picker-task-${task.id}`} className="focus-picker-dialog__item">
+                <span id={`focus-picker-task-${task.id}-title`} className="focus-picker-dialog__item-title">
                   {task.title}
                 </span>
                 <button
+                  id={`focus-picker-task-${task.id}-toggle-btn`}
                   type="button"
                   className={`focus-picker-dialog__toggle-btn ${isFocused ? 'focus-picker-dialog__toggle-btn--remove' : 'focus-picker-dialog__toggle-btn--add'}`}
                   onClick={() => handleToggleFocus(task.id)}

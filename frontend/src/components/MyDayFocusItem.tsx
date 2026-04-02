@@ -36,13 +36,15 @@ export function MyDayFocusItem({
   if (isDragOver) className += ' my-day-focus-item--drag-over'
 
   return (
-    <li className={className} data-index={rest['data-index']} {...dropTargetProps}>
+    <li id={`my-day-focus-${task.id}`} className={className} data-index={rest['data-index']} {...dropTargetProps}>
       <span
+        id={`my-day-focus-${task.id}-drag-handle`}
         className="my-day-focus-item__drag-handle"
         aria-hidden="true"
         {...dragSourceProps}
       >
         <svg
+          id={`my-day-focus-${task.id}-drag-icon`}
           viewBox="0 0 24 24"
           fill="currentColor"
           aria-hidden="true"
@@ -55,8 +57,9 @@ export function MyDayFocusItem({
           <circle cx="15" cy="18" r="1.5" />
         </svg>
       </span>
-      <span className="my-day-focus-item__checkbox-wrap">
+      <span id={`my-day-focus-${task.id}-checkbox-wrap`} className="my-day-focus-item__checkbox-wrap">
         <input
+          id={`my-day-focus-${task.id}-checkbox`}
           type="checkbox"
           className="my-day-focus-item__checkbox"
           checked={completed}
@@ -65,22 +68,25 @@ export function MyDayFocusItem({
         />
       </span>
       <span
+        id={`my-day-focus-${task.id}-title`}
         className={`my-day-focus-item__title${completed ? ' my-day-focus-item__title--completed' : ''}`}
       >
         {task.title}
       </span>
       {task.due_time && (
-        <span className="my-day-focus-item__time">
+        <span id={`my-day-focus-${task.id}-time`} className="my-day-focus-item__time">
           {formatDueTime(task.due_time)}
         </span>
       )}
       <button
+        id={`my-day-focus-${task.id}-remove-btn`}
         type="button"
         className="my-day-focus-item__remove-btn"
         onClick={() => onRemoveFromFocus(task.id)}
         aria-label={`Remove "${task.title}" from focus`}
       >
         <svg
+          id={`my-day-focus-${task.id}-remove-icon`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

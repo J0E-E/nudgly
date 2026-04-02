@@ -152,17 +152,17 @@ export function TasksScreen() {
         onCreatedForMeChange={setCreatedForMe}
       />
       {deleteMutation.isError && (
-        <div className="tasks-mutation-error" role="alert">
+        <div id="tasks-delete-error" className="tasks-mutation-error" role="alert">
           <p>Failed to delete task. Please try again.</p>
         </div>
       )}
       {toggleComplete.isError && (
-        <div className="tasks-mutation-error" role="alert">
+        <div id="tasks-toggle-error" className="tasks-mutation-error" role="alert">
           <p>Failed to update task status. Please try again.</p>
         </div>
       )}
       {updateMutation.isError && (
-        <div className="tasks-mutation-error" role="alert">
+        <div id="tasks-update-error" className="tasks-mutation-error" role="alert">
           <p>Failed to update task. Please try again.</p>
         </div>
       )}

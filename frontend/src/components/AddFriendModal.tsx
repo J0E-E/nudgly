@@ -85,6 +85,7 @@ export function AddFriendModal({ open, onClose }: AddFriendModalProps) {
 
   return (
     <dialog
+      id="add-friend-dialog"
       ref={dialogRef}
       className="add-friend-dialog"
       aria-labelledby="add-friend-title"
@@ -94,18 +95,18 @@ export function AddFriendModal({ open, onClose }: AddFriendModalProps) {
         Add Friend
       </h2>
       {success && (
-        <p className="add-friend-success" role="status">
+        <p id="add-friend-success" className="add-friend-success" role="status">
           {success}
         </p>
       )}
-      <form onSubmit={handleSubmit} noValidate>
+      <form id="add-friend-form" onSubmit={handleSubmit} noValidate>
         {error && (
-          <p className="add-friend-error" role="alert">
+          <p id="add-friend-error" className="add-friend-error" role="alert">
             {error}
           </p>
         )}
-        <div className="add-friend-field">
-          <label htmlFor="add-friend-input">Email or username</label>
+        <div id="add-friend-field" className="add-friend-field">
+          <label id="add-friend-label" htmlFor="add-friend-input">Email or username</label>
           <input
             ref={inputRef}
             id="add-friend-input"
@@ -116,8 +117,9 @@ export function AddFriendModal({ open, onClose }: AddFriendModalProps) {
             disabled={sendInvite.isPending}
           />
         </div>
-        <div className="add-friend-actions">
+        <div id="add-friend-actions" className="add-friend-actions">
           <button
+            id="add-friend-cancel-btn"
             type="button"
             className="add-friend-cancel"
             onClick={handleClose}
@@ -126,6 +128,7 @@ export function AddFriendModal({ open, onClose }: AddFriendModalProps) {
             Cancel
           </button>
           <button
+            id="add-friend-submit-btn"
             type="submit"
             className="add-friend-submit"
             disabled={sendInvite.isPending || !input.trim()}

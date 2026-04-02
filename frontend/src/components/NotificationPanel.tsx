@@ -66,11 +66,12 @@ export function NotificationPanel({ onClose, bellRef }: NotificationPanelProps) 
   }
 
   return (
-    <div className="notification-panel" ref={panelRef} role="region" aria-label="Notifications">
-      <div className="notification-panel-header">
-        <strong className="notification-panel-title">Notifications</strong>
+    <div id="notification-panel" className="notification-panel" ref={panelRef} role="region" aria-label="Notifications">
+      <div id="notification-panel-header" className="notification-panel-header">
+        <strong id="notification-panel-title" className="notification-panel-title">Notifications</strong>
         {unreadCount > 0 && (
           <button
+            id="notification-panel-mark-all-btn"
             type="button"
             className="notification-panel-mark-all"
             onClick={handleMarkAllClick}
@@ -81,6 +82,7 @@ export function NotificationPanel({ onClose, bellRef }: NotificationPanelProps) 
       </div>
       {showPermissionBtn && (
         <button
+          id="notification-panel-permission-btn"
           type="button"
           className="notification-panel-permission-btn"
           onClick={handleEnableBrowserNotifications}
@@ -89,22 +91,24 @@ export function NotificationPanel({ onClose, bellRef }: NotificationPanelProps) 
         </button>
       )}
       {notifications.length === 0 ? (
-        <p className="notification-panel-empty">No notifications yet</p>
+        <p id="notification-panel-empty" className="notification-panel-empty">No notifications yet</p>
       ) : (
-        <ul className="notification-panel-list">
+        <ul id="notification-panel-list" className="notification-panel-list">
           {notifications.map(n => (
             <li
               key={n.id}
+              id={`notification-${n.id}`}
               className={`notification-panel-item${n.read_at ? '' : ' notification-panel-item--unread'}`}
             >
               <button
+                id={`notification-${n.id}-btn`}
                 type="button"
                 className="notification-panel-item-btn"
                 onClick={() => handleItemClick(n)}
               >
-                <strong className="notification-panel-item-title">{n.title}</strong>
-                <span className="notification-panel-item-body">{n.body}</span>
-                <time className="notification-panel-item-time">
+                <strong id={`notification-${n.id}-title`} className="notification-panel-item-title">{n.title}</strong>
+                <span id={`notification-${n.id}-body`} className="notification-panel-item-body">{n.body}</span>
+                <time id={`notification-${n.id}-time`} className="notification-panel-item-time">
                   {formatRelativeTime(n.triggered_at)}
                 </time>
               </button>

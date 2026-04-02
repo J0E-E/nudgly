@@ -121,36 +121,38 @@ export function ReminderListItem({
       className={`reminder-list-item${expanded ? ' reminder-list-item--expanded' : ''}`}
     >
       <button
+        id={`reminder-${reminder.id}-content`}
         type="button"
         className="reminder-list-item-content"
         aria-expanded={expanded}
         aria-controls={`reminder-${reminder.id}-details`}
         onClick={() => setExpanded((prev) => !prev)}
       >
-        <div className="reminder-list-item-content-text">
+        <div id={`reminder-${reminder.id}-content-text`} className="reminder-list-item-content-text">
           <span
             id={`reminder-${reminder.id}-name`}
             className="reminder-list-item-name"
           >
             {reminder.name}
           </span>
-          <div className="reminder-list-item-meta">
-            <span className="reminder-list-item-badge reminder-list-item-badge--due">
+          <div id={`reminder-${reminder.id}-meta`} className="reminder-list-item-meta">
+            <span id={`reminder-${reminder.id}-due`} className="reminder-list-item-badge reminder-list-item-badge--due">
               {dueTimeStr}
             </span>
             {isSnoozed && (
-              <span className="reminder-list-item-badge reminder-list-item-badge--snoozed">
+              <span id={`reminder-${reminder.id}-snoozed-badge`} className="reminder-list-item-badge reminder-list-item-badge--snoozed">
                 Snoozed
               </span>
             )}
             {reminder.recurrence && (
-              <span className="reminder-list-item-badge reminder-list-item-badge--recur">
+              <span id={`reminder-${reminder.id}-recur-badge`} className="reminder-list-item-badge reminder-list-item-badge--recur">
                 {RECURRENCE_LABELS[reminder.recurrence]}
               </span>
             )}
           </div>
         </div>
         <svg
+          id={`reminder-${reminder.id}-chevron`}
           className="reminder-list-item-chevron"
           width="20"
           height="20"
@@ -174,7 +176,7 @@ export function ReminderListItem({
         aria-labelledby={`reminder-${reminder.id}-name`}
         aria-hidden={!expanded}
       >
-        <div className="reminder-list-item-details-inner">
+        <div id={`reminder-${reminder.id}-details-inner`} className="reminder-list-item-details-inner">
           <p className="reminder-list-item-detail-row">
             <span className="reminder-list-item-detail-label">Name</span>
             <span className="reminder-list-item-detail-full-name">{reminder.name}</span>
@@ -204,9 +206,9 @@ export function ReminderListItem({
             <span>{formatDateTime(reminder.created_at)}</span>
           </p>
           {instance && (
-            <div className="reminder-list-item-snooze-bar">
-              <span className="reminder-list-item-detail-label">Snooze</span>
-              <div className="reminder-list-item-snooze-presets">
+            <div id={`reminder-${reminder.id}-snooze-bar`} className="reminder-list-item-snooze-bar">
+              <span id={`reminder-${reminder.id}-snooze-label`} className="reminder-list-item-detail-label">Snooze</span>
+              <div id={`reminder-${reminder.id}-snooze-presets`} className="reminder-list-item-snooze-presets">
                 {SNOOZE_PRESETS.map((minutes) => (
                   <button
                     key={minutes}
@@ -222,7 +224,7 @@ export function ReminderListItem({
               </div>
             </div>
           )}
-          <div className="reminder-list-item-actions">
+          <div id={`reminder-${reminder.id}-actions`} className="reminder-list-item-actions">
             {instance && (
               <button
                 id={`reminder-${reminder.id}-clear-btn`}

@@ -18,8 +18,9 @@ export function formatRelativeTime(isoStr: string): string {
 
 export function MyDayReminderItem({ reminder }: MyDayReminderItemProps) {
   return (
-    <li className="my-day-reminder-item">
+    <li id={`my-day-reminder-${reminder.id}`} className="my-day-reminder-item">
       <svg
+        id={`my-day-reminder-${reminder.id}-icon`}
         className="my-day-reminder-item__icon"
         width="18"
         height="18"
@@ -34,9 +35,9 @@ export function MyDayReminderItem({ reminder }: MyDayReminderItemProps) {
         <circle cx="12" cy="12" r="10" />
         <polyline points="12 6 12 12 16 14" />
       </svg>
-      <div className="my-day-reminder-item__content">
-        <span className="my-day-reminder-item__name">{reminder.name}</span>
-        <span className="my-day-reminder-item__time">
+      <div id={`my-day-reminder-${reminder.id}-content`} className="my-day-reminder-item__content">
+        <span id={`my-day-reminder-${reminder.id}-name`} className="my-day-reminder-item__name">{reminder.name}</span>
+        <span id={`my-day-reminder-${reminder.id}-time`} className="my-day-reminder-item__time">
           {formatRelativeTime(reminder.next_trigger_at)}
         </span>
       </div>

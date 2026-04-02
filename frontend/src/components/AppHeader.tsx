@@ -40,10 +40,11 @@ export function AppHeader() {
       {isAuthenticated && (
         <nav id="app-header-nav" aria-label="Main navigation">
           <Link
+            id="app-header-nav-my-day"
             to="/my-day"
             className={`app-header-nav-link${isActive('/my-day') ? ' app-header-nav-link--active' : ''}`}
           >
-            <svg {...iconProps}>
+            <svg id="app-header-nav-my-day-icon" {...iconProps}>
               <circle cx="12" cy="12" r="5" />
               <line x1="12" y1="1" x2="12" y2="3" />
               <line x1="12" y1="21" x2="12" y2="23" />
@@ -54,23 +55,25 @@ export function AppHeader() {
               <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
-            <span className="app-header-nav-label">My Day</span>
+            <span id="app-header-nav-my-day-label" className="app-header-nav-label">My Day</span>
           </Link>
           <Link
+            id="app-header-nav-tasks"
             to="/tasks"
             className={`app-header-nav-link${isActive('/tasks') ? ' app-header-nav-link--active' : ''}`}
           >
-            <svg {...iconProps}>
+            <svg id="app-header-nav-tasks-icon" {...iconProps}>
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
-            <span className="app-header-nav-label">Tasks</span>
+            <span id="app-header-nav-tasks-label" className="app-header-nav-label">Tasks</span>
           </Link>
           <Link
+            id="app-header-nav-lists"
             to="/lists"
             className={`app-header-nav-link${isActive('/lists') ? ' app-header-nav-link--active' : ''}`}
           >
-            <svg {...iconProps}>
+            <svg id="app-header-nav-lists-icon" {...iconProps}>
               <line x1="8" y1="6" x2="21" y2="6" />
               <line x1="8" y1="12" x2="21" y2="12" />
               <line x1="8" y1="18" x2="21" y2="18" />
@@ -78,56 +81,60 @@ export function AppHeader() {
               <line x1="3" y1="12" x2="3.01" y2="12" />
               <line x1="3" y1="18" x2="3.01" y2="18" />
             </svg>
-            <span className="app-header-nav-label">Lists</span>
+            <span id="app-header-nav-lists-label" className="app-header-nav-label">Lists</span>
           </Link>
           <Link
+            id="app-header-nav-habits"
             to="/habits"
             className={`app-header-nav-link${isActive('/habits') ? ' app-header-nav-link--active' : ''}`}
           >
-            <svg {...iconProps}>
+            <svg id="app-header-nav-habits-icon" {...iconProps}>
               <path d="M17 1l4 4-4 4" />
               <path d="M3 11V9a4 4 0 0 1 4-4h14" />
               <path d="M7 23l-4-4 4-4" />
               <path d="M21 13v2a4 4 0 0 1-4 4H3" />
             </svg>
-            <span className="app-header-nav-label">Habits</span>
+            <span id="app-header-nav-habits-label" className="app-header-nav-label">Habits</span>
           </Link>
           <Link
+            id="app-header-nav-reminders"
             to="/reminders"
             className={`app-header-nav-link${isActive('/reminders') ? ' app-header-nav-link--active' : ''}`}
           >
-            <svg {...iconProps}>
+            <svg id="app-header-nav-reminders-icon" {...iconProps}>
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span className="app-header-nav-label">Reminders</span>
+            <span id="app-header-nav-reminders-label" className="app-header-nav-label">Reminders</span>
           </Link>
         </nav>
       )}
       {isAuthenticated && (
         <div id="app-header-actions">
           <NotificationBell />
-          <div className="app-header-hamburger">
+          <div id="app-header-hamburger" className="app-header-hamburger">
             <button
+              id="app-header-hamburger-btn"
               type="button"
               className="app-header-nav-link app-header-hamburger-btn"
               aria-label="Menu"
               aria-haspopup="true"
             >
-              <svg {...iconProps}>
+              <svg id="app-header-hamburger-icon" {...iconProps}>
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <line x1="3" y1="12" x2="21" y2="12" />
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
-              <span className="app-header-nav-label">Menu</span>
+              <span id="app-header-hamburger-label" className="app-header-nav-label">Menu</span>
             </button>
-            <div className="app-header-dropdown" role="menu">
+            <div id="app-header-dropdown" className="app-header-dropdown" role="menu">
               <Link
+                id="app-header-dropdown-friends"
                 to="/friends"
                 className={`app-header-dropdown-item${isActive('/friends') ? ' app-header-dropdown-item--active' : ''}`}
                 role="menuitem"
               >
-                <svg {...iconProps}>
+                <svg id="app-header-dropdown-friends-icon" {...iconProps}>
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -136,24 +143,26 @@ export function AppHeader() {
                 Friends
               </Link>
               <Link
+                id="app-header-dropdown-profile"
                 to="/profile"
                 className={`app-header-dropdown-item${isActive('/profile') ? ' app-header-dropdown-item--active' : ''}`}
                 role="menuitem"
                 aria-label={`Profile for ${user?.username ?? 'user'}`}
               >
-                <svg {...iconProps}>
+                <svg id="app-header-dropdown-profile-icon" {...iconProps}>
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
                 Profile
               </Link>
               <button
+                id="app-header-logout-btn"
                 type="button"
                 onClick={handleLogout}
                 className="app-header-dropdown-item"
                 role="menuitem"
               >
-                <svg {...iconProps}>
+                <svg id="app-header-logout-icon" {...iconProps}>
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />

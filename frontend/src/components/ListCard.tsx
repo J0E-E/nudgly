@@ -32,37 +32,39 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
   }, [menuOpen])
 
   return (
-    <li className="list-card">
+    <li id={`list-${list.id}`} className="list-card">
       <Link
+        id={`list-${list.id}-link`}
         to={`/lists/${list.id}`}
         className="list-card-link"
         aria-label={`Open list ${list.name}`}
       >
-        <div className="list-card-content">
-          <span className="list-card-name">{list.name}</span>
-          <div className="list-card-meta">
-            <span className="list-card-count">
+        <div id={`list-${list.id}-content`} className="list-card-content">
+          <span id={`list-${list.id}-name`} className="list-card-name">{list.name}</span>
+          <div id={`list-${list.id}-meta`} className="list-card-meta">
+            <span id={`list-${list.id}-count`} className="list-card-count">
               {list.task_count} {list.task_count === 1 ? 'task' : 'tasks'}
             </span>
             {list.category && (
-              <span className="list-card-badge list-card-category">
+              <span id={`list-${list.id}-category`} className="list-card-badge list-card-category">
                 {TASK_CATEGORY_LABELS[list.category as TaskCategory] ??
                   list.category}
               </span>
             )}
             {list.priority > 0 && (
-              <span className="list-card-badge list-card-priority">
+              <span id={`list-${list.id}-priority`} className="list-card-badge list-card-priority">
                 {TASK_PRIORITY_LABELS[list.priority]}
               </span>
             )}
             {list.tag && (
-              <span className="list-card-badge list-card-tag">{list.tag}</span>
+              <span id={`list-${list.id}-tag`} className="list-card-badge list-card-tag">{list.tag}</span>
             )}
           </div>
         </div>
       </Link>
-      <div className="list-card-menu-wrap" ref={menuRef}>
+      <div id={`list-${list.id}-menu-wrap`} className="list-card-menu-wrap" ref={menuRef}>
         <button
+          id={`list-${list.id}-menu-btn`}
           type="button"
           className="list-card-ellipsis"
           aria-label={`Actions for list ${list.name}`}
@@ -72,8 +74,9 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
           &#x22EE;
         </button>
         {menuOpen && (
-          <div className="list-card-dropdown" role="menu">
+          <div id={`list-${list.id}-dropdown`} className="list-card-dropdown" role="menu">
             <button
+              id={`list-${list.id}-edit-btn`}
               type="button"
               className="list-card-dropdown-item"
               role="menuitem"
@@ -85,6 +88,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
               Edit
             </button>
             <button
+              id={`list-${list.id}-delete-btn`}
               type="button"
               className="list-card-dropdown-item list-card-dropdown-item--danger"
               role="menuitem"

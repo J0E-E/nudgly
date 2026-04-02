@@ -10,7 +10,7 @@ export function PushNotificationRegistrar() {
 
   if (permissionDenied) {
     return (
-      <div style={{ padding: '8px 16px', background: '#fff3cd', color: '#856404', fontSize: '0.85rem', textAlign: 'center' }}>
+      <div id="push-notification-denied-banner" style={{ padding: '8px 16px', background: '#fff3cd', color: '#856404', fontSize: '0.85rem', textAlign: 'center' }}>
         Notifications are disabled. Enable them in your device settings to receive reminders.
       </div>
     )

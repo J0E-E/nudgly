@@ -22,6 +22,7 @@ export function PageCard({
         children
       ) : (
         <div
+          id={id ? `${id}-card` : undefined}
           className="page-card__card"
           style={
             cardPadding !== undefined

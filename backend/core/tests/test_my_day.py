@@ -170,8 +170,6 @@ class MyDayReminderTests(TestCase):
             user=self.user,
             standalone_reminder=sr,
             next_trigger_at=trigger_at,
-            retry_interval_minutes=5,
-            max_attempts=3,
         )
 
     def test_upcoming_reminders_window(self):
@@ -202,8 +200,6 @@ class MyDayReminderTests(TestCase):
             user=self.user,
             task=task,
             next_trigger_at=self.now + timedelta(hours=1),
-            retry_interval_minutes=5,
-            max_attempts=3,
         )
 
         resp = self.client.get(URL)

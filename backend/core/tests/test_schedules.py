@@ -13,9 +13,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.models import Habit, List, ReminderEvent, ReminderSchedule, Task
-from core.nudge import PRIORITY_NUDGE_CONFIG
 from core.schedules import (
-    HABIT_DEFAULT_PRIORITY,
     sync_habit_schedule,
     sync_list_schedule,
     sync_task_schedule,
@@ -58,17 +56,16 @@ class SyncTaskScheduleTests(TestCase):
         sync_task_schedule(task)
 
         schedule = ReminderSchedule.objects.get(task=task)
-        cfg = PRIORITY_NUDGE_CONFIG[3]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
         self.assertTrue(schedule.is_active)
         self.assertEqual(schedule.user, self.user)
 
-    def test_no_schedule_when_no_due_date(self):
+    def test_creates_schedule_when_no_due_date(self):
+        """Tasks without due dates now get age-based schedules."""
         task = _create_task(self.user)
         sync_task_schedule(task)
 
-        self.assertFalse(ReminderSchedule.objects.filter(task=task).exists())
+        schedule = ReminderSchedule.objects.get(task=task)
+        self.assertTrue(schedule.is_active)
 
     def test_deactivates_on_completed(self):
         task = _create_task(self.user, due_date=date.today() + timedelta(days=1))
@@ -89,14 +86,15 @@ class SyncTaskScheduleTests(TestCase):
         sync_task_schedule(task)
         self.assertFalse(ReminderSchedule.objects.get(task=task).is_active)
 
-    def test_deactivates_on_due_date_cleared(self):
+    def test_stays_active_when_due_date_cleared(self):
+        """Clearing due_date switches to age-based scheduling, not deactivation."""
         task = _create_task(self.user, due_date=date.today() + timedelta(days=1))
         sync_task_schedule(task)
 
         task.due_date = None
         task.save(update_fields=["due_date"])
         sync_task_schedule(task)
-        self.assertFalse(ReminderSchedule.objects.get(task=task).is_active)
+        self.assertTrue(ReminderSchedule.objects.get(task=task).is_active)
 
     def test_reactivates_on_pending_with_due_date(self):
         task = _create_task(self.user, due_date=date.today() + timedelta(days=1))
@@ -122,7 +120,7 @@ class SyncTaskScheduleTests(TestCase):
         self.assertTrue(schedule.is_active)
         self.assertEqual(schedule.attempt_count, 0)
 
-    def test_updates_retry_config_on_priority_change(self):
+    def test_schedule_persists_on_priority_change(self):
         task = _create_task(self.user, due_date=date.today() + timedelta(days=3), priority=1)
         sync_task_schedule(task)
 
@@ -131,9 +129,7 @@ class SyncTaskScheduleTests(TestCase):
         sync_task_schedule(task)
 
         schedule = ReminderSchedule.objects.get(task=task)
-        cfg = PRIORITY_NUDGE_CONFIG[3]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.is_active)
 
     def test_updates_next_trigger_on_due_date_change(self):
         task = _create_task(self.user, due_date=date.today() + timedelta(days=3))
@@ -223,7 +219,8 @@ class TaskCreateScheduleTests(TestCase):
             ReminderSchedule.objects.filter(task_id=task_id, is_active=True).exists()
         )
 
-    def test_post_task_without_due_date_no_schedule(self):
+    def test_post_task_without_due_date_creates_schedule(self):
+        """Tasks without due dates now get age-based schedules."""
         resp = self.client.post(
             "/api/tasks/",
             {"title": "Buy milk", "category": "work"},
@@ -231,7 +228,9 @@ class TaskCreateScheduleTests(TestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         task_id = resp.json()["id"]
-        self.assertFalse(ReminderSchedule.objects.filter(task_id=task_id).exists())
+        self.assertTrue(
+            ReminderSchedule.objects.filter(task_id=task_id, is_active=True).exists()
+        )
 
 
 class TaskPatchScheduleTests(TestCase):
@@ -240,14 +239,16 @@ class TaskPatchScheduleTests(TestCase):
         self.client = APIClient()
         _auth_client(self.client, "u@example.com", "Pass1234")
 
-    def test_patch_add_due_date_creates_schedule(self):
+    def test_patch_add_due_date_updates_schedule(self):
+        """Adding a due date to a task with an existing age-based schedule updates it."""
         resp = self.client.post(
             "/api/tasks/",
             {"title": "T", "category": "work"},
             format="json",
         )
         task_id = resp.json()["id"]
-        self.assertFalse(ReminderSchedule.objects.filter(task_id=task_id).exists())
+        # Already has an age-based schedule.
+        self.assertTrue(ReminderSchedule.objects.filter(task_id=task_id).exists())
 
         self.client.patch(
             f"/api/tasks/{task_id}/",
@@ -400,8 +401,6 @@ class TaskScheduleReadTests(TestCase):
         data = resp.json()
         self.assertIn("id", data)
         self.assertIn("next_trigger_at", data)
-        self.assertIn("retry_interval_minutes", data)
-        self.assertIn("max_attempts", data)
         self.assertIn("attempt_count", data)
         self.assertTrue(data["is_active"])
 
@@ -441,9 +440,6 @@ class SyncListScheduleTests(TestCase):
         sync_list_schedule(self.lst)
 
         schedule = ReminderSchedule.objects.get(list=self.lst)
-        cfg = PRIORITY_NUDGE_CONFIG[self.lst.priority]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
         self.assertTrue(schedule.is_active)
         self.assertEqual(schedule.user, self.user)
 
@@ -498,11 +494,9 @@ class SyncListScheduleTests(TestCase):
         sync_list_schedule(lst)
 
         schedule = ReminderSchedule.objects.get(list=lst)
-        cfg = PRIORITY_NUDGE_CONFIG[3]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.is_active)
 
-    def test_priority_change_updates_config(self):
+    def test_priority_change_keeps_schedule_active(self):
         _create_task(self.user, list=self.lst, status="pending")
         sync_list_schedule(self.lst)
 
@@ -511,9 +505,7 @@ class SyncListScheduleTests(TestCase):
         sync_list_schedule(self.lst)
 
         schedule = ReminderSchedule.objects.get(list=self.lst)
-        cfg = PRIORITY_NUDGE_CONFIG[3]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.is_active)
 
     def test_no_duplicate_schedules(self):
         _create_task(self.user, list=self.lst, status="pending")
@@ -593,7 +585,7 @@ class ListScheduleIntegrationTests(TestCase):
             ReminderSchedule.objects.filter(list=lst, is_active=True).exists()
         )
 
-    def test_list_patch_priority_updates_schedule(self):
+    def test_list_patch_priority_keeps_schedule_active(self):
         lst = _create_list(self.user, priority=1)
         _create_task(self.user, list=lst, status="pending")
         sync_list_schedule(lst)
@@ -604,9 +596,7 @@ class ListScheduleIntegrationTests(TestCase):
             format="json",
         )
         schedule = ReminderSchedule.objects.get(list=lst)
-        cfg = PRIORITY_NUDGE_CONFIG[3]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.is_active)
 
     def test_list_patch_archive_deactivates_schedule(self):
         lst = _create_list(self.user)
@@ -652,20 +642,26 @@ class SyncHabitScheduleTests(TestCase):
             self.assertTrue(s.persistent)
             self.assertEqual(s.user, self.user)
 
-    def test_no_schedule_when_no_reminder_times(self):
-        habit = _create_habit(self.user, reminder_times=[])
+    def test_auto_generates_schedules_when_no_reminder_times(self):
+        """Habits without reminder_times get auto-generated schedules based on frequency/target_count."""
+        habit = _create_habit(self.user, reminder_times=[], frequency="daily", target_count=2)
         sync_habit_schedule(habit)
-        self.assertFalse(ReminderSchedule.objects.filter(habit=habit).exists())
+        schedules = ReminderSchedule.objects.filter(habit=habit, is_active=True)
+        self.assertTrue(schedules.count() >= 1)
 
-    def test_deactivates_when_reminder_times_cleared(self):
-        habit = _create_habit(self.user, reminder_times=["09:00"])
+    def test_auto_schedules_replaced_by_explicit_times(self):
+        """When explicit reminder_times are set, auto-generated schedules are replaced."""
+        habit = _create_habit(self.user, reminder_times=[], frequency="daily", target_count=2)
         sync_habit_schedule(habit)
-        self.assertTrue(ReminderSchedule.objects.get(habit=habit).is_active)
+        auto_count = ReminderSchedule.objects.filter(habit=habit).count()
+        self.assertTrue(auto_count >= 1)
 
-        habit.reminder_times = []
+        habit.reminder_times = ["09:00"]
         habit.save(update_fields=["reminder_times"])
         sync_habit_schedule(habit)
-        self.assertFalse(ReminderSchedule.objects.get(habit=habit).is_active)
+        schedules = ReminderSchedule.objects.filter(habit=habit)
+        self.assertEqual(schedules.count(), 1)
+        self.assertEqual(schedules.first().recurrence_rule, "09:00")
 
     def test_removes_orphan_schedules(self):
         habit = _create_habit(self.user, reminder_times=["09:00", "12:00", "18:00"])
@@ -679,14 +675,12 @@ class SyncHabitScheduleTests(TestCase):
         self.assertEqual(schedules.count(), 1)
         self.assertEqual(schedules.first().recurrence_rule, "09:00")
 
-    def test_uses_default_priority_config(self):
+    def test_schedule_is_persistent(self):
         habit = _create_habit(self.user, reminder_times=["09:00"])
         sync_habit_schedule(habit)
 
         schedule = ReminderSchedule.objects.get(habit=habit)
-        cfg = PRIORITY_NUDGE_CONFIG[HABIT_DEFAULT_PRIORITY]
-        self.assertEqual(schedule.retry_interval_minutes, cfg["retry_interval_minutes"])
-        self.assertEqual(schedule.max_attempts, cfg["max_attempts"])
+        self.assertTrue(schedule.persistent)
 
     def test_next_trigger_in_user_timezone(self):
         habit = _create_habit(self.user, reminder_times=["09:00"])
@@ -699,23 +693,20 @@ class SyncHabitScheduleTests(TestCase):
         self.assertEqual(trigger_local.hour, 9)
         self.assertEqual(trigger_local.minute, 0)
 
-    def test_reactivates_on_reminder_times_restored(self):
-        habit = _create_habit(self.user, reminder_times=["09:00"])
+    def test_explicit_times_replace_auto_schedules(self):
+        habit = _create_habit(self.user, reminder_times=[], frequency="daily", target_count=3)
         sync_habit_schedule(habit)
+        auto_count = ReminderSchedule.objects.filter(habit=habit, is_active=True).count()
+        self.assertTrue(auto_count >= 1)
 
-        # Deactivate.
-        habit.reminder_times = []
-        habit.save(update_fields=["reminder_times"])
-        sync_habit_schedule(habit)
-
-        # Re-add the same time.
+        # Set explicit time — should replace auto-generated.
         habit.reminder_times = ["09:00"]
         habit.save(update_fields=["reminder_times"])
         sync_habit_schedule(habit)
 
-        # Should have a new active schedule (orphan was deleted, new one created).
         schedules = ReminderSchedule.objects.filter(habit=habit, is_active=True)
         self.assertEqual(schedules.count(), 1)
+        self.assertEqual(schedules.first().recurrence_rule, "09:00")
 
     def test_no_duplicate_schedules(self):
         habit = _create_habit(self.user, reminder_times=["09:00"])
@@ -750,14 +741,17 @@ class HabitScheduleIntegrationTests(TestCase):
             2,
         )
 
-    def test_post_habit_without_reminder_times_no_schedules(self):
+    def test_post_habit_without_reminder_times_creates_auto_schedules(self):
+        """Habits without reminder_times get auto-generated schedules."""
         resp = self.client.post(
             "/api/habits/",
             {"name": "Read", "frequency": "daily"},
             format="json",
         )
         habit_id = resp.json()["id"]
-        self.assertFalse(ReminderSchedule.objects.filter(habit_id=habit_id).exists())
+        self.assertTrue(
+            ReminderSchedule.objects.filter(habit_id=habit_id, is_active=True).exists()
+        )
 
     def test_patch_habit_reminder_times_syncs_schedules(self):
         resp = self.client.post(
@@ -821,11 +815,12 @@ class HabitScheduleIntegrationTests(TestCase):
         self.assertIn("next_reminder_at", resp.json()["results"][0])
         self.assertIsNotNone(resp.json()["results"][0]["next_reminder_at"])
 
-    def test_habit_without_reminders_next_reminder_at_null(self):
+    def test_habit_without_explicit_reminders_has_auto_next_reminder(self):
+        """Habits without explicit reminder_times get auto-generated schedules."""
         self.client.post(
             "/api/habits/",
-            {"name": "No reminders", "frequency": "daily"},
+            {"name": "No explicit reminders", "frequency": "daily"},
             format="json",
         )
         resp = self.client.get("/api/habits/")
-        self.assertIsNone(resp.json()["results"][0]["next_reminder_at"])
+        self.assertIsNotNone(resp.json()["results"][0]["next_reminder_at"])

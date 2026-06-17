@@ -380,8 +380,6 @@ class HabitReminderScheduleTests(TestCase):
             user=self.user,
             habit=self.habit,
             next_trigger_at=timezone.now(),
-            retry_interval_minutes=60,
-            max_attempts=5,
         )
         self.assertEqual(schedule.habit_id, self.habit.id)
         self.assertIsNone(schedule.task_id)
@@ -391,8 +389,6 @@ class HabitReminderScheduleTests(TestCase):
             user=self.user,
             habit=self.habit,
             next_trigger_at=timezone.now(),
-            retry_interval_minutes=60,
-            max_attempts=5,
         )
         self.habit.delete()
         self.assertEqual(ReminderSchedule.objects.count(), 0)

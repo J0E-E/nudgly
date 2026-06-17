@@ -142,8 +142,6 @@ class TaskScheduleView(APIView):
             {
                 "id": schedule.id,
                 "next_trigger_at": schedule.next_trigger_at.isoformat(),
-                "retry_interval_minutes": schedule.retry_interval_minutes,
-                "max_attempts": schedule.max_attempts,
                 "attempt_count": schedule.attempt_count,
                 "is_active": schedule.is_active,
                 "created_at": schedule.created_at.isoformat(),

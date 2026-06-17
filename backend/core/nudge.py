@@ -3,6 +3,10 @@ Celery tasks for the nudge engine.
 
 process_due_reminders runs every 60s (via Beat) and processes all
 ReminderSchedules whose next_trigger_at has passed.
+
+Intervals are computed dynamically at trigger time based on context
+(due-date proximity, task age, list age).  There is no max_attempts —
+schedules stay active until the item is completed, cancelled, or muted.
 """
 
 import logging
@@ -19,6 +23,16 @@ from django.utils import timezone
 from core.in_app_notifications.views import notification_payload
 from core.models import ReminderEvent, ReminderSchedule
 from core.notifications import get_notification_sender
+from core.nudge_intervals import (
+    compute_list_interval,
+    compute_task_due_date_interval,
+    compute_task_no_due_date_interval,
+    get_habit_tier,
+    get_list_tier,
+    get_task_due_date_tier,
+    get_task_no_due_date_tier,
+    task_due_datetime,
+)
 from core.nudge_templates import (
     select_habit_nudge,
     select_list_nudge,
@@ -27,14 +41,6 @@ from core.nudge_templates import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Priority-to-interval mapping per app-idea §9.1.
-PRIORITY_NUDGE_CONFIG = {
-    0: {"retry_interval_minutes": 120, "max_attempts": 5},
-    1: {"retry_interval_minutes": 75, "max_attempts": 9},
-    2: {"retry_interval_minutes": 45, "max_attempts": 12},
-    3: {"retry_interval_minutes": 25, "max_attempts": 18},
-}
 
 # Per-user rate limiting: max nudge notifications per hour.
 MAX_NUDGES_PER_HOUR = 5
@@ -111,11 +117,29 @@ def _build_list_nudge_context(lst, user_tz_name):
     return pending_count, due_today_count
 
 
+def _compute_dynamic_interval(schedule, now):
+    """Compute the next nudge interval (minutes) for a task or list schedule."""
+    if schedule.task:
+        task = schedule.task
+        user_tz = schedule.user.timezone or "UTC"
+        if task.due_date:
+            due_dt = task_due_datetime(task.due_date, task.due_time, user_tz)
+            return compute_task_due_date_interval(task.priority, due_dt, now)
+        else:
+            return compute_task_no_due_date_interval(task.priority, task.created_at, now)
+    elif schedule.list:
+        return compute_list_interval(
+            schedule.list.priority, schedule.created_at, now
+        )
+    # Fallback
+    return 60
+
+
 @shared_task(name="core.nudge.process_due_reminders")
 def process_due_reminders():
     """
     Worker loop: find all due schedules, create idempotent events,
-    send notifications, and advance or deactivate schedules.
+    send notifications, and advance schedules.
     """
     now = timezone.now()
     due_schedules = list(
@@ -158,12 +182,18 @@ def process_due_reminders():
 
         if not muted and not rate_limited:
             if schedule.task:
+                task = schedule.task
+                user_tz = schedule.user.timezone or "UTC"
+                if task.due_date:
+                    due_dt = task_due_datetime(task.due_date, task.due_time, user_tz)
+                    tier = get_task_due_date_tier(due_dt, now, task.priority)
+                else:
+                    tier = get_task_no_due_date_tier(task.created_at, now, task.priority)
                 title, body = select_task_nudge(
-                    priority=schedule.task.priority,
-                    attempt=attempt,
-                    max_attempts=schedule.max_attempts,
-                    task_title=schedule.task.title,
-                    stack_count=schedule.task.stack_count,
+                    priority=task.priority,
+                    task_title=task.title,
+                    tier=tier,
+                    stack_count=task.stack_count,
                 )
                 data = {
                     "schedule_id": str(schedule.id),
@@ -171,10 +201,11 @@ def process_due_reminders():
                     "attempt": str(attempt),
                 }
             elif schedule.habit:
+                user_tz = schedule.user.timezone or "UTC"
+                tier = get_habit_tier(schedule.habit.frequency, user_tz, now)
                 title, body = select_habit_nudge(
-                    attempt=attempt,
-                    max_attempts=schedule.max_attempts,
                     habit_name=schedule.habit.name,
+                    tier=tier,
                     streak_count=schedule.habit.streak_count,
                 )
                 data = {
@@ -186,12 +217,12 @@ def process_due_reminders():
                 pending_count, due_today_count = _build_list_nudge_context(
                     schedule.list, schedule.user.timezone
                 )
+                tier = get_list_tier(schedule.created_at, now, schedule.list.priority)
                 title, body = select_list_nudge(
-                    attempt=attempt,
-                    max_attempts=schedule.max_attempts,
                     list_name=schedule.list.name,
                     pending_count=pending_count,
                     due_today_count=due_today_count,
+                    tier=tier,
                 )
                 data = {
                     "schedule_id": str(schedule.id),
@@ -245,7 +276,7 @@ def process_due_reminders():
 
                 notify_linked_friends(schedule.task, "overdue")
 
-        # Advance or deactivate.
+        # ── Advance or deactivate ───────────────────────────────────────
         if schedule.habit and schedule.recurrence_rule:
             # Habit schedules: advance to tomorrow at the same time, reset attempts.
             from core.schedules import compute_next_habit_trigger
@@ -276,26 +307,25 @@ def process_due_reminders():
                 schedule.attempt_count = attempt
                 schedule.save(update_fields=["is_active", "attempt_count"])
         else:
+            # Tasks and lists: compute interval dynamically.
             priority = _get_priority(schedule)
+            interval = _compute_dynamic_interval(schedule, now)
 
             if rate_limited and not muted:
                 # Rate-limited: defer without consuming an attempt.
                 jitter = _get_jitter(priority)
                 schedule.next_trigger_at = now + timedelta(
-                    minutes=schedule.retry_interval_minutes + jitter
+                    minutes=interval + jitter
                 )
                 schedule.save(update_fields=["next_trigger_at"])
-            elif schedule.persistent and attempt < schedule.max_attempts:
+            else:
+                # Always advance — never deactivate based on attempt count.
                 jitter = _get_jitter(priority)
                 schedule.next_trigger_at = now + timedelta(
-                    minutes=schedule.retry_interval_minutes + jitter
+                    minutes=interval + jitter
                 )
                 schedule.attempt_count = attempt
                 schedule.save(update_fields=["next_trigger_at", "attempt_count"])
-            else:
-                schedule.is_active = False
-                schedule.attempt_count = attempt
-                schedule.save(update_fields=["is_active", "attempt_count"])
 
         processed += 1
 

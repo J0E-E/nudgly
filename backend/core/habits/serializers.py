@@ -136,7 +136,8 @@ class HabitPatchSerializer(serializers.Serializer):
             setattr(instance, field, value)
         instance.save(update_fields=list(validated_data.keys()))
 
-        if "reminder_times" in validated_data:
+        schedule_fields = {"reminder_times", "frequency", "target_count"}
+        if schedule_fields & set(validated_data.keys()):
             from core.schedules import sync_habit_schedule
 
             sync_habit_schedule(instance)

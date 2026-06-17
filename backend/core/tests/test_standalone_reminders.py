@@ -440,7 +440,6 @@ class ScheduleSyncTests(TestCase):
         schedule = ReminderSchedule.objects.get(standalone_reminder=r)
         self.assertTrue(schedule.is_active)
         self.assertFalse(schedule.persistent)
-        self.assertEqual(schedule.max_attempts, 1)
 
     def test_sync_recurring_creates_schedule(self):
         from core.schedules import sync_standalone_reminder_schedule

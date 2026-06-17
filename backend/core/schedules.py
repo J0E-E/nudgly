@@ -3,6 +3,11 @@ Schedule lifecycle management for tasks, lists, habits, and standalone reminders
 
 sync_task_schedule() auto-creates, updates, or deactivates a
 ReminderSchedule whenever a task's due_date, priority, or status changes.
+Tasks without a due_date now also get a schedule (age-based nudging).
+
+sync_habit_schedule() auto-creates, updates, or deactivates
+ReminderSchedules for a habit.  When no explicit reminder_times are set,
+auto-generated times are computed from frequency + target_count.
 
 sync_list_schedule() auto-creates, updates, or deactivates a
 ReminderSchedule for a list based on its pending-task count and archive state.
@@ -18,10 +23,7 @@ from zoneinfo import ZoneInfo
 from django.utils import timezone
 
 from core.models import ReminderSchedule, TaskStatus
-from core.nudge import PRIORITY_NUDGE_CONFIG
-
-# Default priority for habit reminders (no priority field on Habit model).
-HABIT_DEFAULT_PRIORITY = 2
+from core.nudge_intervals import AGE_CONFIG, compute_auto_habit_times
 
 
 def _compute_next_trigger(due_date, user_tz_name, due_time=None):
@@ -37,34 +39,43 @@ def _compute_next_trigger(due_date, user_tz_name, due_time=None):
     return utc_dt if utc_dt > now else now
 
 
+def _compute_grace_end(task):
+    """Return a UTC-aware datetime for the end of the grace period for a no-due-date task."""
+    cfg = AGE_CONFIG[task.priority]
+    return task.created_at + timedelta(hours=cfg["grace_hours"])
+
+
 def sync_task_schedule(task):
     """Create, update, or deactivate the ReminderSchedule for *task*."""
     schedule = ReminderSchedule.objects.filter(task=task).first()
 
-    # Deactivate when task is done or has no due_date.
-    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED) or task.due_date is None:
+    # Deactivate when task is done.
+    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
         if schedule and schedule.is_active:
             schedule.is_active = False
             schedule.save(update_fields=["is_active"])
         return
 
-    # Active task with a due_date — create or update schedule.
-    cfg = PRIORITY_NUDGE_CONFIG[task.priority]
-    next_trigger = _compute_next_trigger(task.due_date, task.user.timezone, task.due_time)
+    # Active task — create or update schedule.
+    user_tz = task.user.timezone or "UTC"
+
+    if task.due_date:
+        next_trigger = _compute_next_trigger(task.due_date, user_tz, task.due_time)
+    else:
+        # No due date: schedule to fire after grace period ends.
+        grace_end = _compute_grace_end(task)
+        now = timezone.now()
+        next_trigger = grace_end if grace_end > now else now
 
     if schedule is None:
         ReminderSchedule.objects.create(
             user=task.user,
             task=task,
             next_trigger_at=next_trigger,
-            retry_interval_minutes=cfg["retry_interval_minutes"],
-            max_attempts=cfg["max_attempts"],
         )
     else:
         schedule.next_trigger_at = next_trigger
-        schedule.retry_interval_minutes = cfg["retry_interval_minutes"]
-        schedule.max_attempts = cfg["max_attempts"]
-        update_fields = ["next_trigger_at", "retry_interval_minutes", "max_attempts"]
+        update_fields = ["next_trigger_at"]
         # Reactivation: reset attempt counter.
         if not schedule.is_active:
             schedule.is_active = True
@@ -111,6 +122,9 @@ def sync_habit_schedule(habit):
 
     One schedule per reminder_time. Each fires daily at that time.
     The recurrence_rule field stores the HH:MM string for worker advancement.
+
+    When no explicit reminder_times are set, auto-generated times are
+    computed from the habit's frequency and target_count.
     """
     existing = {
         s.recurrence_rule: s
@@ -118,14 +132,10 @@ def sync_habit_schedule(habit):
     }
     reminder_times = habit.reminder_times or []
     user_tz = habit.user.timezone or "UTC"
-    cfg = PRIORITY_NUDGE_CONFIG[HABIT_DEFAULT_PRIORITY]
 
-    # Deactivate all if no reminder times.
+    # If no explicit reminder_times, auto-generate based on frequency/target_count.
     if not reminder_times:
-        ReminderSchedule.objects.filter(habit=habit, is_active=True).update(
-            is_active=False
-        )
-        return
+        reminder_times = compute_auto_habit_times(habit.frequency, habit.target_count)
 
     seen_times = set()
     for t in reminder_times:
@@ -139,8 +149,6 @@ def sync_habit_schedule(habit):
                 habit=habit,
                 recurrence_rule=t,
                 next_trigger_at=next_trigger,
-                retry_interval_minutes=cfg["retry_interval_minutes"],
-                max_attempts=cfg["max_attempts"],
                 persistent=True,
             )
         else:
@@ -150,12 +158,6 @@ def sync_habit_schedule(habit):
                 schedule.attempt_count = 0
                 schedule.next_trigger_at = next_trigger
                 update_fields += ["is_active", "attempt_count", "next_trigger_at"]
-            if schedule.retry_interval_minutes != cfg["retry_interval_minutes"]:
-                schedule.retry_interval_minutes = cfg["retry_interval_minutes"]
-                update_fields.append("retry_interval_minutes")
-            if schedule.max_attempts != cfg["max_attempts"]:
-                schedule.max_attempts = cfg["max_attempts"]
-                update_fields.append("max_attempts")
             if update_fields:
                 schedule.save(update_fields=update_fields)
 
@@ -181,7 +183,6 @@ def sync_list_schedule(lst):
         return
 
     # Active list with pending tasks — create or update schedule.
-    cfg = PRIORITY_NUDGE_CONFIG[lst.priority]
     next_trigger = _compute_next_trigger_no_due_date(lst.user.timezone)
 
     if schedule is None:
@@ -189,39 +190,18 @@ def sync_list_schedule(lst):
             user=lst.user,
             list=lst,
             next_trigger_at=next_trigger,
-            retry_interval_minutes=cfg["retry_interval_minutes"],
-            max_attempts=cfg["max_attempts"],
         )
     elif not schedule.is_active:
-        # Reactivation: reset trigger, config, and attempt counter.
+        # Reactivation: reset trigger and attempt counter.
         schedule.is_active = True
         schedule.attempt_count = 0
         schedule.next_trigger_at = next_trigger
-        schedule.retry_interval_minutes = cfg["retry_interval_minutes"]
-        schedule.max_attempts = cfg["max_attempts"]
         schedule.save(
-            update_fields=[
-                "is_active",
-                "attempt_count",
-                "next_trigger_at",
-                "retry_interval_minutes",
-                "max_attempts",
-            ]
+            update_fields=["is_active", "attempt_count", "next_trigger_at"]
         )
-    elif (
-        schedule.retry_interval_minutes != cfg["retry_interval_minutes"]
-        or schedule.max_attempts != cfg["max_attempts"]
-    ):
-        # Priority changed — update config but don't reset the in-flight trigger.
-        schedule.retry_interval_minutes = cfg["retry_interval_minutes"]
-        schedule.max_attempts = cfg["max_attempts"]
-        schedule.save(update_fields=["retry_interval_minutes", "max_attempts"])
 
 
 # ── Standalone reminder scheduling ─────────────────────────────────────
-
-# Standalone reminders use priority 0 config (gentle, single attempt).
-STANDALONE_REMINDER_PRIORITY = 0
 
 
 def compute_next_standalone_trigger(
@@ -320,18 +300,12 @@ def sync_standalone_reminder_schedule(reminder):
             user=reminder.user,
             standalone_reminder=reminder,
             next_trigger_at=next_trigger,
-            retry_interval_minutes=0,
-            max_attempts=1,
             persistent=False,
         )
     else:
         schedule.next_trigger_at = next_trigger
-        schedule.retry_interval_minutes = 0
-        schedule.max_attempts = 1
         schedule.persistent = False
-        update_fields = [
-            "next_trigger_at", "retry_interval_minutes", "max_attempts", "persistent",
-        ]
+        update_fields = ["next_trigger_at", "persistent"]
         if not schedule.is_active:
             schedule.is_active = True
             schedule.attempt_count = 0

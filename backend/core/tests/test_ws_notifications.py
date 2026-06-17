@@ -119,8 +119,6 @@ class NudgeEngineChannelLayerTests(TransactionTestCase):
             user=self.user,
             task=self.task,
             next_trigger_at=timezone.now() - timedelta(minutes=5),
-            retry_interval_minutes=60,
-            max_attempts=10,
         )
 
     @patch("core.nudge.get_notification_sender")

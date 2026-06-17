@@ -24,6 +24,7 @@ interface TaskFormModalProps {
   defaultCategory?: string
   defaultTag?: string
   defaultPriority?: number
+  defaultFocusDate?: string | null
 }
 
 interface FormValues {
@@ -99,6 +100,7 @@ export function TaskFormModal({
   defaultCategory,
   defaultTag,
   defaultPriority,
+  defaultFocusDate,
 }: TaskFormModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const triggerRef = useRef<Element | null>(null)
@@ -184,6 +186,7 @@ export function TaskFormModal({
         const createPayload: TaskCreatePayload = {
           ...common,
           ...(listId != null ? { list_id: listId } : {}),
+          ...(defaultFocusDate ? { focus_date: defaultFocusDate } : {}),
           ...(form.linkedFriendIds.length > 0
             ? { linked_friend_ids: form.linkedFriendIds }
             : {}),

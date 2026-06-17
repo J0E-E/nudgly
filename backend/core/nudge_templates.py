@@ -2,27 +2,13 @@
 Nudge message templates and selection logic.
 
 Templates are organised by priority (0-3) and escalation tier (early/mid/late).
-The worker selects a random template after determining the tier from the
-attempt-to-max-attempts ratio.
+The worker computes the tier from context (due-date proximity, task age, habit
+period remaining) and passes it to the selection functions.
 """
 
 import random
 
-# ── Escalation tiers ─────────────────────────────────────────────────────
-
-EARLY = "early"
-MID = "mid"
-LATE = "late"
-
-
-def get_escalation_tier(attempt: int, max_attempts: int) -> str:
-    """Return escalation tier based on attempt progress through max_attempts."""
-    ratio = attempt / max_attempts
-    if ratio <= 0.33:
-        return EARLY
-    if ratio <= 0.66:
-        return MID
-    return LATE
+from core.nudge_intervals import EARLY, LATE, MID
 
 
 # ── Task nudge templates ─────────────────────────────────────────────────
@@ -210,13 +196,11 @@ HABIT_TITLES: list[str] = ["Habit time", "Stay consistent", "Daily habit"]
 
 def select_task_nudge(
     priority: int,
-    attempt: int,
-    max_attempts: int,
     task_title: str,
+    tier: str,
     stack_count: int = 0,
 ) -> tuple[str, str]:
     """Return (title, body) for a task nudge notification."""
-    tier = get_escalation_tier(attempt, max_attempts)
     # Stacked recurring tasks escalate faster.
     if stack_count >= 2:
         tier = LATE
@@ -231,14 +215,12 @@ def select_task_nudge(
 
 
 def select_list_nudge(
-    attempt: int,
-    max_attempts: int,
     list_name: str,
     pending_count: int,
     due_today_count: int,
+    tier: str,
 ) -> tuple[str, str]:
     """Return (title, body) for a list nudge notification."""
-    tier = get_escalation_tier(attempt, max_attempts)
     if due_today_count > 0:
         templates = LIST_DUE_TODAY_TEMPLATES[tier]
         body = random.choice(templates).format(
@@ -284,13 +266,11 @@ def select_standalone_reminder_nudge(reminder_name: str) -> tuple[str, str]:
 
 
 def select_habit_nudge(
-    attempt: int,
-    max_attempts: int,
     habit_name: str,
+    tier: str,
     streak_count: int = 0,
 ) -> tuple[str, str]:
     """Return (title, body) for a habit nudge notification."""
-    tier = get_escalation_tier(attempt, max_attempts)
     if streak_count > 0:
         templates = HABIT_STREAK_TEMPLATES[tier]
         body = random.choice(templates).format(

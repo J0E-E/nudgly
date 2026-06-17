@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { useTaskList, useUpdateTask } from '../hooks/useTasks'
 import { TaskStatus } from '../types/task'
+import { TaskFormModal } from './TaskFormModal'
 import './FocusPickerDialog.css'
 
 const FOCUS_LIMIT = 5
@@ -19,6 +20,7 @@ export function FocusPickerDialog({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const triggerRef = useRef<Element | null>(null)
   const [searchText, setSearchText] = useState('')
+  const [taskFormOpen, setTaskFormOpen] = useState(false)
 
   const { data: taskData, isLoading } = useTaskList(TaskStatus.PENDING)
   const updateTask = useUpdateTask()
@@ -76,6 +78,27 @@ export function FocusPickerDialog({
         <span id="focus-picker-dialog-count" className="focus-picker-dialog__count">
           {focusCount}/{FOCUS_LIMIT}
         </span>
+        <button
+          id="focus-picker-dialog-add-task-btn"
+          type="button"
+          className="focus-picker-dialog__add-task-btn"
+          onClick={() => setTaskFormOpen(true)}
+          aria-label="Create new task"
+        >
+          <svg
+            id="focus-picker-dialog-add-task-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <line id="focus-picker-dialog-add-task-line-v" x1="12" y1="5" x2="12" y2="19" />
+            <line id="focus-picker-dialog-add-task-line-h" x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
         <button
           id="focus-picker-dialog-close-btn"
           type="button"
@@ -141,6 +164,12 @@ export function FocusPickerDialog({
           })}
         </ul>
       )}
+      <TaskFormModal
+        open={taskFormOpen}
+        mode="create"
+        onClose={() => setTaskFormOpen(false)}
+        defaultFocusDate={new Date().toISOString().split('T')[0]}
+      />
     </dialog>
   )
 }

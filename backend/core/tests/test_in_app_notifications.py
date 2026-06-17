@@ -49,8 +49,6 @@ def _create_task(user, **kwargs):
 def _create_schedule(user, task, **kwargs):
     defaults = {
         "next_trigger_at": timezone.now() - timedelta(minutes=5),
-        "retry_interval_minutes": 60,
-        "max_attempts": 10,
     }
     defaults.update(kwargs)
     return ReminderSchedule.objects.create(user=user, task=task, **defaults)

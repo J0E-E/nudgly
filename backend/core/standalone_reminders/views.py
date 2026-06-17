@@ -147,8 +147,6 @@ class ReminderInstanceSnoozeView(APIView):
             defaults={
                 "user": reminder.user,
                 "next_trigger_at": snooze_target,
-                "retry_interval_minutes": 0,
-                "max_attempts": 1,
                 "persistent": False,
                 "is_active": True,
                 "attempt_count": 0,

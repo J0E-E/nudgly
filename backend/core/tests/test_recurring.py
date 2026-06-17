@@ -312,23 +312,23 @@ class RecurringValidationTests(TestCase):
 class StackedNudgeEscalationTests(TestCase):
     def test_stacked_task_forces_late_tier(self):
         _, body = select_task_nudge(
-            priority=0, attempt=1, max_attempts=10,
-            task_title="Stacked task", stack_count=2,
+            priority=0, task_title="Stacked task",
+            tier="early", stack_count=2,
         )
         self.assertIn("(x3)", body)
 
     def test_stack_1_forces_mid_tier(self):
-        # Attempt 1/10 would normally be early, but stack_count=1 pushes to mid.
+        # tier=early with stack_count=1 pushes to mid.
         _, body = select_task_nudge(
-            priority=0, attempt=1, max_attempts=10,
-            task_title="Once stacked", stack_count=1,
+            priority=0, task_title="Once stacked",
+            tier="early", stack_count=1,
         )
         self.assertIn("(x2)", body)
 
     def test_no_stack_no_indicator(self):
         _, body = select_task_nudge(
-            priority=0, attempt=1, max_attempts=10,
-            task_title="Normal task", stack_count=0,
+            priority=0, task_title="Normal task",
+            tier="early", stack_count=0,
         )
         self.assertNotIn("(x", body)
 

@@ -92,6 +92,7 @@ export interface TaskCreatePayload {
   status?: TaskStatus
   muted_until?: string | null
   list_id?: number | null
+  focus_date?: string | null
   created_for_user_id?: number | null
   linked_friend_ids?: number[]
 }

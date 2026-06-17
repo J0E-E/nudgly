@@ -7,11 +7,14 @@
   max-width: 440px;
   width: 90%;
   max-height: 70vh;
-  display: flex;
   flex-direction: column;
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-modal);
+}
+
+.focus-picker-dialog[open] {
+  display: flex;
 }
 
 .focus-picker-dialog::backdrop {
@@ -40,6 +43,34 @@
   padding: 2px 10px;
   background: var(--color-surface-alt);
   border-radius: var(--radius-pill);
+}
+
+.focus-picker-dialog__add-task-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.focus-picker-dialog__add-task-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.focus-picker-dialog__add-task-btn:hover {
+  color: var(--color-accent);
+}
+
+.focus-picker-dialog__add-task-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .focus-picker-dialog__close-btn {
